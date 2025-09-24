@@ -26,6 +26,12 @@ export default function PlayerScreen() {
     if (song.audioUrl) {
       audioRef.current = new Audio(song.audioUrl);
       audioRef.current.preload = 'metadata';
+      audioRef.current.volume = volume; // Set initial volume
+      
+      // Reset states for new track
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setIsLoading(true);
       
       // Audio event listeners
       const audio = audioRef.current;
@@ -34,27 +40,47 @@ export default function PlayerScreen() {
       const updateDuration = () => setDuration(audio.duration);
       const handleLoadStart = () => setIsLoading(true);
       const handleCanPlay = () => setIsLoading(false);
+      const handlePlay = () => setIsPlaying(true);
+      const handlePause = () => setIsPlaying(false);
       const handleEnded = () => {
         setIsPlaying(false);
         setCurrentTime(0);
+      };
+      const handleError = () => {
+        setIsLoading(false);
+        setIsPlaying(false);
+        alert('Greška pri učitavanju audio fajla. Molimo pokušajte ponovo.');
       };
       
       audio.addEventListener('timeupdate', updateTime);
       audio.addEventListener('loadedmetadata', updateDuration);
       audio.addEventListener('loadstart', handleLoadStart);
       audio.addEventListener('canplay', handleCanPlay);
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('pause', handlePause);
       audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
       
       return () => {
         audio.removeEventListener('timeupdate', updateTime);
         audio.removeEventListener('loadedmetadata', updateDuration);
         audio.removeEventListener('loadstart', handleLoadStart);
         audio.removeEventListener('canplay', handleCanPlay);
+        audio.removeEventListener('play', handlePlay);
+        audio.removeEventListener('pause', handlePause);
         audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
         audio.pause();
       };
     }
-  }, [song.audioUrl]);
+  }, [song.audioUrl, volume]);
+
+  // Sync volume changes to audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const togglePlayPause = async () => {
     if (!audioRef.current || !song.audioUrl) return;
@@ -86,9 +112,9 @@ export default function PlayerScreen() {
   const handleSeek = (event) => {
     if (!audioRef.current || !duration) return;
     
-    const rect = event.target.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
-    const percentage = clickX / rect.width;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * duration;
     
     audioRef.current.currentTime = newTime;
