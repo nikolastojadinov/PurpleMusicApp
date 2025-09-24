@@ -17,7 +17,16 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.28",
-    "@types/react-dom": "^18.0.11"
+    "@types/react-dom": "^18.0.11",
+    "css-select": "^5.2.2",
+    "nth-check": "^2.1.1",
+    "svgo": "^3.3.2"
+  },
+  "overrides": {
+    "nth-check": "^2.1.1",
+    "css-select": "^5.2.2",
+    "svgo": "^3.3.2",
+    "postcss": "^8.4.35"
   },
   "browserslist": {
     "production": [
