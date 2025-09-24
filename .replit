@@ -33,3 +33,11 @@ externalPort = 80
 [[ports]]
 localPort = 34767
 externalPort = 3000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npx", "serve", "-s", "build", "-p"]
+build = ["npm", "run", "build"]
+
+[nix]
+channel = "stable-25_05"
