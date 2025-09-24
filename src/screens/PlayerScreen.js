@@ -73,7 +73,7 @@ export default function PlayerScreen() {
         audio.pause();
       };
     }
-  }, [song.audioUrl, volume]);
+  }, [song.audioUrl]);
 
   // Sync volume changes to audio element
   useEffect(() => {
