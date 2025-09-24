@@ -24,7 +24,7 @@ export default function PlayerScreen({ route }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = (currentTime / duration) * 100;
+  const progressPercentage = Math.min(Math.max((currentTime / duration) * 100, 0), 100);
 
   return (
     <SafeAreaView style={styles.container}>
