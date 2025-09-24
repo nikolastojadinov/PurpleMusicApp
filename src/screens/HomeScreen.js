@@ -2,71 +2,55 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import SongItem from '../components/SongItem';
 
-// Mock data with sample audio files
+// Mock data for demonstration
 const mockSongs = [
   {
     id: '1',
-    title: 'Sample Track 1',
-    artist: 'Demo Artist',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
     cover: '🎵',
-    audioUrl: 'https://www.soundjay.com/misc/sounds-mp3/beep-07a.mp3',
-    duration: 10
   },
   {
     id: '2',
-    title: 'Sample Track 2',
-    artist: 'Demo Band',
+    title: 'Watermelon Sugar',
+    artist: 'Harry Styles',
     cover: '🎶',
-    audioUrl: 'https://www.soundjay.com/misc/sounds-mp3/beep-10a.mp3',
-    duration: 8
   },
   {
     id: '3',
-    title: 'Sample Track 3',
-    artist: 'Test Artist',
+    title: 'Levitating',
+    artist: 'Dua Lipa',
     cover: '🎤',
-    audioUrl: 'https://www.soundjay.com/misc/sounds-mp3/beep-28a.mp3',
-    duration: 12
   },
   {
     id: '4',
-    title: 'Sample Track 4',
-    artist: 'Music Demo',
+    title: 'Good 4 U',
+    artist: 'Olivia Rodrigo',
     cover: '🎸',
-    audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/Tada.wav',
-    duration: 15
   },
   {
     id: '5',
-    title: 'Sample Track 5',
-    artist: 'Audio Test',
+    title: 'Stay',
+    artist: 'The Kid LAROI & Justin Bieber',
     cover: '🎧',
-    audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav',
-    duration: 20
   },
   {
     id: '6',
-    title: 'Sample Track 6',
-    artist: 'Sound Demo',
+    title: 'Industry Baby',
+    artist: 'Lil Nas X & Jack Harlow',
     cover: '🎼',
-    audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/PinkPanther30.wav',
-    duration: 30
   },
   {
     id: '7',
-    title: 'Sample Track 7',
-    artist: 'Test Music',
+    title: 'Bad Habits',
+    artist: 'Ed Sheeran',
     cover: '🎺',
-    audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/Fanfare60.wav',
-    duration: 25
   },
   {
     id: '8',
-    title: 'Sample Track 8',
-    artist: 'Demo Songs',
+    title: 'Heat Waves',
+    artist: 'Glass Animals',
     cover: '🎹',
-    audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav',
-    duration: 28
   },
 ];
 
