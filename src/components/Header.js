@@ -1,4 +1,5 @@
 import React from 'react';
+import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
   return (
@@ -9,9 +10,7 @@ export default function Header() {
       </div>
       
       <div className="header-profile">
-        <div className="profile-icon">
-          <span>👤</span>
-        </div>
+        <ProfileDropdown />
       </div>
     </header>
   );
