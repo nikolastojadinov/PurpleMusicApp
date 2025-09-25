@@ -25,20 +25,22 @@ export default function CompleteMusicPlayer() {
 
   // Handle vertical dragging
   const handleMouseDown = (e) => {
-    if (e.target.classList.contains('drag-handle')) {
+    if (e.target.classList.contains('drag-handle') || e.target.closest('.drag-handle')) {
       setIsDragging(true);
       setDragStart({
         y: e.clientY - position.y
       });
+      e.preventDefault(); // Prevent text selection
     }
   };
 
   const handleTouchStart = (e) => {
-    if (e.target.classList.contains('drag-handle')) {
+    if (e.target.classList.contains('drag-handle') || e.target.closest('.drag-handle')) {
       setIsDragging(true);
       setDragStart({
         y: e.touches[0].clientY - position.y
       });
+      e.preventDefault(); // Prevent scrolling
     }
   };
 
@@ -184,15 +186,17 @@ export default function CompleteMusicPlayer() {
         border: '1px solid rgba(255,255,255,0.1)'
       }}
     >
-      {/* Drag Handle */}
+      {/* Drag Handle - Bigger for easier touch */}
       <div
-        className="drag-handle h-1 bg-gradient-to-r from-purple-500/40 to-yellow-500/40 cursor-grab active:cursor-grabbing mx-4 rounded-t-lg"
+        className="drag-handle h-8 bg-gradient-to-r from-purple-500/40 to-yellow-500/40 cursor-grab active:cursor-grabbing rounded-t-lg flex items-center justify-center"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-      />
+      >
+        <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-yellow-500 rounded-full" />
+      </div>
       
       {/* Main Player Container */}
-      <div className="bg-black/85 backdrop-blur-xl border-t border-white/10 shadow-2xl mx-4 rounded-lg">
+      <div className="bg-black/85 backdrop-blur-xl border-t border-white/10 shadow-2xl rounded-lg">
         
         {/* Progress Bar - Top of player */}
         <div className="px-6 pt-2">
