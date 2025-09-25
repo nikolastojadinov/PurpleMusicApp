@@ -62,7 +62,10 @@ body {
   height: 42px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   background: transparent;
+  -webkit-mask-image: radial-gradient(circle 48% at 50% 50%, #000 99%, transparent 100%);
+  mask-image: radial-gradient(circle 48% at 50% 50%, #000 99%, transparent 100%);
 }
 
 .logo-text {
