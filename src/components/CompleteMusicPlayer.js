@@ -170,12 +170,18 @@ export default function CompleteMusicPlayer() {
     cover: '🎵'
   };
 
+  // Always show player
+
   return (
     <div
       ref={playerRef}
-      className="fixed bottom-16 left-0 right-0 z-40"
+      className="fixed bottom-20 left-4 right-4 z-50"
       style={{
         transform: `translateY(${position.y}px)`,
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        backdropFilter: 'blur(12px)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255,255,255,0.1)'
       }}
     >
       {/* Drag Handle */}
