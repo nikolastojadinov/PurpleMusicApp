@@ -1,8 +1,8 @@
 import React from 'react';
-import { usePlayer } from '../contexts/PlayerContext';
+// ...existing code...
 
 export default function LikedSongsScreen() {
-  const { playSong } = usePlayer();
+  // ...existing code...
   
   const likedSongs = [
     {
@@ -48,11 +48,11 @@ export default function LikedSongsScreen() {
   ];
 
   const handlePlaySong = (song, index) => {
-    playSong(song, likedSongs, index);
+    alert('Play: ' + song.title);
   };
 
   const handlePlayAll = () => {
-    playSong(likedSongs[0], likedSongs, 0);
+    alert('Play all liked songs');
   };
 
   return (

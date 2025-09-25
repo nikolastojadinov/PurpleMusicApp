@@ -1,8 +1,8 @@
 import React from 'react';
-import { usePlayer } from '../contexts/PlayerContext';
+// ...existing code...
 
 export default function HomeScreen() {
-  const { playSong } = usePlayer();
+  // ...existing code...
 
   const recentlyPlayed = [
     { id: 1, title: 'Liked Songs', type: 'playlist', cover: '💚' },
@@ -36,8 +36,7 @@ export default function HomeScreen() {
   ];
 
   const handlePlayPlaylist = (playlist) => {
-    // Play first song from sample songs as demo
-    playSong(sampleSongs[0], sampleSongs, 0);
+    alert('Play: ' + playlist.title);
   };
 
   return (

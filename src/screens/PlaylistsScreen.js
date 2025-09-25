@@ -1,8 +1,8 @@
 import React from 'react';
-import { usePlayer } from '../contexts/PlayerContext';
+// ...existing code...
 
 export default function PlaylistsScreen() {
-  const { playSong } = usePlayer();
+  // ...existing code...
   
   const playlists = [
     {
@@ -49,8 +49,7 @@ export default function PlaylistsScreen() {
   ];
 
   const handlePlayPlaylist = (playlist) => {
-    // Play first song from sample songs as demo
-    playSong(sampleSongs[0], sampleSongs, 0);
+    alert('Play: ' + (playlist.name || playlist));
   };
 
   return (
