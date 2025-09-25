@@ -23,69 +23,31 @@ export default function CompleteMusicPlayer() {
   const playerRef = useRef(null);
   const progressRef = useRef(null);
 
-  // Handle vertical dragging
-  const handleMouseDown = (e) => {
-    if (e.target.classList.contains('drag-handle') || e.target.closest('.drag-handle')) {
-      setIsDragging(true);
-      setDragStart({
-        y: e.clientY - position.y
-      });
-      e.preventDefault(); // Prevent text selection
-    }
+  // Handle vertical dragging with Pointer Events
+  const onPointerDown = (e) => {
+    if (!e.target.closest('.drag-handle')) return;
+    e.preventDefault();
+    playerRef.current.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    setDragStart({ y: e.clientY - position.y });
   };
 
-  const handleTouchStart = (e) => {
-    if (e.target.classList.contains('drag-handle') || e.target.closest('.drag-handle')) {
-      setIsDragging(true);
-      setDragStart({
-        y: e.touches[0].clientY - position.y
-      });
-      e.preventDefault(); // Prevent scrolling
-    }
+  const onPointerMove = (e) => {
+    if (!playerRef.current?.hasPointerCapture(e.pointerId)) return;
+    const newY = e.clientY - dragStart.y;
+    const maxY = window.innerHeight - 300; // Keep player visible
+    const minY = -100; // Allow some negative offset
+    setPosition({
+      y: Math.max(minY, Math.min(maxY, newY))
+    });
   };
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        const newY = e.clientY - dragStart.y;
-        const maxY = window.innerHeight - 300; // Keep player visible
-        const minY = -100; // Allow some negative offset
-        setPosition({
-          y: Math.max(minY, Math.min(maxY, newY))
-        });
-      }
-    };
-
-    const handleTouchMove = (e) => {
-      if (isDragging) {
-        e.preventDefault();
-        const newY = e.touches[0].clientY - dragStart.y;
-        const maxY = window.innerHeight - 300;
-        const minY = -100;
-        setPosition({
-          y: Math.max(minY, Math.min(maxY, newY))
-        });
-      }
-    };
-
-    const handleEnd = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleEnd);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleEnd);
+  const onPointerUp = (e) => {
+    if (playerRef.current?.hasPointerCapture(e.pointerId)) {
+      playerRef.current.releasePointerCapture(e.pointerId);
     }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleEnd);
-    };
-  }, [isDragging, dragStart]);
+    setIsDragging(false);
+  };
 
   // Progress bar handling
   const handleProgressClick = (e) => {
@@ -186,11 +148,13 @@ export default function CompleteMusicPlayer() {
         border: '1px solid rgba(255,255,255,0.1)'
       }}
     >
-      {/* Drag Handle - Bigger for easier touch */}
+      {/* Drag Handle - Touch optimized */}
       <div
-        className="drag-handle h-8 bg-gradient-to-r from-purple-500/40 to-yellow-500/40 cursor-grab active:cursor-grabbing rounded-t-lg flex items-center justify-center"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
+        className="drag-handle h-8 bg-gradient-to-r from-purple-500/40 to-yellow-500/40 cursor-grab active:cursor-grabbing rounded-t-lg flex items-center justify-center touch-none select-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-yellow-500 rounded-full" />
       </div>
