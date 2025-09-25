@@ -151,8 +151,11 @@ export default function ModernAudioPlayer({ song = demoSong }) {
 
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-50"
+      className="fixed z-50"
       style={{
+        left: 0,
+        right: 0,
+        margin: '0 auto',
         bottom: `${playerBottom}px`,
         transform: `translateY(${translateY}px)`,
         transition: dragging ? 'none' : 'bottom 0.2s',
