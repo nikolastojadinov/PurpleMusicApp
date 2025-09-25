@@ -5,8 +5,12 @@ export default function Header() {
   return (
     <header className="header">
       <div className="header-logo">
-        <span className="logo-icon">♪</span>
-        <span className="logo-text">Spotify</span>
+        <img 
+          src="/logo.png" 
+          alt="PurpleMusic Logo" 
+          className="logo-image"
+        />
+        <span className="logo-text">PurpleMusic</span>
       </div>
       
       <div className="header-profile">

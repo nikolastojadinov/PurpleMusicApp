@@ -54,18 +54,24 @@ body {
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.logo-icon {
-  font-size: 24px;
-  color: #1DB954;
+.logo-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .logo-text {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #8B5CF6, #F59E0B);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .header-profile {

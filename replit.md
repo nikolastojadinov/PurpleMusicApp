@@ -1,8 +1,8 @@
-# Spotify-like Music Streaming App
+# PurpleMusic - Music Streaming App
 
 ## Overview
 
-A dark-themed mobile music streaming app built with React that mimics Spotify's interface. Features black background, transparent white header with logo and profile icon, bottom navigation with Home, Search, Liked Songs, and My Playlists sections, and homepage with horizontal scroll sections for Recently Played, Made for You, and Trending Now content.
+A dark-themed mobile music streaming app built with React featuring PurpleMusic branding. Features black background, transparent white header with custom logo and profile dropdown, bottom navigation with Home, Search, Liked Songs, and My Playlists sections, complete music player functionality with mini-player and full-screen player, and homepage with horizontal scroll sections for Recently Played, Made for You, and Trending Now content.
 
 ## User Preferences
 
