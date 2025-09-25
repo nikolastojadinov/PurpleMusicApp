@@ -62,6 +62,7 @@ body {
   height: 42px;
   border-radius: 50%;
   object-fit: cover;
+  background: transparent;
 }
 
 .logo-text {
