@@ -22,13 +22,21 @@ export default function ModernAudioPlayer() {
   const playerRef = useRef(null);
   const progressRef = useRef(null);
 
-  // Handle dragging
+  // Handle dragging - vertical only with bounds
   const handleMouseDown = (e) => {
     if (e.target.classList.contains('draggable-area')) {
       setIsDragging(true);
       setDragStart({
-        x: e.clientX - position.x,
         y: e.clientY - position.y
+      });
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.target.classList.contains('draggable-area')) {
+      setIsDragging(true);
+      setDragStart({
+        y: e.touches[0].clientY - position.y
       });
     }
   };
@@ -36,9 +44,24 @@ export default function ModernAudioPlayer() {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (isDragging) {
+        const newY = e.clientY - dragStart.y;
+        const maxY = window.innerHeight - 200; // Keep player visible
+        const minY = -200; // Allow some negative offset
         setPosition({
-          x: e.clientX - dragStart.x,
-          y: e.clientY - dragStart.y
+          x: 0, // Keep horizontal position fixed
+          y: Math.max(minY, Math.min(maxY, newY))
+        });
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (isDragging) {
+        const newY = e.touches[0].clientY - dragStart.y;
+        const maxY = window.innerHeight - 200;
+        const minY = -200;
+        setPosition({
+          x: 0,
+          y: Math.max(minY, Math.min(maxY, newY))
         });
       }
     };
@@ -47,24 +70,90 @@ export default function ModernAudioPlayer() {
       setIsDragging(false);
     };
 
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isDragging, dragStart]);
 
   // Progress bar handling
+  const [isProgressDragging, setIsProgressDragging] = useState(false);
+
   const handleProgressClick = (e) => {
     const rect = progressRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const newProgress = (clickX / rect.width) * duration;
     seekTo(newProgress);
   };
+
+  const handleProgressMouseDown = (e) => {
+    setIsProgressDragging(true);
+    const rect = progressRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newProgress = (clickX / rect.width) * duration;
+    seekTo(newProgress);
+  };
+
+  const handleProgressTouchStart = (e) => {
+    setIsProgressDragging(true);
+    const rect = progressRef.current.getBoundingClientRect();
+    const touchX = e.touches[0].clientX - rect.left;
+    const newProgress = (touchX / rect.width) * duration;
+    seekTo(newProgress);
+  };
+
+  useEffect(() => {
+    const handleProgressMouseMove = (e) => {
+      if (isProgressDragging && progressRef.current) {
+        const rect = progressRef.current.getBoundingClientRect();
+        const moveX = e.clientX - rect.left;
+        const clampedX = Math.max(0, Math.min(rect.width, moveX));
+        const newProgress = (clampedX / rect.width) * duration;
+        seekTo(newProgress);
+      }
+    };
+
+    const handleProgressTouchMove = (e) => {
+      if (isProgressDragging && progressRef.current) {
+        const rect = progressRef.current.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        const clampedX = Math.max(0, Math.min(rect.width, touchX));
+        const newProgress = (clampedX / rect.width) * duration;
+        seekTo(newProgress);
+      }
+    };
+
+    const handleProgressEnd = () => {
+      setIsProgressDragging(false);
+    };
+
+    if (isProgressDragging) {
+      document.addEventListener('mousemove', handleProgressMouseMove);
+      document.addEventListener('mouseup', handleProgressEnd);
+      document.addEventListener('touchmove', handleProgressTouchMove);
+      document.addEventListener('touchend', handleProgressEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleProgressMouseMove);
+      document.removeEventListener('mouseup', handleProgressEnd);
+      document.removeEventListener('touchmove', handleProgressTouchMove);
+      document.removeEventListener('touchend', handleProgressEnd);
+    };
+  }, [isProgressDragging, duration, seekTo]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -89,7 +178,11 @@ export default function ModernAudioPlayer() {
       <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
         
         {/* Draggable Area */}
-        <div className="draggable-area h-2 bg-gradient-to-r from-purple-500/20 to-yellow-500/20 cursor-grab active:cursor-grabbing" />
+        <div 
+          className="draggable-area h-2 bg-gradient-to-r from-purple-500/20 to-yellow-500/20 cursor-grab active:cursor-grabbing" 
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+        />
         
         {/* Player Content */}
         <div className="p-4">
@@ -119,6 +212,8 @@ export default function ModernAudioPlayer() {
               ref={progressRef}
               className="w-full h-1 bg-white/20 rounded-full cursor-pointer relative group"
               onClick={handleProgressClick}
+              onMouseDown={handleProgressMouseDown}
+              onTouchStart={handleProgressTouchStart}
             >
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-yellow-500 rounded-full relative"
@@ -145,15 +240,15 @@ export default function ModernAudioPlayer() {
               
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-105 transform duration-200"
+                className="w-10 h-10 flex items-center justify-center border border-white/30 hover:border-white/50 rounded-full text-white transition-all hover:scale-105 transform duration-200"
               >
                 {isPlaying ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a2 2 0 011.414.586L14.828 13.414a2 2 0 01.586 1.414V16M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1" />
+                  <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
                   </svg>
                 )}
               </button>

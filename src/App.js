@@ -9,6 +9,7 @@ import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
 import MiniPlayer from './components/MiniPlayer';
 import FullScreenPlayer from './components/FullScreenPlayer';
+import ModernAudioPlayer from './components/ModernAudioPlayer';
 import './index.css';
 
 function App() {
@@ -25,7 +26,8 @@ function App() {
               <Route path="/playlists" element={<PlaylistsScreen />} />
             </Routes>
           </main>
-          <MiniPlayer />
+          {/* <MiniPlayer /> */}
+          <ModernAudioPlayer />
           <BottomNavigation />
           <FullScreenPlayer />
         </Router>
