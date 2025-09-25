@@ -6,7 +6,7 @@ export default function Header() {
     <header className="header">
       <div className="header-logo">
         <img 
-          src="/logo.png" 
+          src="/logo.png?v=2" 
           alt="PurpleMusic Logo" 
           className="logo-image"
         />
