@@ -7,7 +7,6 @@ import LikedSongsScreen from './screens/LikedSongsScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
-import MiniPlayer from './components/MiniPlayer';
 import FullScreenPlayer from './components/FullScreenPlayer';
 import CompleteMusicPlayer from './components/CompleteMusicPlayer';
 import './index.css';
