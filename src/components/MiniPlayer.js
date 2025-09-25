@@ -14,7 +14,7 @@ export default function MiniPlayer() {
 
   if (!currentSong) return null;
 
-  const progressPercentage = (progress / duration) * 100;
+  const progressPercentage = duration > 0 ? (progress / duration) * 100 : 0;
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);

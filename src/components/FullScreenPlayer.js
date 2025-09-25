@@ -28,7 +28,7 @@ export default function FullScreenPlayer() {
 
   if (!isFullScreen || !currentSong) return null;
 
-  const progressPercentage = (progress / duration) * 100;
+  const progressPercentage = duration > 0 ? (progress / duration) * 100 : 0;
   const volumePercentage = volume * 100;
 
   const formatTime = (seconds) => {
