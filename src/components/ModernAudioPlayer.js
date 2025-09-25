@@ -15,6 +15,7 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const [duration, setDuration] = useState(song.duration);
   const [volume, setVolume] = useState(0.8);
   const [dragOffset, setDragOffset] = useState(0);
+  const [playerBottom, setPlayerBottom] = useState(64); // default offset from bottom
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
@@ -72,9 +73,18 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const handleDrag = (e) => {
     if (!dragging) return;
     const offset = e.clientY - startY;
-    setDragOffset(Math.max(0, offset));
+    // Ograniči pomeranje da ne ode van ekrana
+    const maxOffset = window.innerHeight - 180; // visina playera + footer
+    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    setDragOffset(offset);
+    setPlayerBottom(newBottom);
   };
   const handleDragEnd = () => {
+    if (!dragging) return;
+    const offset = dragOffset;
+    const maxOffset = window.innerHeight - 180;
+    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    setPlayerBottom(newBottom);
     setDragging(false);
     setStartY(null);
     setDragOffset(0);
@@ -90,9 +100,17 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const handleTouchMove = (e) => {
     if (!dragging || e.touches.length !== 1) return;
     const offset = e.touches[0].clientY - touchStartY;
-    setDragOffset(Math.max(0, offset));
+    const maxOffset = window.innerHeight - 180;
+    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    setDragOffset(offset);
+    setPlayerBottom(newBottom);
   };
   const handleTouchEnd = () => {
+    if (!dragging) return;
+    const offset = dragOffset;
+    const maxOffset = window.innerHeight - 180;
+    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    setPlayerBottom(newBottom);
     setDragging(false);
     setTouchStartY(null);
     setDragOffset(0);
@@ -136,7 +154,7 @@ export default function ModernAudioPlayer({ song = demoSong }) {
     <div
       className="fixed left-1/2 -translate-x-1/2 z-50"
       style={{
-        bottom: `calc(64px + ${dragOffset}px)`,
+        bottom: `${playerBottom}px`,
         transition: dragging ? 'none' : 'bottom 0.2s',
         maxWidth: 420,
         width: '96vw',
