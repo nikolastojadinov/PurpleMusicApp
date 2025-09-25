@@ -17,6 +17,8 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   // Play/Pause
   const togglePlay = () => {
@@ -27,6 +29,14 @@ export default function ModernAudioPlayer({ song = demoSong }) {
       audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
+  };
+
+  // Mute/Unmute
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      if (audioRef.current) audioRef.current.muted = !prev;
+      return !prev;
+    });
   };
 
   // Progress
@@ -54,7 +64,7 @@ export default function ModernAudioPlayer({ song = demoSong }) {
     if (audioRef.current) audioRef.current.volume = percent;
   };
 
-  // Drag & Drop
+  // Mouse Drag & Drop
   const handleDragStart = (e) => {
     setDragging(true);
     setStartY(e.clientY);
@@ -67,6 +77,24 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const handleDragEnd = () => {
     setDragging(false);
     setStartY(null);
+    setDragOffset(0);
+  };
+
+  // Touch Drag & Drop
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setDragging(true);
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+  const handleTouchMove = (e) => {
+    if (!dragging || e.touches.length !== 1) return;
+    const offset = e.touches[0].clientY - touchStartY;
+    setDragOffset(Math.max(0, offset));
+  };
+  const handleTouchEnd = () => {
+    setDragging(false);
+    setTouchStartY(null);
     setDragOffset(0);
   };
 
@@ -93,24 +121,30 @@ export default function ModernAudioPlayer({ song = demoSong }) {
     if (dragging) {
       window.addEventListener('mousemove', handleDrag);
       window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleTouchEnd);
       return () => {
         window.removeEventListener('mousemove', handleDrag);
         window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [dragging, startY]);
+  }, [dragging, startY, touchStartY]);
 
   return (
     <div
       className="fixed left-1/2 -translate-x-1/2 z-50"
       style={{
-        bottom: `calc(32px + ${dragOffset}px)`,
+        bottom: `calc(64px + ${dragOffset}px)`,
         transition: dragging ? 'none' : 'bottom 0.2s',
         maxWidth: 420,
-        width: '95vw',
+        width: '96vw',
         cursor: dragging ? 'grabbing' : 'grab',
+        boxSizing: 'border-box',
       }}
       onMouseDown={handleDragStart}
+      onTouchStart={handleTouchStart}
     >
       <audio
         ref={audioRef}
@@ -120,45 +154,54 @@ export default function ModernAudioPlayer({ song = demoSong }) {
         onEnded={() => setIsPlaying(false)}
         volume={volume}
       />
-      <div className="backdrop-blur-md bg-black/70 rounded-2xl shadow-lg border border-white/10 flex flex-col px-6 py-4 select-none">
-        <div className="flex items-center gap-4">
-          {/* Controls */}
-          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-2 group">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/80 group-hover:text-white transition"><path d="M16 18L8.5 12L16 6V18Z"/><path d="M8 6V18"/></svg>
-          </button>
-          <button onClick={e => { e.stopPropagation(); togglePlay(); }} className="p-2 group">
-            {isPlaying ? (
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/80 group-hover:text-white transition"><rect x="6" y="5" width="5" height="14" rx="1.5"/><rect x="15" y="5" width="5" height="14" rx="1.5"/></svg>
-            ) : (
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/80 group-hover:text-white transition"><polygon points="7,5 23,14 7,23"/></svg>
-            )}
-          </button>
-          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-2 group">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/80 group-hover:text-white transition"><path d="M8 6L15.5 12L8 18V6Z"/><path d="M16 6V18"/></svg>
-          </button>
-          {/* Cover & Info */}
-          <img src={song.cover} alt="cover" className="w-12 h-12 rounded-md object-cover ml-4 shadow" />
-          <div className="flex flex-col ml-3 flex-1 min-w-0">
-            <span className="text-white font-medium truncate text-base leading-tight">{song.title}</span>
-            <span className="text-white/60 text-sm truncate">{song.artist}</span>
-          </div>
-          {/* Volume */}
-          <div className="flex items-center ml-4 gap-2 min-w-[60px]">
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/80"><path d="M4 9V15H8L13 19V5L8 9H4Z"/></svg>
-            <div className="relative w-16 h-2 flex items-center group cursor-pointer" onClick={e => { e.stopPropagation(); handleVolumeChange(e); }}>
-              <div className="absolute w-full h-1 bg-white/20 rounded-full" />
-              <div className="absolute h-1 bg-white rounded-full" style={{ width: `${volume * 100}%` }} />
+      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-3 select-none w-full" style={{minWidth:'0'}}>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={song.cover} alt="cover" className="w-12 h-12 rounded-md object-cover shadow" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-white font-semibold truncate text-base leading-tight">{song.title}</span>
+              <span className="text-white/60 text-sm truncate">{song.artist}</span>
             </div>
           </div>
+          <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="p-2 group">
+            {isMuted ? (
+              <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/><line x1="18" y1="8" x2="8" y2="18" stroke="currentColor" strokeWidth="2"/><line x1="8" y1="8" x2="18" y2="18" stroke="currentColor" strokeWidth="2"/></svg>
+            ) : (
+              <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/></svg>
+            )}
+          </button>
         </div>
         {/* Progress bar */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-white/60 w-10 text-left">{formatTime(progress)}</span>
           <div className="relative flex-1 h-2 group cursor-pointer" onClick={e => { e.stopPropagation(); handleSeek(e); }}>
             <div className="absolute w-full h-1 bg-white/20 rounded-full" />
             <div className="absolute h-1 bg-white rounded-full" style={{ width: `${(progress / duration) * 100}%` }} />
           </div>
           <span className="text-xs text-white/60 w-10 text-right">{formatTime(duration)}</span>
+        </div>
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-8 mt-1">
+          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-2 group">
+            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M22 26L10 16L22 6V26Z"/><path d="M10 6V26"/></svg>
+          </button>
+          <button onClick={e => { e.stopPropagation(); togglePlay(); }} className="p-2 group">
+            {isPlaying ? (
+              <svg width="38" height="38" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><rect x="11" y="9" width="6" height="20" rx="2"/><rect x="21" y="9" width="6" height="20" rx="2"/></svg>
+            ) : (
+              <svg width="38" height="38" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><polygon points="12,9 32,19 12,29"/></svg>
+            )}
+          </button>
+          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-2 group">
+            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M10 6L22 16L10 26V6Z"/><path d="M22 6V26"/></svg>
+          </button>
+        </div>
+        {/* Volume slider */}
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <div className="relative w-20 h-2 flex items-center group cursor-pointer" onClick={e => { e.stopPropagation(); handleVolumeChange(e); }}>
+            <div className="absolute w-full h-1 bg-white/20 rounded-full" />
+            <div className="absolute h-1 bg-white rounded-full" style={{ width: `${volume * 100}%` }} />
+          </div>
         </div>
       </div>
     </div>
