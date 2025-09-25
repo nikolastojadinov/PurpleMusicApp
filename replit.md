@@ -1,8 +1,8 @@
-# MobileBeats - React Native Music Player App
+# Spotify-like Music Streaming App
 
 ## Overview
 
-MobileBeats is a React Native mobile music player application built with Expo. The app provides a modern music streaming interface with a dark purple theme, featuring a home screen with song listings and a dedicated player screen for music playback. The application uses React Navigation for screen transitions and includes mock song data for demonstration purposes.
+A dark-themed mobile music streaming app built with React that mimics Spotify's interface. Features black background, transparent white header with logo and profile icon, bottom navigation with Home, Search, Liked Songs, and My Playlists sections, and homepage with horizontal scroll sections for Recently Played, Made for You, and Trending Now content.
 
 ## User Preferences
 
@@ -11,56 +11,62 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: React Native with Expo SDK ~51.0.28
-- **Navigation**: React Navigation v6 with stack-based navigation pattern
-- **UI Components**: Custom component architecture with reusable SongItem components
-- **Styling**: StyleSheet-based styling with consistent dark theme throughout
+- **Framework**: React 18.2.0 with React Router for navigation
+- **Navigation**: React Router DOM with stack-based routing pattern
+- **UI Components**: Custom component architecture with Header and BottomNavigation components
+- **Styling**: CSS-based styling with dark theme and Spotify-like design patterns
 
 ### Screen Structure
-- **HomeScreen**: Main listing interface displaying available songs in a FlatList
-- **PlayerScreen**: Dedicated music player interface with playback controls and progress tracking
-- **Navigation Flow**: Stack navigator managing transitions between Home and Player screens
+- **HomeScreen**: Main interface with search bar and horizontal scroll sections
+- **SearchScreen**: Search interface with recent and trending searches
+- **LikedSongsScreen**: Playlist-style interface for liked songs
+- **PlaylistsScreen**: User's playlists management interface
+- **Navigation Flow**: React Router managing transitions between all screens
 
 ### Component Architecture
-- **SongItem Component**: Reusable list item component for displaying song metadata
+- **Header Component**: Transparent white header with logo and profile icon
+- **BottomNavigation Component**: Fixed bottom navigation with 4 main sections
 - **Modular Design**: Clear separation between screens and components for maintainability
 - **State Management**: Local component state using React hooks (useState)
 
 ### Design System
-- **Theme**: Dark mode design with purple accent colors (#9C4DCC)
-- **Color Palette**: Consistent color scheme defined in navigation theme
-- **Typography**: Bold headers with proper text hierarchy
-- **Layout**: Safe area handling and responsive design principles
+- **Theme**: Dark mode design with black background (#000000)
+- **Color Palette**: Spotify green (#1DB954), gradients for visual interest
+- **Typography**: Modern typography with proper text hierarchy and contrast
+- **Layout**: Mobile-first responsive design with sticky header and bottom navigation
 
 ### Data Management
-- **Mock Data**: Currently uses hardcoded song data for demonstration
-- **Data Structure**: Song objects contain id, title, artist, and emoji-based cover art
+- **Mock Data**: Currently uses hardcoded data for playlists, songs, and content
+- **Data Structure**: Objects contain id, title, artist, covers (emoji-based), and metadata
 - **No Persistence**: No database or local storage implementation currently
 
 ## External Dependencies
 
-### Core React Native Stack
-- **react-native**: 0.74.5 - Core React Native framework
-- **expo**: ~51.0.28 - Expo development platform and SDK
+### Core React Stack
 - **react**: 18.2.0 - React library for component architecture
+- **react-dom**: 18.2.0 - React DOM for web platform
+- **react-scripts**: Latest - Create React App build tools
 
 ### Navigation Libraries
-- **@react-navigation/native**: ^6.1.7 - Core navigation functionality
-- **@react-navigation/stack**: ^6.3.17 - Stack navigation implementation
-- **react-native-screens**: ~3.31.1 - Native screen management
-- **react-native-safe-area-context**: 4.10.5 - Safe area handling
-
-### UI and Interaction
-- **@expo/vector-icons**: ^14.0.2 - Icon library for UI elements
-- **react-native-gesture-handler**: ~2.16.1 - Gesture recognition and handling
-- **expo-status-bar**: ~1.12.1 - Status bar configuration
+- **react-router-dom**: Latest - Client-side routing for React web applications
 
 ### Development Tools
-- **@babel/core**: ^7.20.0 - JavaScript compiler for React Native
-- **@expo/metro-runtime**: ~3.2.3 - Metro bundler runtime for Expo
+- **@types/react**: Type definitions for React components
+- **@types/react-dom**: Type definitions for React DOM
+- **css-select**: CSS selector library
+- **nth-check**: CSS nth-child selector parsing
+- **serve**: Static file serving for production builds
+- **svgo**: SVG optimization tools
 
-### Web Support
-- **react-dom**: 18.2.0 - React DOM for web platform support
-- **react-native-web**: ~0.19.10 - Web implementation of React Native components
+## Recent Changes
 
-Note: The application currently lacks audio playback functionality and uses mock data. Future iterations may require audio libraries, state management solutions, and backend integration for real music streaming capabilities.
+### September 25, 2025
+- Complete redesign from React Native to React web application
+- Implemented Spotify-like dark theme interface with black background
+- Added transparent white header with logo and profile icon
+- Created bottom navigation with Home, Search, Liked Songs, and Playlists sections
+- Built homepage with search bar and horizontal scroll sections (Recently Played, Made for You, Trending Now)
+- Developed dedicated pages for Search, Liked Songs, and Playlists functionality
+- Applied mobile-first responsive design patterns
+
+Note: The application is a design-only interface using mock data. No actual audio playback functionality is implemented. Future iterations may require audio libraries, state management solutions, and backend integration for real music streaming capabilities.
