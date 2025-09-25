@@ -1,6 +1,9 @@
 import React from 'react';
+import { usePlayer } from '../contexts/PlayerContext';
 
 export default function LikedSongsScreen() {
+  const { playSong } = usePlayer();
+  
   const likedSongs = [
     {
       id: 1,
@@ -44,6 +47,14 @@ export default function LikedSongsScreen() {
     }
   ];
 
+  const handlePlaySong = (song, index) => {
+    playSong(song, likedSongs, index);
+  };
+
+  const handlePlayAll = () => {
+    playSong(likedSongs[0], likedSongs, 0);
+  };
+
   return (
     <div className="liked-songs-screen">
       <div className="liked-header">
@@ -58,7 +69,7 @@ export default function LikedSongsScreen() {
       </div>
 
       <div className="liked-controls">
-        <button className="play-all-btn">
+        <button className="play-all-btn" onClick={handlePlayAll}>
           <span>▶</span>
           Play
         </button>
@@ -69,7 +80,7 @@ export default function LikedSongsScreen() {
 
       <div className="songs-list">
         {likedSongs.map((song, index) => (
-          <div key={song.id} className="song-item">
+          <div key={song.id} className="song-item" onClick={() => handlePlaySong(song, index)}>
             <div className="song-number">{index + 1}</div>
             <div className="song-cover">
               <span>{song.cover}</span>
@@ -79,7 +90,12 @@ export default function LikedSongsScreen() {
               <p className="song-artist">{song.artist}</p>
             </div>
             <div className="song-duration">{song.duration}</div>
-            <button className="song-menu">⋯</button>
+            <button 
+              className="song-menu"
+              onClick={(e) => e.stopPropagation()}
+            >
+              ⋯
+            </button>
           </div>
         ))}
       </div>

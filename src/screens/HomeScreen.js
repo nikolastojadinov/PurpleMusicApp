@@ -1,6 +1,9 @@
 import React from 'react';
+import { usePlayer } from '../contexts/PlayerContext';
 
 export default function HomeScreen() {
+  const { playSong } = usePlayer();
+
   const recentlyPlayed = [
     { id: 1, title: 'Liked Songs', type: 'playlist', cover: '💚' },
     { id: 2, title: 'Chill Mix', type: 'playlist', cover: '😌' },
@@ -24,6 +27,19 @@ export default function HomeScreen() {
     { id: 4, title: 'Viral 50', subtitle: 'The most viral tracks right now', cover: '📈' }
   ];
 
+  const sampleSongs = [
+    { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', cover: '🌟', album: 'After Hours' },
+    { id: 2, title: 'Watermelon Sugar', artist: 'Harry Styles', cover: '🍉', album: 'Fine Line' },
+    { id: 3, title: 'Levitating', artist: 'Dua Lipa', cover: '✨', album: 'Future Nostalgia' },
+    { id: 4, title: 'Good 4 U', artist: 'Olivia Rodrigo', cover: '💜', album: 'SOUR' },
+    { id: 5, title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', cover: '🎵', album: 'F*CK LOVE 3: OVER YOU' }
+  ];
+
+  const handlePlayPlaylist = (playlist) => {
+    // Play first song from sample songs as demo
+    playSong(sampleSongs[0], sampleSongs, 0);
+  };
+
   return (
     <div className="home-screen">
       <div className="search-bar-container">
@@ -42,7 +58,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Recently played</h2>
         <div className="horizontal-scroll">
           {recentlyPlayed.map((item) => (
-            <div key={item.id} className="recent-item">
+            <div key={item.id} className="recent-item" onClick={() => handlePlayPlaylist(item)}>
               <div className="recent-cover">
                 <span>{item.cover}</span>
               </div>
@@ -56,7 +72,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Made for you</h2>
         <div className="horizontal-scroll">
           {madeForYou.map((item) => (
-            <div key={item.id} className="made-item">
+            <div key={item.id} className="made-item" onClick={() => handlePlayPlaylist(item)}>
               <div className="made-cover">
                 <span>{item.cover}</span>
               </div>
@@ -71,7 +87,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Trending now</h2>
         <div className="horizontal-scroll">
           {trendingNow.map((item) => (
-            <div key={item.id} className="trending-item">
+            <div key={item.id} className="trending-item" onClick={() => handlePlayPlaylist(item)}>
               <div className="trending-cover">
                 <span>{item.cover}</span>
               </div>
