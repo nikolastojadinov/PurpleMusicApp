@@ -16,6 +16,7 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const [volume, setVolume] = useState(0.8);
   const [dragOffset, setDragOffset] = useState(0);
   const [playerBottom, setPlayerBottom] = useState(64); // default offset from bottom
+  const [translateY, setTranslateY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
@@ -69,25 +70,23 @@ export default function ModernAudioPlayer({ song = demoSong }) {
   const handleDragStart = (e) => {
     setDragging(true);
     setStartY(e.clientY);
+    document.body.style.overflow = 'hidden';
   };
   const handleDrag = (e) => {
     if (!dragging) return;
     const offset = e.clientY - startY;
-    // Ograniči pomeranje da ne ode van ekrana
-    const maxOffset = window.innerHeight - 180; // visina playera + footer
-    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
-    setDragOffset(offset);
-    setPlayerBottom(newBottom);
+    setTranslateY(offset);
   };
   const handleDragEnd = () => {
     if (!dragging) return;
-    const offset = dragOffset;
+    const offset = translateY;
     const maxOffset = window.innerHeight - 180;
-    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    const newBottom = Math.max(0, Math.min(playerBottom - offset, maxOffset));
     setPlayerBottom(newBottom);
     setDragging(false);
     setStartY(null);
-    setDragOffset(0);
+    setTranslateY(0);
+    document.body.style.overflow = '';
   };
 
   // Touch Drag & Drop
@@ -95,25 +94,25 @@ export default function ModernAudioPlayer({ song = demoSong }) {
     if (e.touches.length === 1) {
       setDragging(true);
       setTouchStartY(e.touches[0].clientY);
+      document.body.style.overflow = 'hidden';
     }
   };
   const handleTouchMove = (e) => {
     if (!dragging || e.touches.length !== 1) return;
+    e.preventDefault();
     const offset = e.touches[0].clientY - touchStartY;
-    const maxOffset = window.innerHeight - 180;
-    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
-    setDragOffset(offset);
-    setPlayerBottom(newBottom);
+    setTranslateY(offset);
   };
   const handleTouchEnd = () => {
     if (!dragging) return;
-    const offset = dragOffset;
+    const offset = translateY;
     const maxOffset = window.innerHeight - 180;
-    const newBottom = Math.max(0, Math.min(playerBottom + offset, maxOffset));
+    const newBottom = Math.max(0, Math.min(playerBottom - offset, maxOffset));
     setPlayerBottom(newBottom);
     setDragging(false);
     setTouchStartY(null);
-    setDragOffset(0);
+    setTranslateY(0);
+    document.body.style.overflow = '';
   };
 
   // Format time
@@ -139,7 +138,7 @@ export default function ModernAudioPlayer({ song = demoSong }) {
     if (dragging) {
       window.addEventListener('mousemove', handleDrag);
       window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleTouchEnd);
       return () => {
         window.removeEventListener('mousemove', handleDrag);
@@ -155,11 +154,13 @@ export default function ModernAudioPlayer({ song = demoSong }) {
       className="fixed left-1/2 -translate-x-1/2 z-50"
       style={{
         bottom: `${playerBottom}px`,
+        transform: `translateY(${translateY}px)`,
         transition: dragging ? 'none' : 'bottom 0.2s',
         maxWidth: 420,
         width: '96vw',
         cursor: dragging ? 'grabbing' : 'grab',
         boxSizing: 'border-box',
+        touchAction: 'none',
       }}
       onMouseDown={handleDragStart}
       onTouchStart={handleTouchStart}
