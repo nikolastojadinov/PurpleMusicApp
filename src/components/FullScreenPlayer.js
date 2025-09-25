@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { usePlayer } from '../contexts/PlayerContext';
 
 export default function FullScreenPlayer() {
@@ -11,6 +11,7 @@ export default function FullScreenPlayer() {
     isShuffle,
     repeatMode,
     isFullScreen,
+    isLoading,
     togglePlay,
     nextSong,
     previousSong,
@@ -23,31 +24,7 @@ export default function FullScreenPlayer() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [showVolume, setShowVolume] = useState(false);
-
-  // Simulate progress when playing
-  useEffect(() => {
-    let interval;
-    if (isPlaying && !isDragging) {
-      interval = setInterval(() => {
-        seekTo(prev => {
-          const newProgress = prev + 1;
-          if (newProgress >= duration) {
-            if (repeatMode === 'one') {
-              return 0;
-            } else if (repeatMode === 'all') {
-              nextSong();
-              return 0;
-            } else {
-              // Stop playing at end
-              return duration;
-            }
-          }
-          return newProgress;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, isDragging, duration, repeatMode, nextSong, seekTo]);
+  const progressRef = useRef(null);
 
   if (!isFullScreen || !currentSong) return null;
 
@@ -61,11 +38,43 @@ export default function FullScreenPlayer() {
   };
 
   const handleProgressClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newProgress = (clickX / rect.width) * duration;
-    seekTo(newProgress);
+    if (duration > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const newProgress = (clickX / rect.width) * duration;
+      seekTo(newProgress);
+    }
   };
+
+  const handleProgressMouseDown = (e) => {
+    setIsDragging(true);
+    handleProgressClick(e);
+  };
+
+  const handleProgressMouseMove = (e) => {
+    if (isDragging && duration > 0) {
+      const rect = progressRef.current.getBoundingClientRect();
+      const clickX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      const newProgress = (clickX / rect.width) * duration;
+      seekTo(newProgress);
+    }
+  };
+
+  const handleProgressMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Add global mouse event listeners for dragging
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleProgressMouseMove);
+      document.addEventListener('mouseup', handleProgressMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleProgressMouseMove);
+        document.removeEventListener('mouseup', handleProgressMouseUp);
+      };
+    }
+  }, [isDragging]);
 
   const handleVolumeClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -108,8 +117,10 @@ export default function FullScreenPlayer() {
 
       <div className="player-progress">
         <div 
+          ref={progressRef}
           className="progress-bar" 
           onClick={handleProgressClick}
+          onMouseDown={handleProgressMouseDown}
         >
           <div 
             className="progress-fill" 
@@ -122,7 +133,7 @@ export default function FullScreenPlayer() {
         </div>
         <div className="progress-time">
           <span>{formatTime(progress)}</span>
-          <span>{formatTime(duration)}</span>
+          <span>{formatTime(duration || 0)}</span>
         </div>
       </div>
 
@@ -136,8 +147,8 @@ export default function FullScreenPlayer() {
         <button className="control-btn" onClick={previousSong}>
           ⏮️
         </button>
-        <button className="play-btn" onClick={togglePlay}>
-          {isPlaying ? '⏸️' : '▶️'}
+        <button className="play-btn" onClick={togglePlay} disabled={isLoading}>
+          {isLoading ? '⌛' : isPlaying ? '⏸️' : '▶️'}
         </button>
         <button className="control-btn" onClick={nextSong}>
           ⏭️
