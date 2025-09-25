@@ -7,12 +7,12 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "BROWSER=none PORT=5000 react-scripts start"
-    ,
+    "dev": "BROWSER=none PORT=5000 react-scripts start",
     "netlify:build": "npm run build",
     "netlify:deploy": "netlify deploy --prod --dir=build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@tailwindcss/forms": "^0.5.10",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
