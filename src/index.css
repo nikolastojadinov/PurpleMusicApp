@@ -34,7 +34,7 @@ body {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 150px; /* Space for bottom nav + mini player */
+  padding-bottom: 165px; /* Space for bottom nav + mini player */
 }
 
 /* Header */
@@ -91,7 +91,7 @@ body {
 /* Mini Player */
 .mini-player {
   position: fixed;
-  bottom: 70px;
+  bottom: 85px;
   left: 0;
   right: 0;
   background: rgba(0, 0, 0, 0.95);
