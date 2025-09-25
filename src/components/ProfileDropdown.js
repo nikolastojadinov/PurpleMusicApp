@@ -17,13 +17,78 @@ export default function ProfileDropdown() {
   }, []);
 
   const handlePiNetworkLogin = () => {
-    alert('Login with Pi Network clicked!');
+    // Pi Network SDK login integration
+    import('../piSdkLoader').then(({ loadPiSDK }) => {
+      loadPiSDK((Pi) => {
+        Pi.authenticate(
+          ['username', 'payment'],
+          onLoginSuccess,
+          onLoginFailure
+        );
+      });
+    });
     setIsOpen(false);
   };
 
+  // Pi Network login callbacks
+  const onLoginSuccess = async (authResult) => {
+    // Save user info to Supabase
+    const { supabase } = await import('../supabaseClient');
+    const { user } = authResult;
+    if (user) {
+      const { id, username } = user;
+      // Upsert user into Supabase 'users' table
+      const { error } = await supabase
+        .from('users')
+        .upsert([{ id, username }], { onConflict: ['id'] });
+      if (error) {
+        alert('Supabase save error: ' + error.message);
+      } else {
+        alert('Pi Network login successful! User: ' + JSON.stringify(user));
+      }
+    } else {
+      alert('No user info from Pi Network!');
+    }
+  };
+  const onLoginFailure = (error) => {
+    alert('Pi Network login failed: ' + error);
+  };
+
   const handleGoPremium = () => {
-    alert('Go Premium clicked!');
+    // Pi Network payment integration
+    import('../piSdkLoader').then(({ loadPiSDK }) => {
+      loadPiSDK((Pi) => {
+        Pi.createPayment({
+          amount: 1, // 1 Pi
+          memo: 'PurpleMusic Premium Upgrade',
+          metadata: { type: 'premium' }
+        }, onPaymentSuccess, onPaymentFailure);
+      });
+    });
     setIsOpen(false);
+  };
+
+  // Pi Network payment callbacks
+  const onPaymentSuccess = async (paymentResult) => {
+    // Save payment info to Supabase
+    const { supabase } = await import('../supabaseClient');
+    const { transaction } = paymentResult;
+    if (transaction) {
+      const { txid, amount, memo } = transaction;
+      const { error } = await supabase
+        .from('payments')
+        .insert([{ txid, amount, memo }]);
+      if (error) {
+        alert('Supabase payment save error: ' + error.message);
+      } else {
+        alert('Payment successful! Transaction: ' + JSON.stringify(transaction));
+      }
+    } else {
+      alert('No transaction info from Pi Network!');
+    }
+  };
+  const onPaymentFailure = (error) => {
+    alert('Payment failed: ' + error);
   };
 
   return (

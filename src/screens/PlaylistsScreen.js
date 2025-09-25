@@ -4,43 +4,21 @@ import React from 'react';
 export default function PlaylistsScreen() {
   // ...existing code...
   
-  const playlists = [
-    {
-      id: 1,
-      name: 'My Playlist #1',
-      songCount: 23,
-      cover: '🎶',
-      lastUpdated: '2 days ago'
-    },
-    {
-      id: 2,
-      name: 'Chill Vibes',
-      songCount: 45,
-      cover: '😌',
-      lastUpdated: '1 week ago'
-    },
-    {
-      id: 3,
-      name: 'Workout Mix',
-      songCount: 32,
-      cover: '💪',
-      lastUpdated: '3 days ago'
-    },
-    {
-      id: 4,
-      name: 'Road Trip',
-      songCount: 67,
-      cover: '🚗',
-      lastUpdated: '5 days ago'
-    },
-    {
-      id: 5,
-      name: 'Late Night',
-      songCount: 28,
-      cover: '🌙',
-      lastUpdated: '1 day ago'
-    }
-  ];
+  const [playlists, setPlaylists] = React.useState([]);
+  React.useEffect(() => {
+    import('../supabaseClient').then(({ supabase }) => {
+      supabase
+        .from('playlists')
+        .select('*')
+        .then(({ data, error }) => {
+          if (error) {
+            alert('Error loading playlists: ' + error.message);
+          } else {
+            setPlaylists(data || []);
+          }
+        });
+    });
+  }, []);
 
   const sampleSongs = [
     { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', cover: '🌟', album: 'After Hours' },

@@ -4,48 +4,21 @@ import React from 'react';
 export default function LikedSongsScreen() {
   // ...existing code...
   
-  const likedSongs = [
-    {
-      id: 1,
-      title: 'Anti-Hero',
-      artist: 'Taylor Swift',
-      album: 'Midnights',
-      duration: '3:20',
-      cover: '💚'
-    },
-    {
-      id: 2,
-      title: 'Flowers',
-      artist: 'Miley Cyrus',
-      album: 'Endless Summer Vacation',
-      duration: '3:21',
-      cover: '🌸'
-    },
-    {
-      id: 3,
-      title: 'As It Was',
-      artist: 'Harry Styles',
-      album: 'Harry\'s House',
-      duration: '2:47',
-      cover: '🎵'
-    },
-    {
-      id: 4,
-      title: 'unholy',
-      artist: 'Sam Smith (feat. Kim Petras)',
-      album: 'Gloria',
-      duration: '2:36',
-      cover: '🖤'
-    },
-    {
-      id: 5,
-      title: 'Shivers',
-      artist: 'Ed Sheeran',
-      album: '=',
-      duration: '3:27',
-      cover: '❄️'
-    }
-  ];
+  const [likedSongs, setLikedSongs] = React.useState([]);
+  React.useEffect(() => {
+    import('../supabaseClient').then(({ supabase }) => {
+      supabase
+        .from('liked_songs')
+        .select('*')
+        .then(({ data, error }) => {
+          if (error) {
+            alert('Error loading liked songs: ' + error.message);
+          } else {
+            setLikedSongs(data || []);
+          }
+        });
+    });
+  }, []);
 
   const handlePlaySong = (song, index) => {
     alert('Play: ' + song.title);
