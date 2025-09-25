@@ -19,6 +19,13 @@ body {
   color: #FFFFFF;
   height: 100vh;
   overflow-x: hidden;
+  /* Hide scrollbar */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+body::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
 
 #root {
