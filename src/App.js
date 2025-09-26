@@ -24,7 +24,6 @@ function App() {
             <Route path="/playlists" element={<PlaylistsScreen />} />
           </Routes>
         </main>
-  <ModernAudioPlayer />
   <BottomNavigation />
       </Router>
     </div>
