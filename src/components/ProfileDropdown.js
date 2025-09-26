@@ -16,26 +16,31 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handlePiNetworkLogin = () => {
-    // Provera da li je Pi Browser
-    const isPiBrowser = navigator.userAgent.includes('PiBrowser');
-    if (!isPiBrowser) {
-      alert('Please open this app in Pi Browser');
-      return;
-    }
+  const handlePiNetworkLogin = async () => {
     // Pi Network SDK login
     if (window.Pi) {
       const scopes = ['username', 'payments'];
       const onIncompletePaymentFound = (payment) => {
         console.log('Incomplete payment found:', payment);
       };
-      window.Pi.authenticate(scopes, onIncompletePaymentFound)
-        .then((user) => {
-          onLoginSuccess({ user });
-        })
-        .catch((err) => {
-          onLoginFailure(err);
-        });
+      try {
+        const result = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+        // result: { user, accessToken }
+        if (result && result.accessToken) {
+          // Pošalji accessToken backendu na /api/verify-login
+          const { apiAxios } = await import('../apiAxios');
+          const response = await apiAxios.post('/verify-login', { accessToken: result.accessToken });
+          if (response.data && response.data.username) {
+            alert('Pi login successful! Username: ' + response.data.username);
+          } else {
+            alert('Login failed: ' + (response.data?.error || 'Unknown error'));
+          }
+        } else {
+          alert('No accessToken from Pi Network!');
+        }
+      } catch (err) {
+        alert('Login failed: ' + err);
+      }
     } else {
       alert('Pi SDK not loaded!');
     }
