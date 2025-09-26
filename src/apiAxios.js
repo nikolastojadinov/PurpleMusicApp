@@ -1,5 +1,6 @@
-const { apiKey } = require('./config');
-const axios = require('axios');
+
+import { apiKey } from './config';
+import axios from 'axios';
 
 const apiAxios = axios.create({
   headers: {
@@ -7,4 +8,4 @@ const apiAxios = axios.create({
   },
 });
 
-module.exports = apiAxios;
+export default apiAxios;

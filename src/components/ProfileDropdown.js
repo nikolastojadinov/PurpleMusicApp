@@ -28,7 +28,7 @@ export default function ProfileDropdown() {
         // result: { user, accessToken }
         if (result && result.accessToken) {
           // Pošalji accessToken backendu na /api/verify-login
-          const { apiAxios } = await import('../apiAxios');
+          const apiAxios = (await import('../apiAxios')).default;
           const response = await apiAxios.post('/verify-login', { accessToken: result.accessToken });
           if (response.data && response.data.username) {
             alert('Pi login successful! Username: ' + response.data.username);
