@@ -17,16 +17,28 @@ export default function ProfileDropdown() {
   }, []);
 
   const handlePiNetworkLogin = () => {
-    // Pi Network SDK login integration
-    import('../piSdkLoader').then(({ loadPiSDK }) => {
-      loadPiSDK((Pi) => {
-        Pi.authenticate(
-          ['username', 'payment'],
-          onLoginSuccess,
-          onLoginFailure
-        );
-      });
-    });
+    // Provera da li je Pi Browser
+    const isPiBrowser = navigator.userAgent.includes('PiBrowser');
+    if (!isPiBrowser) {
+      alert('Please open this app in Pi Browser');
+      return;
+    }
+    // Pi Network SDK login
+    if (window.Pi) {
+      const scopes = ['username', 'payments'];
+      const onIncompletePaymentFound = (payment) => {
+        console.log('Incomplete payment found:', payment);
+      };
+      window.Pi.authenticate(scopes, onIncompletePaymentFound)
+        .then((user) => {
+          onLoginSuccess({ user });
+        })
+        .catch((err) => {
+          onLoginFailure(err);
+        });
+    } else {
+      alert('Pi SDK not loaded!');
+    }
     setIsOpen(false);
   };
 
