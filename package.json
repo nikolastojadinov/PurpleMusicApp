@@ -1,51 +1,14 @@
 {
-  "name": "mobilebeats-react",
+  "name": "purplemusic-backend",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "BROWSER=none PORT=5000 react-scripts start",
-    "netlify:build": "npm run build",
-    "netlify:deploy": "netlify deploy --prod --dir=build"
+    "start": "node server.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "@tailwindcss/forms": "^0.5.10",
-    "autoprefixer": "^10.4.21",
-    "axios": "^1.12.2",
-    "postcss": "^8.5.6",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "react-scripts": "5.0.1",
-    "serve": "^14.2.5",
-    "tailwindcss": "^3.4.15"
-  },
-  "devDependencies": {
-    "@types/react": "^18.0.28",
-    "@types/react-dom": "^18.0.11",
-    "css-select": "^5.2.2",
-    "nth-check": "^2.1.1",
-    "svgo": "^3.3.2"
-  },
-  "overrides": {
-    "nth-check": "^2.1.1",
-    "css-select": "^5.2.2",
-    "svgo": "^3.3.2"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.7"
   }
 }
