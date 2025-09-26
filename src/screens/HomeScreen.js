@@ -35,8 +35,20 @@ export default function HomeScreen() {
     { id: 5, title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', cover: '🎵', album: 'F*CK LOVE 3: OVER YOU' }
   ];
 
-  const handlePlayPlaylist = (playlist) => {
-    alert('Play: ' + playlist.title);
+  // State za selektovanu pesmu i prikaz playera
+  const [selectedSong, setSelectedSong] = React.useState(null);
+  const [playerOpen, setPlayerOpen] = React.useState(false);
+
+  // Prikaz playera samo na klik na pesmu
+  const handlePlaySong = (song) => {
+    setSelectedSong(song);
+    setPlayerOpen(true);
+  };
+
+  // Zatvaranje playera
+  const handleClosePlayer = () => {
+    setPlayerOpen(false);
+    setSelectedSong(null);
   };
 
   return (
@@ -54,48 +66,37 @@ export default function HomeScreen() {
       </div>
 
       <section className="home-section">
-        <h2 className="section-title">Recently played</h2>
-        <div className="horizontal-scroll">
-          {recentlyPlayed.map((item) => (
-            <div key={item.id} className="recent-item" onClick={() => handlePlayPlaylist(item)}>
-              <div className="recent-cover">
-                <span>{item.cover}</span>
+        <h2 className="section-title">Songs</h2>
+        <div className="songs-list">
+          {sampleSongs.map((song) => (
+            <div key={song.id} className="song-item" onClick={() => handlePlaySong(song)}>
+              <div className="song-cover"><span>{song.cover}</span></div>
+              <div className="song-details">
+                <h3 className="song-title">{song.title}</h3>
+                <p className="song-artist">{song.artist}</p>
+                <p className="song-album">{song.album}</p>
               </div>
-              <h3 className="recent-title">{item.title}</h3>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="home-section">
-        <h2 className="section-title">Made for you</h2>
-        <div className="horizontal-scroll">
-          {madeForYou.map((item) => (
-            <div key={item.id} className="made-item" onClick={() => handlePlayPlaylist(item)}>
-              <div className="made-cover">
-                <span>{item.cover}</span>
-              </div>
-              <h3 className="made-title">{item.title}</h3>
-              <p className="made-subtitle">{item.subtitle}</p>
-            </div>
-          ))}
+      {/* Player prikaz */}
+      {playerOpen && selectedSong && (
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 80, zIndex: 1000 }}>
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 1100 }}>
+            <button
+              style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 32, height: 32, fontSize: 20, cursor: 'pointer' }}
+              onClick={handleClosePlayer}
+              aria-label="Close player"
+            >
+              ×
+            </button>
+          </div>
+          {/* ModernAudioPlayer sa selektovanom pesmom */}
+          <ModernAudioPlayer key={selectedSong.id} song={selectedSong} />
         </div>
-      </section>
-
-      <section className="home-section">
-        <h2 className="section-title">Trending now</h2>
-        <div className="horizontal-scroll">
-          {trendingNow.map((item) => (
-            <div key={item.id} className="trending-item" onClick={() => handlePlayPlaylist(item)}>
-              <div className="trending-cover">
-                <span>{item.cover}</span>
-              </div>
-              <h3 className="trending-title">{item.title}</h3>
-              <p className="trending-subtitle">{item.subtitle}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      )}
     </div>
   );
 }
