@@ -2,9 +2,7 @@
 import { apiKey } from './config';
 import axios from 'axios';
 
-const baseURL = process.env.NODE_ENV === 'production'
-  ? 'https://purplemusicapp.onrender.com' // Itt add meg a backend URL-t
-  : '';
+const baseURL = process.env.REACT_APP_API_URL || 'https://purplemusicapp.onrender.com';
 
 const apiAxios = axios.create({
   baseURL,
