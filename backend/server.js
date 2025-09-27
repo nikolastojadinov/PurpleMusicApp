@@ -28,24 +28,62 @@ app.post('/api/verify-login', verifyLogin);
 
 // Pi Network payment verification endpoint
 app.post('/api/verify-payment', async (req, res) => {
-  const { paymentId, pi_user_uid } = req.body;
-  if (!paymentId || !pi_user_uid) {
-    return res.status(400).json({ success: false, error: 'Missing paymentId or pi_user_uid' });
+  const startedAt = Date.now();
+  // Debug: ulazni payload (sanitized)
+  console.log('[verify-payment] incoming body =', JSON.stringify(req.body));
+  const { paymentId, pi_user_uid } = req.body || {};
+  if (!paymentId) {
+    console.warn('[verify-payment] Missing paymentId field');
+    return res.status(400).json({ success: false, error: 'Missing paymentId' });
+  }
+  if (!pi_user_uid) {
+    console.warn('[verify-payment] Missing pi_user_uid field');
+    return res.status(400).json({ success: false, error: 'Missing pi_user_uid' });
   }
   try {
-    // Verifikuj payment sa Pi backendom
     const piApiKey = process.env.PI_API_KEY; // Server-side Pi API key
     if (!piApiKey) {
-      return res.status(500).json({ success: false, error: 'Missing PI_API_KEY environment variable on server' });
+      console.error('[verify-payment] PI_API_KEY not set in environment');
+      return res.status(500).json({ success: false, error: 'PI_API_KEY not configured on server' });
     }
     const piPaymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
-    const piResponse = await axios.get(piPaymentUrl, {
-      headers: { Authorization: `Key ${piApiKey}` }
-    });
-    const payment = piResponse.data;
-    // Proveri status i podatke
-    if (payment.status === 'completed' && payment.metadata.type === 'premium') {
-      // Aktiviraj premium za korisnika na Supabase
+    console.log('[verify-payment] Fetching from Pi API:', piPaymentUrl);
+    let payment;
+    try {
+      const piResponse = await axios.get(piPaymentUrl, {
+        headers: { Authorization: `Key ${piApiKey}` }
+      });
+      payment = piResponse.data;
+    } catch (piErr) {
+      const status = piErr?.response?.status;
+      const data = piErr?.response?.data;
+      console.error('[verify-payment] Pi API request failed', { status, data });
+      if (status === 401) {
+        return res.status(502).json({ success: false, error: 'Pi API authentication failed (401). Check PI_API_KEY.' });
+      }
+      if (status === 404) {
+        return res.status(400).json({ success: false, error: 'Unknown paymentId (404 from Pi API)' });
+      }
+      return res.status(502).json({ success: false, error: 'Pi API error', details: data });
+    }
+
+    // Log kratak rezime payment objekta (bez potencijalno osetljivih polja)
+    try {
+      console.log('[verify-payment] payment summary =', JSON.stringify({
+        id: payment.identifier || payment.id || payment.payment_id || paymentId,
+        status: payment.status,
+        amount: payment.amount,
+        metadata: payment.metadata,
+        created_at: payment.created_at
+      }));
+    } catch (_) {}
+
+    if (!(payment && payment.status)) {
+      console.warn('[verify-payment] Payment response missing status');
+      return res.status(502).json({ success: false, error: 'Invalid payment response from Pi API' });
+    }
+
+    if (payment.status === 'completed' && payment.metadata?.type === 'premium') {
       if (!supabase) {
         return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)' });
       }
@@ -54,15 +92,21 @@ app.post('/api/verify-payment', async (req, res) => {
         .update({ is_premium: true })
         .eq('pi_user_uid', pi_user_uid);
       if (error) {
+        console.error('[verify-payment] Supabase update error:', error.message);
         return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message });
       }
-      return res.json({ success: true });
-    } else {
-      return res.status(400).json({ success: false, error: 'Payment not completed or invalid type' });
+      console.log('[verify-payment] PREMIUM ACTIVATED for', pi_user_uid, 'in', Date.now() - startedAt, 'ms');
+      return res.json({ success: true, paymentStatus: payment.status });
     }
+
+    console.warn('[verify-payment] Payment not completed or invalid metadata', {
+      status: payment.status,
+      metadata: payment.metadata
+    });
+    return res.status(400).json({ success: false, error: 'Payment not completed or invalid metadata.type', status: payment.status });
   } catch (err) {
-    console.error('Payment verification error:', err);
-    return res.status(500).json({ success: false, error: 'Payment verification failed' });
+    console.error('[verify-payment] Unhandled error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
