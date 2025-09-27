@@ -7,7 +7,10 @@ const { createClient } = require('@supabase/supabase-js');
 // Supabase setup
 const SUPABASE_URL = 'https://ofkfygqrfenctzitigae.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+if (!SUPABASE_SERVICE_KEY) {
+  console.error('[BOOT] Missing SUPABASE_SERVICE_KEY environment variable. Set it in Render -> Environment.');
+}
+const supabase = SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const verifyLogin = require('./api/verify-login');
 
 const app = express();
@@ -35,6 +38,9 @@ app.post('/api/verify-payment', async (req, res) => {
     // Proveri status i podatke
     if (payment.status === 'completed' && payment.metadata.type === 'premium') {
       // Aktiviraj premium za korisnika na Supabase
+      if (!supabase) {
+        return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)' });
+      }
       const { error } = await supabase
         .from('users')
         .update({ is_premium: true })
