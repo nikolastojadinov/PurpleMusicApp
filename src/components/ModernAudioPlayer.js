@@ -8,7 +8,7 @@ const demoSong = {
   duration: 205
 };
 
-export default function ModernAudioPlayer({ song = demoSong }) {
+export default function ModernAudioPlayer({ song = demoSong, autoPlay = false }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -148,6 +148,17 @@ export default function ModernAudioPlayer({ song = demoSong }) {
       };
     }
   }, [dragging, startY, touchStartY]);
+
+  // Auto play when song changes if requested
+  React.useEffect(() => {
+    if (autoPlay && audioRef.current) {
+      // slight timeout to ensure metadata loads
+      const t = setTimeout(() => {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [song?.src, autoPlay]);
 
   return (
     <div

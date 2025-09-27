@@ -92,9 +92,15 @@ export default function HomeScreen() {
           <div className="horizontal-scroll">
             {madeForYouSongs.map(song => (
               <div key={song.id} className="made-item" style={{position:'relative'}}>
-                <div className="made-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
+                <div
+                  className="made-cover"
+                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
+                  onClick={() => handlePlaySong(song)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
+                >
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:20, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
                 <div className="made-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
@@ -111,9 +117,15 @@ export default function HomeScreen() {
           <div className="horizontal-scroll">
             {recentlyPlayedSongs.map(song => (
               <div key={song.id} className="recent-item" style={{position:'relative'}}>
-                <div className="recent-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
+                <div
+                  className="recent-cover"
+                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
+                  onClick={() => handlePlaySong(song)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
+                >
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:18, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
                 <div className="recent-title truncate" style={{maxWidth:140, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:140}}>{song.artist}</div>
@@ -130,9 +142,15 @@ export default function HomeScreen() {
           <div className="horizontal-scroll">
             {trendingNowSongs.map(song => (
               <div key={song.id} className="trending-item" style={{position:'relative'}}>
-                <div className="trending-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
+                <div
+                  className="trending-cover"
+                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
+                  onClick={() => handlePlaySong(song)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
+                >
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:20, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
                 <div className="trending-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
@@ -157,7 +175,7 @@ export default function HomeScreen() {
             </button>
           </div>
           {/* ModernAudioPlayer sa selektovanom pesmom */}
-          <ModernAudioPlayer key={selectedSong.id} song={{
+          <ModernAudioPlayer key={selectedSong.id} autoPlay song={{
             ...selectedSong,
             src: selectedSong.src || selectedSong.url
           }} />
