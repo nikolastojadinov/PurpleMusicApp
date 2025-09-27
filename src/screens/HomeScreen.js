@@ -38,10 +38,11 @@ export default function HomeScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  // Derive three sections (4 songs each) from the Supabase list
-  const madeForYouSongs = librarySongs.slice(0, 4);
-  const recentlyPlayedSongs = librarySongs.slice(4, 8);
-  const trendingNowSongs = librarySongs.slice(8, 12);
+  // Take first 4 songs (or fewer) and reuse for all three horizontal sections
+  const baseFour = librarySongs.slice(0, 4);
+  const madeForYouSongs = baseFour;
+  const recentlyPlayedSongs = baseFour;
+  const trendingNowSongs = baseFour;
 
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
@@ -78,7 +79,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Made for you</h2>
         {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
         {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && (
+        {!loadingLibrary && !libraryError && madeForYouSongs.length > 0 && (
           <div className="horizontal-scroll">
             {madeForYouSongs.map(song => (
               <div key={song.id} className="made-item" onClick={() => handlePlaySong(song)}>
@@ -89,7 +90,6 @@ export default function HomeScreen() {
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
               </div>
             ))}
-            {madeForYouSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nema pesama.</div>}
           </div>
         )}
       </section>
@@ -99,7 +99,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Recently played</h2>
         {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
         {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && (
+        {!loadingLibrary && !libraryError && recentlyPlayedSongs.length > 0 && (
           <div className="horizontal-scroll">
             {recentlyPlayedSongs.map(song => (
               <div key={song.id} className="recent-item" onClick={() => handlePlaySong(song)}>
@@ -110,7 +110,6 @@ export default function HomeScreen() {
                 <div className="made-subtitle truncate" style={{maxWidth:140}}>{song.artist}</div>
               </div>
             ))}
-            {recentlyPlayedSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nedovoljno pesama.</div>}
           </div>
         )}
       </section>
@@ -120,7 +119,7 @@ export default function HomeScreen() {
         <h2 className="section-title">Trending now</h2>
         {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
         {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && (
+        {!loadingLibrary && !libraryError && trendingNowSongs.length > 0 && (
           <div className="horizontal-scroll">
             {trendingNowSongs.map(song => (
               <div key={song.id} className="trending-item" onClick={() => handlePlaySong(song)}>
@@ -131,7 +130,6 @@ export default function HomeScreen() {
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
               </div>
             ))}
-            {trendingNowSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nedovoljno pesama.</div>}
           </div>
         )}
       </section>
