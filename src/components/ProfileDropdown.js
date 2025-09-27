@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  // Konstans za premium cenu
+  const PREMIUM_AMOUNT = 3.14; // Pi
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -111,8 +113,8 @@ export default function ProfileDropdown() {
     }
     const user = userData[0];
     const paymentData = {
-      amount: 1, // Pi amount
-      memo: "PurpleMusic Premium",
+      amount: PREMIUM_AMOUNT, // Pi iznos
+      memo: `PurpleMusic Premium ${PREMIUM_AMOUNT} Pi`,
       metadata: { type: "premium", user: user.username, pi_user_uid: user.pi_user_uid },
     };
 
@@ -222,8 +224,8 @@ export default function ProfileDropdown() {
             >
               <div className="button-icon premium-icon">⭐</div>
               <div className="button-text">
-                <div className="button-title">Go Premium</div>
-                <div className="button-subtitle">Upgrade your experience</div>
+                <div className="button-title">Go Premium – {PREMIUM_AMOUNT}π</div>
+                <div className="button-subtitle">Full access for {PREMIUM_AMOUNT} Pi</div>
               </div>
             </button>
           </div>
