@@ -110,6 +110,84 @@ app.post('/api/verify-payment', async (req, res) => {
   }
 });
 
+// --- New Pi Payments Flow Endpoints (approve & complete) ---
+// Approve payment (server side) when client notifies onReadyForServerApproval
+app.post('/api/payments/approve', async (req, res) => {
+  const { paymentId, pi_user_uid } = req.body || {};
+  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId' });
+  if (!pi_user_uid) return res.status(400).json({ success: false, error: 'Missing pi_user_uid' });
+  const piApiKey = process.env.PI_API_KEY;
+  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured' });
+  try {
+    // 1. Fetch payment details
+    const paymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
+    const fetchResp = await axios.get(paymentUrl, { headers: { Authorization: `Key ${piApiKey}` } });
+    const payment = fetchResp.data;
+    if (!payment || !payment.metadata) {
+      return res.status(400).json({ success: false, error: 'Invalid payment object from Pi API' });
+    }
+    // Basic validation
+    if (payment.metadata.type !== 'premium') {
+      return res.status(400).json({ success: false, error: 'Unexpected payment metadata.type' });
+    }
+    if (payment.status !== 'pending') {
+      // If already approved or completed, treat as idempotent success
+      if (['approved', 'completed'].includes(payment.status)) {
+        return res.json({ success: true, status: payment.status, already: true });
+      }
+      return res.status(400).json({ success: false, error: 'Payment not in pending state', status: payment.status });
+    }
+    // 2. Approve
+    const approveUrl = `https://api.minepi.com/v2/payments/${paymentId}/approve`;
+    await axios.post(approveUrl, {}, { headers: { Authorization: `Key ${piApiKey}` } });
+    return res.json({ success: true, status: 'approved' });
+  } catch (err) {
+    const status = err?.response?.status;
+    const data = err?.response?.data;
+    console.error('[payments/approve] error', { status, data });
+    return res.status(502).json({ success: false, error: 'Approve failed', details: data || err.message });
+  }
+});
+
+// Complete payment (server side) when client notifies onReadyForServerCompletion with txid
+app.post('/api/payments/complete', async (req, res) => {
+  const { paymentId, pi_user_uid, txid } = req.body || {};
+  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId' });
+  if (!txid) return res.status(400).json({ success: false, error: 'Missing txid' });
+  if (!pi_user_uid) return res.status(400).json({ success: false, error: 'Missing pi_user_uid' });
+  const piApiKey = process.env.PI_API_KEY;
+  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured' });
+  try {
+    // 1. Complete
+    const completeUrl = `https://api.minepi.com/v2/payments/${paymentId}/complete`;
+    await axios.post(completeUrl, { txid }, { headers: { Authorization: `Key ${piApiKey}` } });
+    // 2. Fetch to confirm
+    const paymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
+    const fetchResp = await axios.get(paymentUrl, { headers: { Authorization: `Key ${piApiKey}` } });
+    const payment = fetchResp.data;
+    if (payment.status !== 'completed') {
+      return res.status(400).json({ success: false, error: 'Payment not completed after complete call', status: payment.status });
+    }
+    // 3. Update Supabase premium
+    if (!supabase) {
+      return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)' });
+    }
+    const { error } = await supabase
+      .from('users')
+      .update({ is_premium: true })
+      .eq('pi_user_uid', pi_user_uid);
+    if (error) {
+      return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message });
+    }
+    return res.json({ success: true, status: 'completed' });
+  } catch (err) {
+    const status = err?.response?.status;
+    const data = err?.response?.data;
+    console.error('[payments/complete] error', { status, data });
+    return res.status(502).json({ success: false, error: 'Complete failed', details: data || err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('PurpleMusic Pi Network backend is running!');
 });

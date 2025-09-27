@@ -120,30 +120,39 @@ export default function ProfileDropdown() {
     const onReadyForServerApproval = async (paymentId) => {
       try {
         const apiAxios = (await import('../apiAxios')).default;
-        const response = await apiAxios.post('/api/verify-payment', { paymentId, pi_user_uid: user.pi_user_uid });
+        const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
+        if (!response.data.success) {
+          alert('Greška pri approve: ' + (response.data.error || 'Nepoznata greška'));
+        } else {
+          console.log('Payment approved na serveru');
+        }
+      } catch (err) {
+        alert('Greška (approve) komunikacija: ' + err.message);
+      }
+    };
+
+    // Callback: kada je payment završen (client dobije txid) => server complete
+    const onReadyForServerCompletion = async (paymentId, txid) => {
+      try {
+        const apiAxios = (await import('../apiAxios')).default;
+        const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
-          // Ažuriraj korisnika na Supabase
+          // Ažuriraj korisnika lokalno
           const { error } = await supabase
             .from('users')
             .update({ is_premium: true })
             .eq('pi_user_uid', user.pi_user_uid);
           if (error) {
-            alert('Greška pri ažuriranju premium statusa: ' + error.message);
+            alert('Greška pri lokalnom premium update-u: ' + error.message);
           } else {
-            alert('Premium aktiviran!');
+            alert('Plaćanje uspešno! Premium aktiviran.');
           }
         } else {
-          alert('Greška u verifikaciji: ' + response.data.error);
+          alert('Greška pri complete: ' + (response.data.error || 'Nepoznata greška'));
         }
       } catch (err) {
-        alert('Greška u komunikaciji sa backendom: ' + err.message);
+        alert('Greška (complete) komunikacija: ' + err.message);
       }
-    };
-
-    // Callback: kada je payment završen
-    const onReadyForServerCompletion = (paymentId, txid) => {
-      console.log('Payment completed:', paymentId, txid);
-      alert('Plaćanje uspešno!');
     };
 
     // Callback: otkazano
