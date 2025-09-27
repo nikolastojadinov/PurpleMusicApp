@@ -1,65 +1,47 @@
 import React from 'react';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
-import { fetchMusicLibraryCached } from '../services/musicLibrary';
 // ...existing code...
 
-export default function HomeScreen() {
-  // Supabase songs state
-  const [librarySongs, setLibrarySongs] = React.useState([]);
-  const [loadingLibrary, setLoadingLibrary] = React.useState(true);
-  const [libraryError, setLibraryError] = React.useState(null);
-
-  // Removed static mock sections: use only Supabase songs
-
-  // Load songs from Supabase storage once
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoadingLibrary(true);
-        const params = new URLSearchParams(window.location.search);
-        const debug = params.get('debug') === '1';
-        const songs = await fetchMusicLibraryCached(true, { includeUnmatched: true, fallbackCover: '/fallback-cover.png', debug });
-        if (debug && typeof window !== 'undefined') {
-          console.log('[HomeScreen] Supabase songs fetched:', songs);
-          window.__supabaseSongs = songs; // expose for console inspection
-        }
-        if (cancelled) return;
-        // adapt to player expected shape (song.src used in player)
-        const adapted = songs.map((s, idx) => ({
-          id: `lib-${idx}-${s.title}`,
-            title: s.title,
-            artist: 'Unknown Artist',
-            album: 'Single',
-            cover: s.cover,
-            src: s.url
-        }));
-        setLibrarySongs(adapted);
-      } catch (e) {
-        if (!cancelled) setLibraryError(e.message || 'Greška pri učitavanju pesama');
-      } finally {
-        if (!cancelled) setLoadingLibrary(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Take first 4 songs (or fewer) and reuse for all three horizontal sections
-  function pickSections(songs) {
-    if (songs.length <= 4) {
-      return { a: songs.slice(0,4), b: songs.slice(0,4), c: songs.slice(0,4) };
-    }
-    const shuffled = [...songs].sort(() => Math.random() - 0.5);
-    return {
-      a: shuffled.slice(0,4),
-      b: shuffled.slice(4,8).length ? shuffled.slice(4,8) : shuffled.slice(0,4),
-      c: shuffled.slice(8,12).length ? shuffled.slice(8,12) : shuffled.slice(0,4)
-    };
+const STATIC_SONGS = [
+  {
+    id: 'static-1',
+    title: 'Deep Abstract Ambient',
+    artist: 'Unknown Artist',
+    album: 'Single',
+    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/deepabstractambient.png',
+    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/deepabstractambient.mp3'
+  },
+  {
+    id: 'static-2',
+    title: 'Retro Lounge',
+    artist: 'Unknown Artist',
+    album: 'Single',
+    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro-lounge.png',
+    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/retro-lounge.mp3'
+  },
+  {
+    id: 'static-3',
+    title: 'Running Night',
+    artist: 'Unknown Artist',
+    album: 'Single',
+    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/running-night.png',
+    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/running-night.mp3'
+  },
+  {
+    id: 'static-4',
+    title: 'Vlog Beat Background',
+    artist: 'Unknown Artist',
+    album: 'Single',
+    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/vlog-beat-background.png',
+    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/vlog-beat-background.mp3'
   }
-  const sections = pickSections(librarySongs);
-  const madeForYouSongs = sections.a;
-  const recentlyPlayedSongs = sections.b;
-  const trendingNowSongs = sections.c;
+];
+
+export default function HomeScreen() {
+  const librarySongs = STATIC_SONGS;
+  const madeForYouSongs = librarySongs;
+  const recentlyPlayedSongs = librarySongs;
+  const trendingNowSongs = librarySongs;
 
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
@@ -90,7 +72,7 @@ export default function HomeScreen() {
             readOnly
           />
         </div>
-        {!loadingLibrary && librarySongs.length > 0 && (
+        {librarySongs.length > 0 && (
           <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
             {showDebug ? 'Hide debug' : 'Show debug'}
           </button>
@@ -106,16 +88,15 @@ export default function HomeScreen() {
       {/* Made for you section */}
       <section className="home-section">
         <h2 className="section-title">Made for you</h2>
-        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
-        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && madeForYouSongs.length > 0 && (
+        {madeForYouSongs.length > 0 && (
           <div className="horizontal-scroll">
             {madeForYouSongs.map(song => (
-              <div key={song.id} className="made-item" onClick={() => handlePlaySong(song)}>
-                <div className="made-cover" style={{padding:0, overflow:'hidden'}}>
+              <div key={song.id} className="made-item" style={{position:'relative'}}>
+                <div className="made-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
+                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:20, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
-                <div className="made-title truncate" style={{maxWidth:160}}>{song.title}</div>
+                <div className="made-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
               </div>
             ))}
@@ -126,16 +107,15 @@ export default function HomeScreen() {
       {/* Recently played section */}
       <section className="home-section">
         <h2 className="section-title">Recently played</h2>
-        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
-        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && recentlyPlayedSongs.length > 0 && (
+        {recentlyPlayedSongs.length > 0 && (
           <div className="horizontal-scroll">
             {recentlyPlayedSongs.map(song => (
-              <div key={song.id} className="recent-item" onClick={() => handlePlaySong(song)}>
-                <div className="recent-cover" style={{padding:0, overflow:'hidden'}}>
+              <div key={song.id} className="recent-item" style={{position:'relative'}}>
+                <div className="recent-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
+                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:18, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
-                <div className="recent-title truncate" style={{maxWidth:140}}>{song.title}</div>
+                <div className="recent-title truncate" style={{maxWidth:140, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:140}}>{song.artist}</div>
               </div>
             ))}
@@ -146,16 +126,15 @@ export default function HomeScreen() {
       {/* Trending now section */}
       <section className="home-section">
         <h2 className="section-title">Trending now</h2>
-        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
-        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && trendingNowSongs.length > 0 && (
+        {trendingNowSongs.length > 0 && (
           <div className="horizontal-scroll">
             {trendingNowSongs.map(song => (
-              <div key={song.id} className="trending-item" onClick={() => handlePlaySong(song)}>
-                <div className="trending-cover" style={{padding:0, overflow:'hidden'}}>
+              <div key={song.id} className="trending-item" style={{position:'relative'}}>
+                <div className="trending-cover" style={{padding:0, overflow:'hidden', position:'relative'}}>
                   <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
+                  <button onClick={() => handlePlaySong(song)} style={{position:'absolute', bottom:8, right:8, background:'linear-gradient(135deg,#8B5CF6,#F59E0B)', color:'#fff', border:'none', borderRadius:20, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
                 </div>
-                <div className="trending-title truncate" style={{maxWidth:160}}>{song.title}</div>
+                <div className="trending-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
                 <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
               </div>
             ))}
