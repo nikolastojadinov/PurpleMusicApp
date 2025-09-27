@@ -1,30 +1,37 @@
 import { supabase } from '../supabaseClient';
 
-// List all files (non-recursive) from a bucket root, with optional extension filtering and pagination handling.
-async function listAllFiles(bucket, { extensions = null, limit = 100 } = {}) {
+// Rekurzív listázás: bejár mappákat (ako postoje) i vraća sve fajlove.
+async function listAllFiles(bucket, { extensions = null, limit = 100, prefix = '' } = {}) {
   let offset = 0;
-  const results = [];
+  const collected = [];
   while (true) {
-    const { data, error } = await supabase.storage.from(bucket).list('', {
+    const { data, error } = await supabase.storage.from(bucket).list(prefix, {
       limit,
       offset,
       sortBy: { column: 'name', order: 'asc' }
     });
-    if (error) throw new Error(`Greška pri listanju bucket-a ${bucket}: ${error.message}`);
+    if (error) throw new Error(`Greška pri listanju bucket-a ${bucket} (${prefix}): ${error.message}`);
     if (!data || data.length === 0) break;
     for (const entry of data) {
-      // Skip folders (metadata null)
-      if (!entry || !entry.name || !entry.metadata) continue;
-      if (extensions) {
+      if (!entry || !entry.name) continue;
+      // Folder detection: metadata === null ili entry.name ne sadrži '.' (heuristika)
+      const isFolder = !entry.name.includes('.') || entry.metadata === null;
+      if (isFolder) {
+        // Recurse into subfolder (avoid infinite loops)
+        const newPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
+        const nested = await listAllFiles(bucket, { extensions, limit, prefix: newPrefix });
+        collected.push(...nested);
+      } else {
         const ext = entry.name.split('.').pop().toLowerCase();
-        if (!extensions.includes(ext)) continue;
+        if (extensions && !extensions.includes(ext)) continue;
+        const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+        collected.push(fullPath);
       }
-      results.push(entry.name);
     }
     if (data.length < limit) break;
     offset += limit;
   }
-  return results;
+  return collected;
 }
 
 function baseName(filename) {
@@ -42,29 +49,54 @@ function formatTitle(raw) {
     .join(' ');
 }
 
-export async function fetchMusicLibrary() {
+export async function fetchMusicLibrary({ includeUnmatched = false } = {}) {
   const [musicFiles, coverFiles] = await Promise.all([
     listAllFiles('Music', { extensions: ['mp3'] }),
     listAllFiles('Covers', { extensions: ['png', 'jpg', 'jpeg'] })
   ]);
 
+  if (typeof window !== 'undefined') {
+    // Debug log in browser
+    console.log('[MusicLibrary] Fetched raw lists', { musicFiles, coverFiles });
+  }
+
   const musicMap = new Map();
   for (const f of musicFiles) musicMap.set(baseName(f), f);
 
-  const songs = [];
-  for (const cover of coverFiles) {
-    const bn = baseName(cover);
-    if (!musicMap.has(bn)) continue;
-    const musicFile = musicMap.get(bn);
+  const coverMap = new Map();
+  for (const c of coverFiles) coverMap.set(baseName(c), c);
+
+  const matchedIds = [];
+  for (const id of musicMap.keys()) {
+    if (coverMap.has(id)) matchedIds.push(id);
+  }
+
+  const songs = matchedIds.map(id => {
+    const musicFile = musicMap.get(id);
+    const coverFile = coverMap.get(id);
     const { data: { publicUrl: musicUrl } } = supabase.storage.from('Music').getPublicUrl(musicFile);
-    const { data: { publicUrl: coverUrl } } = supabase.storage.from('Covers').getPublicUrl(cover);
-    songs.push({
-      title: formatTitle(bn),
+    const { data: { publicUrl: coverUrl } } = supabase.storage.from('Covers').getPublicUrl(coverFile);
+    return {
+      title: formatTitle(id),
       url: musicUrl,
       cover: coverUrl
-    });
+    };
+  });
+
+  if (includeUnmatched) {
+    // Append music without covers (optional debug)
+    for (const id of musicMap.keys()) {
+      if (coverMap.has(id)) continue;
+      const musicFile = musicMap.get(id);
+      const { data: { publicUrl: musicUrl } } = supabase.storage.from('Music').getPublicUrl(musicFile);
+      songs.push({ title: formatTitle(id), url: musicUrl, cover: null });
+    }
   }
+
   songs.sort((a, b) => a.title.localeCompare(b.title));
+  if (typeof window !== 'undefined') {
+    console.log('[MusicLibrary] Final songs list', songs);
+  }
   return songs;
 }
 

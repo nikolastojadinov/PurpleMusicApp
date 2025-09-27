@@ -17,7 +17,10 @@ export default function HomeScreen() {
     (async () => {
       try {
         setLoadingLibrary(true);
-        const songs = await fetchMusicLibraryCached();
+        const songs = await fetchMusicLibraryCached(true); // force refresh bypass cache
+        if (typeof window !== 'undefined') {
+          console.log('[HomeScreen] Supabase songs fetched:', songs);
+        }
         if (cancelled) return;
         // adapt to player expected shape (song.src used in player)
         const adapted = songs.map((s, idx) => ({
