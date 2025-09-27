@@ -1,8 +1,13 @@
 import React from 'react';
+import ModernAudioPlayer from '../components/ModernAudioPlayer';
+import { fetchMusicLibraryCached } from '../services/musicLibrary';
 // ...existing code...
 
 export default function HomeScreen() {
   // ...existing code...
+  const [librarySongs, setLibrarySongs] = React.useState([]);
+  const [loadingLibrary, setLoadingLibrary] = React.useState(true);
+  const [libraryError, setLibraryError] = React.useState(null);
 
   const recentlyPlayed = [
     { id: 1, title: 'Liked Songs', type: 'playlist', cover: '💚' },
@@ -35,6 +40,33 @@ export default function HomeScreen() {
     { id: 5, title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', cover: '🎵', album: 'F*CK LOVE 3: OVER YOU' }
   ];
 
+  // Load songs from Supabase storage once
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingLibrary(true);
+        const songs = await fetchMusicLibraryCached();
+        if (cancelled) return;
+        // adapt to player expected shape (song.src used in player)
+        const adapted = songs.map((s, idx) => ({
+          id: `lib-${idx}-${s.title}`,
+            title: s.title,
+            artist: 'Unknown Artist',
+            album: 'Single',
+            cover: s.cover,
+            src: s.url
+        }));
+        setLibrarySongs(adapted);
+      } catch (e) {
+        if (!cancelled) setLibraryError(e.message || 'Greška pri učitavanju pesama');
+      } finally {
+        if (!cancelled) setLoadingLibrary(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
@@ -65,6 +97,44 @@ export default function HomeScreen() {
         </div>
       </div>
 
+      {/* Supabase Library Section */}
+      <section className="home-section">
+        <h2 className="section-title">Library</h2>
+        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
+        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
+        {!loadingLibrary && !libraryError && librarySongs.length === 0 && (
+          <div style={{color:'#B3B3B3', fontSize:14}}>Nema dostupnih pesama.</div>
+        )}
+        {!loadingLibrary && !libraryError && librarySongs.length > 0 && (
+          <div className="grid" style={{
+            display:'grid',
+            gap:'16px',
+            gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))'
+          }}>
+            {librarySongs.map(song => (
+              <div key={song.id} className="group" style={{cursor:'pointer'}} onClick={() => handlePlaySong(song)}>
+                <div style={{position:'relative'}}>
+                  <img src={song.cover} alt={song.title} style={{width:'100%', aspectRatio:'1/1', objectFit:'cover', borderRadius:8, boxShadow:'0 4px 14px rgba(0,0,0,0.4)'}} />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePlaySong(song); }}
+                    style={{
+                      position:'absolute', bottom:8, right:8,
+                      background:'linear-gradient(135deg,#8B5CF6,#F59E0B)',
+                      border:'none', borderRadius:20, padding:'6px 12px',
+                      color:'#fff', fontSize:12, fontWeight:600,
+                      boxShadow:'0 2px 6px rgba(0,0,0,0.5)', cursor:'pointer'
+                    }}
+                  >Play</button>
+                </div>
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:14, fontWeight:600, color:'#fff', lineHeight:1.2}} className="truncate">{song.title}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="home-section">
         <h2 className="section-title">Songs</h2>
         <div className="songs-list">
@@ -94,7 +164,10 @@ export default function HomeScreen() {
             </button>
           </div>
           {/* ModernAudioPlayer sa selektovanom pesmom */}
-          <ModernAudioPlayer key={selectedSong.id} song={selectedSong} />
+          <ModernAudioPlayer key={selectedSong.id} song={{
+            ...selectedSong,
+            src: selectedSong.src || selectedSong.url
+          }} />
         </div>
       )}
     </div>
