@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkpurplemusic_backend=self.webpackChunkpurplemusic_backend||[]).push([[843],{843:(I,c,s)=>{s.r(c),s.d(c,{supabase:()=>e});const e=(0,s(480).UU)("https://ofkfygqrfenctzitigae.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ma2Z5Z3FyZmVuY3R6aXRpZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2NjgwMjcsImV4cCI6MjA3MzI0NDAyN30.-GFl3-IncJ7hno_LHE5jtCOe_HI07nxwiq3aaISHolo")}}]);
-//# sourceMappingURL=843.cb89ed9d.chunk.js.map
