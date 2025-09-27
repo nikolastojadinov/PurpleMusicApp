@@ -4,41 +4,12 @@ import { fetchMusicLibraryCached } from '../services/musicLibrary';
 // ...existing code...
 
 export default function HomeScreen() {
-  // ...existing code...
+  // Supabase songs state
   const [librarySongs, setLibrarySongs] = React.useState([]);
   const [loadingLibrary, setLoadingLibrary] = React.useState(true);
   const [libraryError, setLibraryError] = React.useState(null);
 
-  const recentlyPlayed = [
-    { id: 1, title: 'Liked Songs', type: 'playlist', cover: '💚' },
-    { id: 2, title: 'Chill Mix', type: 'playlist', cover: '😌' },
-    { id: 3, title: 'Discover Weekly', type: 'playlist', cover: '🔥' },
-    { id: 4, title: 'Release Radar', type: 'playlist', cover: '📡' },
-    { id: 5, title: 'Daily Mix 1', type: 'playlist', cover: '🎵' },
-    { id: 6, title: 'Pop Mix', type: 'playlist', cover: '🎤' }
-  ];
-
-  const madeForYou = [
-    { id: 1, title: 'Discover Weekly', subtitle: 'Your weekly mixtape of fresh music', cover: '🔍' },
-    { id: 2, title: 'Release Radar', subtitle: 'Catch all the latest music', cover: '📡' },
-    { id: 3, title: 'Daily Mix 1', subtitle: 'Taylor Swift, Olivia Rodrigo and more', cover: '🎵' },
-    { id: 4, title: 'Daily Mix 2', subtitle: 'The Weeknd, Dua Lipa and more', cover: '🎶' }
-  ];
-
-  const trendingNow = [
-    { id: 1, title: 'Today\'s Top Hits', subtitle: 'Dua Lipa is on top of the Hottest 50!', cover: '🔥' },
-    { id: 2, title: 'RapCaviar', subtitle: 'New music from Drake, Travis Scott and more', cover: '🎤' },
-    { id: 3, title: 'Global Top 50', subtitle: 'Your daily update of the most played tracks', cover: '🌍' },
-    { id: 4, title: 'Viral 50', subtitle: 'The most viral tracks right now', cover: '📈' }
-  ];
-
-  const sampleSongs = [
-    { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', cover: '🌟', album: 'After Hours' },
-    { id: 2, title: 'Watermelon Sugar', artist: 'Harry Styles', cover: '🍉', album: 'Fine Line' },
-    { id: 3, title: 'Levitating', artist: 'Dua Lipa', cover: '✨', album: 'Future Nostalgia' },
-    { id: 4, title: 'Good 4 U', artist: 'Olivia Rodrigo', cover: '💜', album: 'SOUR' },
-    { id: 5, title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', cover: '🎵', album: 'F*CK LOVE 3: OVER YOU' }
-  ];
+  // Removed static mock sections: use only Supabase songs
 
   // Load songs from Supabase storage once
   React.useEffect(() => {
@@ -66,6 +37,11 @@ export default function HomeScreen() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Derive three sections (4 songs each) from the Supabase list
+  const madeForYouSongs = librarySongs.slice(0, 4);
+  const recentlyPlayedSongs = librarySongs.slice(4, 8);
+  const trendingNowSongs = librarySongs.slice(8, 12);
 
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
@@ -97,59 +73,70 @@ export default function HomeScreen() {
         </div>
       </div>
 
-      {/* Supabase Library Section */}
+      {/* Made for you section */}
       <section className="home-section">
-        <h2 className="section-title">Library</h2>
+        <h2 className="section-title">Made for you</h2>
         {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
         {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
-        {!loadingLibrary && !libraryError && librarySongs.length === 0 && (
-          <div style={{color:'#B3B3B3', fontSize:14}}>Nema dostupnih pesama.</div>
-        )}
-        {!loadingLibrary && !libraryError && librarySongs.length > 0 && (
-          <div className="grid" style={{
-            display:'grid',
-            gap:'16px',
-            gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))'
-          }}>
-            {librarySongs.map(song => (
-              <div key={song.id} className="group" style={{cursor:'pointer'}} onClick={() => handlePlaySong(song)}>
-                <div style={{position:'relative'}}>
-                  <img src={song.cover} alt={song.title} style={{width:'100%', aspectRatio:'1/1', objectFit:'cover', borderRadius:8, boxShadow:'0 4px 14px rgba(0,0,0,0.4)'}} />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handlePlaySong(song); }}
-                    style={{
-                      position:'absolute', bottom:8, right:8,
-                      background:'linear-gradient(135deg,#8B5CF6,#F59E0B)',
-                      border:'none', borderRadius:20, padding:'6px 12px',
-                      color:'#fff', fontSize:12, fontWeight:600,
-                      boxShadow:'0 2px 6px rgba(0,0,0,0.5)', cursor:'pointer'
-                    }}
-                  >Play</button>
+        {!loadingLibrary && !libraryError && (
+          <div className="horizontal-scroll">
+            {madeForYouSongs.map(song => (
+              <div key={song.id} className="made-item" onClick={() => handlePlaySong(song)}>
+                <div className="made-cover" style={{padding:0, overflow:'hidden'}}>
+                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
                 </div>
-                <div style={{marginTop:8}}>
-                  <div style={{fontSize:14, fontWeight:600, color:'#fff', lineHeight:1.2}} className="truncate">{song.title}</div>
-                </div>
+                <div className="made-title truncate" style={{maxWidth:160}}>{song.title}</div>
+                <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
               </div>
             ))}
+            {madeForYouSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nema pesama.</div>}
           </div>
         )}
       </section>
 
+      {/* Recently played section */}
       <section className="home-section">
-        <h2 className="section-title">Songs</h2>
-        <div className="songs-list">
-          {sampleSongs.map((song) => (
-            <div key={song.id} className="song-item" onClick={() => handlePlaySong(song)}>
-              <div className="song-cover"><span>{song.cover}</span></div>
-              <div className="song-details">
-                <h3 className="song-title">{song.title}</h3>
-                <p className="song-artist">{song.artist}</p>
-                <p className="song-album">{song.album}</p>
+        <h2 className="section-title">Recently played</h2>
+        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
+        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
+        {!loadingLibrary && !libraryError && (
+          <div className="horizontal-scroll">
+            {recentlyPlayedSongs.map(song => (
+              <div key={song.id} className="recent-item" onClick={() => handlePlaySong(song)}>
+                <div className="recent-cover" style={{padding:0, overflow:'hidden'}}>
+                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="recent-title truncate" style={{maxWidth:140}}>{song.title}</div>
+                <div className="made-subtitle truncate" style={{maxWidth:140}}>{song.artist}</div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+            {recentlyPlayedSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nedovoljno pesama.</div>}
+          </div>
+        )}
       </section>
+
+      {/* Trending now section */}
+      <section className="home-section">
+        <h2 className="section-title">Trending now</h2>
+        {loadingLibrary && <div style={{color:'#B3B3B3', fontSize:14}}>Učitavanje...</div>}
+        {libraryError && <div style={{color:'#f87171', fontSize:14}}>Greška: {libraryError}</div>}
+        {!loadingLibrary && !libraryError && (
+          <div className="horizontal-scroll">
+            {trendingNowSongs.map(song => (
+              <div key={song.id} className="trending-item" onClick={() => handlePlaySong(song)}>
+                <div className="trending-cover" style={{padding:0, overflow:'hidden'}}>
+                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="trending-title truncate" style={{maxWidth:160}}>{song.title}</div>
+                <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
+              </div>
+            ))}
+            {trendingNowSongs.length === 0 && <div style={{color:'#B3B3B3', fontSize:14}}>Nedovoljno pesama.</div>}
+          </div>
+        )}
+      </section>
+
+      {/* Removed old static Songs list */}
 
       {/* Player prikaz */}
       {playerOpen && selectedSong && (
