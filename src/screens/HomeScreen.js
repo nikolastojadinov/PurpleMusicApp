@@ -1,5 +1,6 @@
 import React from 'react';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
+import { listCovers } from '../services/coversService';
 // ...existing code...
 
 const STATIC_SONGS = [
@@ -49,6 +50,19 @@ export default function HomeScreen() {
   const [playerOpen, setPlayerOpen] = React.useState(false);
   const [showDebug, setShowDebug] = React.useState(false);
   const fallbackCover = '/fallback-cover.png';
+  const [coverFiles, setCoverFiles] = React.useState([]);
+  const [coverFetchError, setCoverFetchError] = React.useState(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const files = await listCovers();
+        setCoverFiles(files);
+      } catch (e) {
+        setCoverFetchError(e.message);
+      }
+    })();
+  }, []);
 
   // Try alternate extension (.jpg <-> .png) before final fallback
   const handleImageError = (e, song) => {
@@ -102,7 +116,7 @@ export default function HomeScreen() {
 
       {showDebug && (
         <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify(madeForYouSongs, null, 2)}
+{JSON.stringify({ songs: madeForYouSongs, coversInBucket: coverFiles, coverFetchError }, null, 2)}
         </pre>
       )}
 
