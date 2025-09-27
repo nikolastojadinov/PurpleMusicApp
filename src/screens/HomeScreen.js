@@ -2,41 +2,28 @@ import React from 'react';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 // ...existing code...
 
+// Updated list using only the MP3 URLs you just provided and the real cover filenames.
+// (Trenutno si poslao 4 MP3 fajla, ostali prethodni nisu potvrđeni – zato je lista sada 4 pesme.)
 const STATIC_SONGS = [
   {
     title: "Apocalypse 1 (Original Lyrics)",
     url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/apocalypse-1-original-lyrics-344749.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalypse-1-original-lyrics-344749.jpg"
-  },
-  {
-    title: "Apocalypse (Original Lyrics)",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/apocalypse-original-lyrics-344734.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalypse-original-lyrics-344734.jpg"
-  },
-  {
-    title: "80s Baby (Original Lyrics)",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80s-baby-original-lyrics-335952.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/80s-baby-original-lyrics-335952.jpg"
-  },
-  {
-    title: "80’s Nostalgia",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/8039s-nostalgia-21344.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/8039s-nostalgia-21344.jpg"
-  },
-  {
-    title: "80 Cinematic Synthwave",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80-cinematic-synthwave-396982.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/80-cinematic-synthwave-396982.jpg"
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalyptic_synthwav_d29e41ff.jpg"
   },
   {
     title: "Retro 80s Sax",
     url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/retro-80s-sax-398114.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro-80s-sax-398114.jpg"
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro_saxophone_albu_2cc5c11a.jpg"
   },
   {
-    title: "Lady of the 80’s",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/lady-of-the-80x27s-128379.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/lady-of-the-80x27s-128379.jpg"
+    title: "80’s Nostalgia",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/8039s-nostalgia-21344.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/nostalgic_80s_album__7b2fff5f.jpg"
+  },
+  {
+    title: "80s Baby (Original Lyrics)",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80s-baby-original-lyrics-335952.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/synthwave_retro_albu_327209ad.jpg"
   }
 ];
 
