@@ -1,6 +1,7 @@
 import React from 'react';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 import { listCovers } from '../services/coversService';
+import { SUPABASE_URL } from '../supabaseClient';
 // ...existing code...
 
 const STATIC_SONGS = [
@@ -58,11 +59,66 @@ export default function HomeScreen() {
       try {
         const files = await listCovers();
         setCoverFiles(files);
+        // Build fuzzy map once covers are loaded
+        setFuzzyCoversMap(buildFuzzyMap(STATIC_SONGS, files));
       } catch (e) {
         setCoverFetchError(e.message);
       }
     })();
   }, []);
+
+  const [fuzzyCoversMap, setFuzzyCoversMap] = React.useState({});
+
+  function normalize(str){
+    return str.toLowerCase()
+      .replace(/[%'_]/g,' ')
+      .replace(/[^a-z0-9]+/g,' ')
+      .replace(/\s+/g,' ') // collapse
+      .trim();
+  }
+
+  function score(a,b){
+    // simple token intersection score
+    const ta = new Set(normalize(a).split(' '));
+    const tb = new Set(normalize(b).split(' '));
+    if(!a||!b) return 0;
+    let inter = 0;
+    ta.forEach(t=>{ if(tb.has(t)) inter++; });
+    return inter / Math.max(ta.size, tb.size);
+  }
+
+  function buildFuzzyMap(songs, files){
+    const map = {};
+    songs.forEach(song => {
+      let best = {file:null, s:0};
+      files.forEach(f => {
+        const s = score(song.title, f);
+        if(s > best.s) best = {file:f, s};
+      });
+      if(best.file && best.s >= 0.34){
+        map[song.title] = {
+          matchedFile: best.file,
+          score: Number(best.s.toFixed(2)),
+          finalCoverUrl: `${SUPABASE_URL}/storage/v1/object/public/Covers/${best.file}`
+        };
+      }
+    });
+    return map;
+  }
+
+  // Derive effective songs list with fuzzy-mapped cover URLs when available
+  const effectiveMade = React.useMemo(() => madeForYouSongs.map(s => ({
+    ...s,
+    cover: fuzzyCoversMap[s.title]?.finalCoverUrl || s.cover
+  })), [madeForYouSongs, fuzzyCoversMap]);
+  const effectiveRecent = React.useMemo(() => recentlyPlayedSongs.map(s => ({
+    ...s,
+    cover: fuzzyCoversMap[s.title]?.finalCoverUrl || s.cover
+  })), [recentlyPlayedSongs, fuzzyCoversMap]);
+  const effectiveTrending = React.useMemo(() => trendingNowSongs.map(s => ({
+    ...s,
+    cover: fuzzyCoversMap[s.title]?.finalCoverUrl || s.cover
+  })), [trendingNowSongs, fuzzyCoversMap]);
 
   // Try alternate extension (.jpg <-> .png) before final fallback
   const handleImageError = (e, song) => {
@@ -115,16 +171,16 @@ export default function HomeScreen() {
       </div>
 
       {showDebug && (
-        <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify({ songs: madeForYouSongs, coversInBucket: coverFiles, coverFetchError }, null, 2)}
-        </pre>
+  <pre style={{maxHeight:260, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
+{JSON.stringify({ songs: madeForYouSongs, coversInBucket: coverFiles, fuzzyMap: fuzzyCoversMap, coverFetchError }, null, 2)}
+  </pre>
       )}
 
       {/* Made for you section */}
       <section className="home-section">
         <h2 className="section-title">Made for you</h2>
         <div className="songs-grid">
-          {madeForYouSongs.map((song, idx) => (
+          {effectiveMade.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
                 <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
@@ -139,7 +195,7 @@ export default function HomeScreen() {
       <section className="home-section">
         <h2 className="section-title">Recently played</h2>
         <div className="songs-grid">
-          {recentlyPlayedSongs.map((song, idx) => (
+          {effectiveRecent.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
                 <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
@@ -154,7 +210,7 @@ export default function HomeScreen() {
       <section className="home-section">
         <h2 className="section-title">Trending now</h2>
         <div className="songs-grid">
-          {trendingNowSongs.map((song, idx) => (
+          {effectiveTrending.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
                 <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
