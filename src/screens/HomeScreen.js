@@ -17,9 +17,12 @@ export default function HomeScreen() {
     (async () => {
       try {
         setLoadingLibrary(true);
-        const songs = await fetchMusicLibraryCached(true); // force refresh bypass cache
-        if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const debug = params.get('debug') === '1';
+        const songs = await fetchMusicLibraryCached(true, { includeUnmatched: true, fallbackCover: '/fallback-cover.png', debug });
+        if (debug && typeof window !== 'undefined') {
           console.log('[HomeScreen] Supabase songs fetched:', songs);
+          window.__supabaseSongs = songs; // expose for console inspection
         }
         if (cancelled) return;
         // adapt to player expected shape (song.src used in player)
@@ -50,6 +53,7 @@ export default function HomeScreen() {
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
+  const [showDebug, setShowDebug] = React.useState(false);
 
   // Prikaz playera samo na klik na pesmu
   const handlePlaySong = (song) => {
@@ -75,7 +79,18 @@ export default function HomeScreen() {
             readOnly
           />
         </div>
+        {!loadingLibrary && librarySongs.length > 0 && (
+          <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
+            {showDebug ? 'Hide debug' : 'Show debug'}
+          </button>
+        )}
       </div>
+
+      {showDebug && (
+        <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
+{JSON.stringify(librarySongs, null, 2)}
+        </pre>
+      )}
 
       {/* Made for you section */}
       <section className="home-section">

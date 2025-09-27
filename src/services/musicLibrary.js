@@ -49,14 +49,13 @@ function formatTitle(raw) {
     .join(' ');
 }
 
-export async function fetchMusicLibrary({ includeUnmatched = false } = {}) {
+export async function fetchMusicLibrary({ includeUnmatched = false, fallbackCover = '/fallback-cover.png', debug = false } = {}) {
   const [musicFiles, coverFiles] = await Promise.all([
     listAllFiles('Music', { extensions: ['mp3'] }),
     listAllFiles('Covers', { extensions: ['png', 'jpg', 'jpeg'] })
   ]);
 
-  if (typeof window !== 'undefined') {
-    // Debug log in browser
+  if (debug && typeof window !== 'undefined') {
     console.log('[MusicLibrary] Fetched raw lists', { musicFiles, coverFiles });
   }
 
@@ -84,17 +83,16 @@ export async function fetchMusicLibrary({ includeUnmatched = false } = {}) {
   });
 
   if (includeUnmatched) {
-    // Append music without covers (optional debug)
     for (const id of musicMap.keys()) {
       if (coverMap.has(id)) continue;
       const musicFile = musicMap.get(id);
       const { data: { publicUrl: musicUrl } } = supabase.storage.from('Music').getPublicUrl(musicFile);
-      songs.push({ title: formatTitle(id), url: musicUrl, cover: null });
+      songs.push({ title: formatTitle(id), url: musicUrl, cover: fallbackCover });
     }
   }
 
   songs.sort((a, b) => a.title.localeCompare(b.title));
-  if (typeof window !== 'undefined') {
+  if (debug && typeof window !== 'undefined') {
     console.log('[MusicLibrary] Final songs list', songs);
   }
   return songs;
@@ -104,10 +102,10 @@ let _cache = null;
 let _cacheTime = 0;
 const CACHE_TTL_MS = 60_000; // 1 minute
 
-export async function fetchMusicLibraryCached(force = false) {
+export async function fetchMusicLibraryCached(force = false, options = {}) {
   const now = Date.now();
   if (!force && _cache && now - _cacheTime < CACHE_TTL_MS) return _cache;
-  _cache = await fetchMusicLibrary();
+  _cache = await fetchMusicLibrary(options);
   _cacheTime = now;
   return _cache;
 }
