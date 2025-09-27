@@ -116,10 +116,10 @@ app.post('/api/payments/approve', async (req, res) => {
   const { paymentId, pi_user_uid } = req.body || {};
   const debug = process.env.NODE_ENV !== 'production';
   if (debug) console.log('[payments/approve] incoming body:', req.body);
-  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId' });
-  if (!pi_user_uid) return res.status(400).json({ success: false, error: 'Missing pi_user_uid' });
+  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId', code: 'NO_PAYMENT_ID' });
+  // pi_user_uid nije striktno potreban za approve fazu – pravimo ga opcionim radi debug-a
   const piApiKey = process.env.PI_API_KEY;
-  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured' });
+  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured', code: 'NO_PI_KEY' });
   try {
     // 1. Fetch payment details
     const paymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
@@ -132,18 +132,18 @@ app.post('/api/payments/approve', async (req, res) => {
       amount: payment.amount
     });
     if (!payment || !payment.metadata) {
-      return res.status(400).json({ success: false, error: 'Invalid payment object from Pi API' });
+      return res.status(400).json({ success: false, error: 'Invalid payment object from Pi API', code: 'NO_METADATA', raw: payment });
     }
     // Basic validation
     if (payment.metadata.type !== 'premium') {
-      return res.status(400).json({ success: false, error: 'Unexpected payment metadata.type' });
+      return res.status(400).json({ success: false, error: 'Unexpected payment metadata.type', expected: 'premium', got: payment.metadata.type, code: 'BAD_TYPE' });
     }
     if (payment.status !== 'pending') {
       // If already approved or completed, treat as idempotent success
       if (['approved', 'completed'].includes(payment.status)) {
         return res.json({ success: true, status: payment.status, already: true });
       }
-      return res.status(400).json({ success: false, error: 'Payment not in pending state', status: payment.status });
+      return res.status(400).json({ success: false, error: 'Payment not in pending state', status: payment.status, code: 'BAD_STATUS' });
     }
     // 2. Approve
     const approveUrl = `https://api.minepi.com/v2/payments/${paymentId}/approve`;
@@ -154,7 +154,7 @@ app.post('/api/payments/approve', async (req, res) => {
     const status = err?.response?.status;
     const data = err?.response?.data;
     console.error('[payments/approve] error', { status, data });
-    return res.status(502).json({ success: false, error: 'Approve failed', status, details: data || err.message });
+    return res.status(502).json({ success: false, error: 'Approve failed', status, details: data || err.message, code: 'APPROVE_EXCEPTION' });
   }
 });
 
@@ -163,11 +163,11 @@ app.post('/api/payments/complete', async (req, res) => {
   const { paymentId, pi_user_uid, txid } = req.body || {};
   const debug = process.env.NODE_ENV !== 'production';
   if (debug) console.log('[payments/complete] incoming body:', req.body);
-  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId' });
-  if (!txid) return res.status(400).json({ success: false, error: 'Missing txid' });
-  if (!pi_user_uid) return res.status(400).json({ success: false, error: 'Missing pi_user_uid' });
+  if (!paymentId) return res.status(400).json({ success: false, error: 'Missing paymentId', code: 'NO_PAYMENT_ID' });
+  if (!txid) return res.status(400).json({ success: false, error: 'Missing txid', code: 'NO_TXID' });
+  if (!pi_user_uid) return res.status(400).json({ success: false, error: 'Missing pi_user_uid', code: 'NO_PI_UID' });
   const piApiKey = process.env.PI_API_KEY;
-  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured' });
+  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured', code: 'NO_PI_KEY' });
   try {
     // 1. Complete
     const completeUrl = `https://api.minepi.com/v2/payments/${paymentId}/complete`;
@@ -184,7 +184,7 @@ app.post('/api/payments/complete', async (req, res) => {
       txid
     });
     if (payment.status !== 'completed') {
-      return res.status(400).json({ success: false, error: 'Payment not completed after complete call', status: payment.status });
+      return res.status(400).json({ success: false, error: 'Payment not completed after complete call', status: payment.status, code: 'NOT_COMPLETED' });
     }
     // 3. Update Supabase premium
     if (!supabase) {
@@ -203,7 +203,21 @@ app.post('/api/payments/complete', async (req, res) => {
     const status = err?.response?.status;
     const data = err?.response?.data;
     console.error('[payments/complete] error', { status, data });
-    return res.status(502).json({ success: false, error: 'Complete failed', status, details: data || err.message });
+    return res.status(502).json({ success: false, error: 'Complete failed', status, details: data || err.message, code: 'COMPLETE_EXCEPTION' });
+  }
+});
+
+// Inspect endpoint za ručno debugovanje payment objekta
+app.get('/api/payments/inspect/:paymentId', async (req, res) => {
+  const { paymentId } = req.params;
+  const piApiKey = process.env.PI_API_KEY;
+  if (!piApiKey) return res.status(500).json({ success: false, error: 'PI_API_KEY not configured', code: 'NO_PI_KEY' });
+  try {
+    const url = `https://api.minepi.com/v2/payments/${paymentId}`;
+    const r = await axios.get(url, { headers: { Authorization: `Key ${piApiKey}` } });
+    return res.json({ success: true, payment: r.data });
+  } catch (err) {
+    return res.status(502).json({ success: false, error: 'Inspect failed', status: err?.response?.status, details: err?.response?.data || err.message });
   }
 });
 

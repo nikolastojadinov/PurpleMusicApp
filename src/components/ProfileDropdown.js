@@ -122,11 +122,20 @@ export default function ProfileDropdown() {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
         if (!response.data.success) {
-          alert('Greška pri approve: ' + (response.data.error || 'Nepoznata greška'));
+          console.warn('[APPROVE FAIL]', response.data);
+          // Pokušaj inspect da prikupiš više podataka
+            try {
+              const inspect = await apiAxios.get(`/api/payments/inspect/${paymentId}`);
+              console.warn('[INSPECT]', inspect.data);
+            } catch (ie) {
+              console.warn('[INSPECT ERROR]', ie?.response?.data || ie.message);
+            }
+          alert('Approve greška: ' + (response.data.error || 'Nepoznata greška') + (response.data.code ? (' [' + response.data.code + ']') : ''));
         } else {
           console.log('Payment approved na serveru');
         }
       } catch (err) {
+        console.error('[APPROVE EXCEPTION]', err);
         alert('Greška (approve) komunikacija: ' + err.message);
       }
     };
@@ -137,20 +146,21 @@ export default function ProfileDropdown() {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
-          // Ažuriraj korisnika lokalno
           const { error } = await supabase
             .from('users')
             .update({ is_premium: true })
             .eq('pi_user_uid', user.pi_user_uid);
           if (error) {
-            alert('Greška pri lokalnom premium update-u: ' + error.message);
+            alert('Premium activ, ali lokalni update pao: ' + error.message);
           } else {
-            alert('Plaćanje uspešno! Premium aktiviran.');
+            alert('Plaćanje završeno! Premium aktiviran.');
           }
         } else {
-          alert('Greška pri complete: ' + (response.data.error || 'Nepoznata greška'));
+          console.warn('[COMPLETE FAIL]', response.data);
+          alert('Complete greška: ' + (response.data.error || 'Nepoznata greška') + (response.data.code ? (' [' + response.data.code + ']') : ''));
         }
       } catch (err) {
+        console.error('[COMPLETE EXCEPTION]', err);
         alert('Greška (complete) komunikacija: ' + err.message);
       }
     };
