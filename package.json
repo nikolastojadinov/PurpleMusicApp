@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "install-backend": "npm install --prefix backend"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
