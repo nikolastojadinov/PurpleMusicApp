@@ -1,37 +1,21 @@
 import { supabase } from '../supabaseClient';
 
-// Rekurzív listázás: bejár mappákat (ako postoje) i vraća sve fajlove.
-async function listAllFiles(bucket, { extensions = null, limit = 100, prefix = '' } = {}) {
-  let offset = 0;
-  const collected = [];
-  while (true) {
-    const { data, error } = await supabase.storage.from(bucket).list(prefix, {
-      limit,
-      offset,
-      sortBy: { column: 'name', order: 'asc' }
+// Egyszerű (nem rekurzív) listázás a bucket gyökerében – jelen igényhez elég.
+async function listAllFiles(bucket, { extensions = null, limit = 1000 } = {}) {
+  const { data, error } = await supabase.storage.from(bucket).list('', {
+    limit,
+    sortBy: { column: 'name', order: 'asc' }
+  });
+  if (error) throw new Error(`Greška pri listanju bucket-a ${bucket}: ${error.message}`);
+  if (!data) return [];
+  return data
+    .filter(e => e && e.name)
+    .map(e => e.name)
+    .filter(name => {
+      if (!extensions) return true;
+      const ext = name.split('.').pop().toLowerCase();
+      return extensions.includes(ext);
     });
-    if (error) throw new Error(`Greška pri listanju bucket-a ${bucket} (${prefix}): ${error.message}`);
-    if (!data || data.length === 0) break;
-    for (const entry of data) {
-      if (!entry || !entry.name) continue;
-      // Folder detection: metadata === null ili entry.name ne sadrži '.' (heuristika)
-      const isFolder = !entry.name.includes('.') || entry.metadata === null;
-      if (isFolder) {
-        // Recurse into subfolder (avoid infinite loops)
-        const newPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
-        const nested = await listAllFiles(bucket, { extensions, limit, prefix: newPrefix });
-        collected.push(...nested);
-      } else {
-        const ext = entry.name.split('.').pop().toLowerCase();
-        if (extensions && !extensions.includes(ext)) continue;
-        const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name;
-        collected.push(fullPath);
-      }
-    }
-    if (data.length < limit) break;
-    offset += limit;
-  }
-  return collected;
 }
 
 function baseName(filename) {
@@ -49,7 +33,7 @@ function formatTitle(raw) {
     .join(' ');
 }
 
-export async function fetchMusicLibrary({ includeUnmatched = false, fallbackCover = '/fallback-cover.png', debug = false } = {}) {
+export async function fetchMusicLibrary({ includeUnmatched = true, fallbackCover = '/fallback-cover.png', debug = false } = {}) {
   const [musicFiles, coverFiles] = await Promise.all([
     listAllFiles('Music', { extensions: ['mp3'] }),
     listAllFiles('Covers', { extensions: ['png', 'jpg', 'jpeg'] })
@@ -59,42 +43,23 @@ export async function fetchMusicLibrary({ includeUnmatched = false, fallbackCove
     console.log('[MusicLibrary] Fetched raw lists', { musicFiles, coverFiles });
   }
 
-  const musicMap = new Map();
-  for (const f of musicFiles) musicMap.set(baseName(f), f);
+  const musicMap = new Map(musicFiles.map(f => [baseName(f), f]));
+  const coverMap = new Map(coverFiles.map(c => [baseName(c), c]));
 
-  const coverMap = new Map();
-  for (const c of coverFiles) coverMap.set(baseName(c), c);
-
-  const matchedIds = [];
-  for (const id of musicMap.keys()) {
-    if (coverMap.has(id)) matchedIds.push(id);
-  }
-
-  const songs = matchedIds.map(id => {
-    const musicFile = musicMap.get(id);
+  const songs = [];
+  // Minden mp3-ból készítünk rekordot – cover optional
+  for (const [id, musicFile] of musicMap.entries()) {
     const coverFile = coverMap.get(id);
     const { data: { publicUrl: musicUrl } } = supabase.storage.from('Music').getPublicUrl(musicFile);
-    const { data: { publicUrl: coverUrl } } = supabase.storage.from('Covers').getPublicUrl(coverFile);
-    return {
-      title: formatTitle(id),
-      url: musicUrl,
-      cover: coverUrl
-    };
-  });
-
-  if (includeUnmatched) {
-    for (const id of musicMap.keys()) {
-      if (coverMap.has(id)) continue;
-      const musicFile = musicMap.get(id);
-      const { data: { publicUrl: musicUrl } } = supabase.storage.from('Music').getPublicUrl(musicFile);
-      songs.push({ title: formatTitle(id), url: musicUrl, cover: fallbackCover });
+    let coverUrl = fallbackCover;
+    if (coverFile) {
+      coverUrl = supabase.storage.from('Covers').getPublicUrl(coverFile).data.publicUrl;
     }
+    songs.push({ title: formatTitle(id), url: musicUrl, cover: coverUrl });
   }
 
   songs.sort((a, b) => a.title.localeCompare(b.title));
-  if (debug && typeof window !== 'undefined') {
-    console.log('[MusicLibrary] Final songs list', songs);
-  }
+  if (debug && typeof window !== 'undefined') console.log('[MusicLibrary] Final songs list', songs);
   return songs;
 }
 

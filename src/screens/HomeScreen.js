@@ -45,10 +45,21 @@ export default function HomeScreen() {
   }, []);
 
   // Take first 4 songs (or fewer) and reuse for all three horizontal sections
-  const baseFour = librarySongs.slice(0, 4);
-  const madeForYouSongs = baseFour;
-  const recentlyPlayedSongs = baseFour;
-  const trendingNowSongs = baseFour;
+  function pickSections(songs) {
+    if (songs.length <= 4) {
+      return { a: songs.slice(0,4), b: songs.slice(0,4), c: songs.slice(0,4) };
+    }
+    const shuffled = [...songs].sort(() => Math.random() - 0.5);
+    return {
+      a: shuffled.slice(0,4),
+      b: shuffled.slice(4,8).length ? shuffled.slice(4,8) : shuffled.slice(0,4),
+      c: shuffled.slice(8,12).length ? shuffled.slice(8,12) : shuffled.slice(0,4)
+    };
+  }
+  const sections = pickSections(librarySongs);
+  const madeForYouSongs = sections.a;
+  const recentlyPlayedSongs = sections.b;
+  const trendingNowSongs = sections.c;
 
   // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
