@@ -4,41 +4,46 @@ import ModernAudioPlayer from '../components/ModernAudioPlayer';
 
 const STATIC_SONGS = [
   {
-    id: 'static-1',
-    title: 'Deep Abstract Ambient',
-    artist: 'Unknown Artist',
-    album: 'Single',
-    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/deepabstractambient.png',
-    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/deepabstractambient.mp3'
+    title: "Apocalypse 1 (Original Lyrics)",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/apocalypse-1-original-lyrics-344749.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalypse-1-original-lyrics-344749.jpg"
   },
   {
-    id: 'static-2',
-    title: 'Retro Lounge',
-    artist: 'Unknown Artist',
-    album: 'Single',
-    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro-lounge.png',
-    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/retro-lounge.mp3'
+    title: "Apocalypse (Original Lyrics)",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/apocalypse-original-lyrics-344734.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalypse-original-lyrics-344734.jpg"
   },
   {
-    id: 'static-3',
-    title: 'Running Night',
-    artist: 'Unknown Artist',
-    album: 'Single',
-    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/running-night.png',
-    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/running-night.mp3'
+    title: "80s Baby (Original Lyrics)",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80s-baby-original-lyrics-335952.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/80s-baby-original-lyrics-335952.jpg"
   },
   {
-    id: 'static-4',
-    title: 'Vlog Beat Background',
-    artist: 'Unknown Artist',
-    album: 'Single',
-    cover: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/vlog-beat-background.png',
-    src: 'https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/vlog-beat-background.mp3'
+    title: "80’s Nostalgia",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/8039s-nostalgia-21344.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/8039s-nostalgia-21344.jpg"
+  },
+  {
+    title: "80 Cinematic Synthwave",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80-cinematic-synthwave-396982.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/80-cinematic-synthwave-396982.jpg"
+  },
+  {
+    title: "Retro 80s Sax",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/retro-80s-sax-398114.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro-80s-sax-398114.jpg"
+  },
+  {
+    title: "Lady of the 80’s",
+    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/lady-of-the-80x27s-128379.mp3",
+    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/lady-of-the-80x27s-128379.jpg"
   }
 ];
 
 export default function HomeScreen() {
-  const songs = STATIC_SONGS;
+  const madeForYouSongs = STATIC_SONGS;
+  const recentlyPlayedSongs = STATIC_SONGS;
+  const trendingNowSongs = STATIC_SONGS;
 
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
@@ -66,7 +71,7 @@ export default function HomeScreen() {
             readOnly
           />
         </div>
-        {songs.length > 0 && (
+        {madeForYouSongs.length > 0 && (
           <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
             {showDebug ? 'Hide debug' : 'Show debug'}
           </button>
@@ -75,20 +80,50 @@ export default function HomeScreen() {
 
       {showDebug && (
         <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify(songs, null, 2)}
+{JSON.stringify(madeForYouSongs, null, 2)}
         </pre>
       )}
 
+      {/* Made for you section */}
       <section className="home-section">
-        <h2 className="section-title">All songs</h2>
+        <h2 className="section-title">Made for you</h2>
         <div className="songs-grid">
-          {songs.map(song => (
-            <div key={song.id} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+          {madeForYouSongs.map((song, idx) => (
+            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
                 <img src={song.cover} alt={song.title} loading="lazy" />
               </div>
               <div className="song-card-title" title={song.title}>{song.title}</div>
-              <div className="song-card-artist" title={song.artist}>{song.artist}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Recently played section */}
+      <section className="home-section">
+        <h2 className="section-title">Recently played</h2>
+        <div className="songs-grid">
+          {recentlyPlayedSongs.map((song, idx) => (
+            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover">
+                <img src={song.cover} alt={song.title} loading="lazy" />
+              </div>
+              <div className="song-card-title" title={song.title}>{song.title}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Trending now section */}
+      <section className="home-section">
+        <h2 className="section-title">Trending now</h2>
+        <div className="songs-grid">
+          {trendingNowSongs.map((song, idx) => (
+            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover">
+                <img src={song.cover} alt={song.title} loading="lazy" />
+              </div>
+              <div className="song-card-title" title={song.title}>{song.title}</div>
             </div>
           ))}
         </div>
@@ -105,9 +140,9 @@ export default function HomeScreen() {
               ×
             </button>
           </div>
-          <ModernAudioPlayer key={selectedSong.id} autoPlay song={{
+          <ModernAudioPlayer key={selectedSong.title} autoPlay song={{
             ...selectedSong,
-            src: selectedSong.src || selectedSong.url
+            src: selectedSong.url
           }} />
         </div>
       )}
