@@ -16,6 +16,7 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+
   const handlePiNetworkLogin = async () => {
     // Pi Network SDK login
     if (window.Pi) {
@@ -26,17 +27,35 @@ export default function ProfileDropdown() {
       try {
         const result = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
         // result: { user, accessToken }
-        if (result && result.accessToken) {
+        if (result && result.accessToken && result.user) {
           // Pošalji accessToken backendu na /api/verify-login
           const apiAxios = (await import('../apiAxios')).default;
           const response = await apiAxios.post('/api/verify-login', { accessToken: result.accessToken });
           if (response.data && response.data.username) {
-            alert('Pi login successful! Username: ' + response.data.username);
+            // Sačuvaj korisnika na Supabase
+            const { supabase } = await import('../supabaseClient');
+            const { username } = response.data;
+            const { uid, wallet } = result.user;
+            const { error } = await supabase
+              .from('users')
+              .upsert([
+                {
+                  pi_user_uid: uid,
+                  username,
+                  wallet_address: wallet,
+                  is_premium: false,
+                }
+              ], { onConflict: ['pi_user_uid'] });
+            if (error) {
+              alert('Supabase save error: ' + error.message);
+            } else {
+              alert('Pi login successful! Username: ' + username);
+            }
           } else {
             alert('Login failed: ' + (response.data?.error || 'Unknown error'));
           }
         } else {
-          alert('No accessToken from Pi Network!');
+          alert('No accessToken or user from Pi Network!');
         }
       } catch (err) {
         alert('Login failed: ' + err);
@@ -71,41 +90,79 @@ export default function ProfileDropdown() {
     alert('Pi Network login failed: ' + error);
   };
 
-  const handleGoPremium = () => {
-    // Pi Network payment integration
-    import('../piSdkLoader').then(({ loadPiSDK }) => {
-      loadPiSDK((Pi) => {
-        Pi.createPayment({
-          amount: 1, // 1 Pi
-          memo: 'PurpleMusic Premium Upgrade',
-          metadata: { type: 'premium' }
-        }, onPaymentSuccess, onPaymentFailure);
-      });
+
+  // Pi Network payment integration (Pi demo flow)
+
+  const handleGoPremium = async () => {
+    if (!window.Pi) {
+      alert('Pi SDK nije učitan!');
+      return;
+    }
+    // Dohvati korisnika iz Supabase (pretpostavljamo da je login već urađen)
+    const { supabase } = await import('../supabaseClient');
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('is_premium', false)
+      .limit(1);
+    if (userError || !userData || userData.length === 0) {
+      alert('Nema korisnika za premium!');
+      return;
+    }
+    const user = userData[0];
+    const paymentData = {
+      amount: 1, // Pi amount
+      memo: "PurpleMusic Premium",
+      metadata: { type: "premium", user: user.username, pi_user_uid: user.pi_user_uid },
+    };
+
+    // Callback: kada je payment spreman za server approval
+    const onReadyForServerApproval = async (paymentId) => {
+      try {
+        const apiAxios = (await import('../apiAxios')).default;
+        const response = await apiAxios.post('/api/verify-payment', { paymentId, pi_user_uid: user.pi_user_uid });
+        if (response.data.success) {
+          // Ažuriraj korisnika na Supabase
+          const { error } = await supabase
+            .from('users')
+            .update({ is_premium: true })
+            .eq('pi_user_uid', user.pi_user_uid);
+          if (error) {
+            alert('Greška pri ažuriranju premium statusa: ' + error.message);
+          } else {
+            alert('Premium aktiviran!');
+          }
+        } else {
+          alert('Greška u verifikaciji: ' + response.data.error);
+        }
+      } catch (err) {
+        alert('Greška u komunikaciji sa backendom: ' + err.message);
+      }
+    };
+
+    // Callback: kada je payment završen
+    const onReadyForServerCompletion = (paymentId, txid) => {
+      console.log('Payment completed:', paymentId, txid);
+      alert('Plaćanje uspešno!');
+    };
+
+    // Callback: otkazano
+    const onCancel = (paymentId) => {
+      alert('Plaćanje otkazano.');
+    };
+
+    // Callback: greška
+    const onError = (error, payment) => {
+      alert('Greška u plaćanju: ' + error);
+    };
+
+    window.Pi.createPayment(paymentData, {
+      onReadyForServerApproval,
+      onReadyForServerCompletion,
+      onCancel,
+      onError,
     });
     setIsOpen(false);
-  };
-
-  // Pi Network payment callbacks
-  const onPaymentSuccess = async (paymentResult) => {
-    // Save payment info to Supabase
-    const { supabase } = await import('../supabaseClient');
-    const { transaction } = paymentResult;
-    if (transaction) {
-      const { txid, amount, memo } = transaction;
-      const { error } = await supabase
-        .from('payments')
-        .insert([{ txid, amount, memo }]);
-      if (error) {
-        alert('Supabase payment save error: ' + error.message);
-      } else {
-        alert('Payment successful! Transaction: ' + JSON.stringify(transaction));
-      }
-    } else {
-      alert('No transaction info from Pi Network!');
-    }
-  };
-  const onPaymentFailure = (error) => {
-    alert('Payment failed: ' + error);
   };
 
   return (
