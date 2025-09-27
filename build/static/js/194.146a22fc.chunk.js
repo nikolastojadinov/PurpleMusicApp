@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkpurplemusic_backend=self.webpackChunkpurplemusic_backend||[]).push([[194],{194:(e,i,n)=>{function c(e){if(window.Pi)return void e(window.Pi);const i=document.createElement("script");i.src="https://sdk.minepi.com/pi-sdk.js",i.async=!0,i.onload=()=>{e(window.Pi)},document.body.appendChild(i)}n.r(i),n.d(i,{loadPiSDK:()=>c})}}]);
+//# sourceMappingURL=194.146a22fc.chunk.js.map
