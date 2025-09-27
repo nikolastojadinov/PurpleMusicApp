@@ -38,23 +38,17 @@ const STATIC_SONGS = [
 ];
 
 export default function HomeScreen() {
-  const librarySongs = STATIC_SONGS;
-  const madeForYouSongs = librarySongs;
-  const recentlyPlayedSongs = librarySongs;
-  const trendingNowSongs = librarySongs;
+  const songs = STATIC_SONGS;
 
-  // State za selektovanu pesmu i prikaz playera
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
   const [showDebug, setShowDebug] = React.useState(false);
 
-  // Prikaz playera samo na klik na pesmu
   const handlePlaySong = (song) => {
     setSelectedSong(song);
     setPlayerOpen(true);
   };
 
-  // Zatvaranje playera
   const handleClosePlayer = () => {
     setPlayerOpen(false);
     setSelectedSong(null);
@@ -65,14 +59,14 @@ export default function HomeScreen() {
       <div className="search-bar-container">
         <div className="search-bar">
           <span className="search-icon">🔍</span>
-          <input 
-            type="text" 
-            placeholder="Artists, songs, or podcasts" 
+          <input
+            type="text"
+            placeholder="Artists, songs, or podcasts"
             className="search-input"
             readOnly
           />
         </div>
-        {librarySongs.length > 0 && (
+        {songs.length > 0 && (
           <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
             {showDebug ? 'Hide debug' : 'Show debug'}
           </button>
@@ -81,88 +75,25 @@ export default function HomeScreen() {
 
       {showDebug && (
         <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify(librarySongs, null, 2)}
+{JSON.stringify(songs, null, 2)}
         </pre>
       )}
 
-      {/* Made for you section */}
       <section className="home-section">
-        <h2 className="section-title">Made for you</h2>
-        {madeForYouSongs.length > 0 && (
-          <div className="horizontal-scroll">
-            {madeForYouSongs.map(song => (
-              <div key={song.id} className="made-item" style={{position:'relative'}}>
-                <div
-                  className="made-cover"
-                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
-                  onClick={() => handlePlaySong(song)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
-                >
-                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="made-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
-                <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
+        <h2 className="section-title">All songs</h2>
+        <div className="songs-grid">
+          {songs.map(song => (
+            <div key={song.id} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover">
+                <img src={song.cover} alt={song.title} loading="lazy" />
               </div>
-            ))}
-          </div>
-        )}
+              <div className="song-card-title" title={song.title}>{song.title}</div>
+              <div className="song-card-artist" title={song.artist}>{song.artist}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Recently played section */}
-      <section className="home-section">
-        <h2 className="section-title">Recently played</h2>
-        {recentlyPlayedSongs.length > 0 && (
-          <div className="horizontal-scroll">
-            {recentlyPlayedSongs.map(song => (
-              <div key={song.id} className="recent-item" style={{position:'relative'}}>
-                <div
-                  className="recent-cover"
-                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
-                  onClick={() => handlePlaySong(song)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
-                >
-                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="recent-title truncate" style={{maxWidth:140, marginTop:6}}>{song.title}</div>
-                <div className="made-subtitle truncate" style={{maxWidth:140}}>{song.artist}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Trending now section */}
-      <section className="home-section">
-        <h2 className="section-title">Trending now</h2>
-        {trendingNowSongs.length > 0 && (
-          <div className="horizontal-scroll">
-            {trendingNowSongs.map(song => (
-              <div key={song.id} className="trending-item" style={{position:'relative'}}>
-                <div
-                  className="trending-cover"
-                  style={{padding:0, overflow:'hidden', position:'relative', cursor:'pointer'}}
-                  onClick={() => handlePlaySong(song)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}
-                >
-                  <img src={song.cover} alt={song.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="trending-title truncate" style={{maxWidth:160, marginTop:6}}>{song.title}</div>
-                <div className="made-subtitle truncate" style={{maxWidth:160}}>{song.artist}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Removed old static Songs list */}
-
-      {/* Player prikaz */}
       {playerOpen && selectedSong && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 80, zIndex: 1000 }}>
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 1100 }}>
@@ -174,7 +105,6 @@ export default function HomeScreen() {
               ×
             </button>
           </div>
-          {/* ModernAudioPlayer sa selektovanom pesmom */}
           <ModernAudioPlayer key={selectedSong.id} autoPlay song={{
             ...selectedSong,
             src: selectedSong.src || selectedSong.url

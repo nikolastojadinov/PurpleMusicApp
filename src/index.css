@@ -283,6 +283,84 @@ body::-webkit-scrollbar {
   padding: 0 20px 20px 20px;
 }
 
+/* Songs Grid */
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 18px 14px;
+}
+
+@media (min-width: 380px) {
+  .songs-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}
+@media (min-width: 480px) {
+  .songs-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+@media (min-width: 640px) {
+  .songs-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+@media (min-width: 820px) {
+  .songs-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+
+.song-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+.song-card:active { transform: scale(.94); }
+.song-card:hover { filter: brightness(1.15); }
+
+.song-card-cover {
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.6);
+  position: relative;
+}
+.song-card-cover img { width:100%; height:100%; object-fit:cover; display:block; }
+
+@media (max-width: 379px) {
+  .song-card-cover { width:100px; height:100px; }
+}
+@media (min-width:480px) {
+  .song-card-cover { width:120px; height:120px; }
+}
+@media (min-width:820px) {
+  .song-card-cover { width:140px; height:140px; }
+}
+
+.song-card-title {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.song-card-artist {
+  font-size: 11px;
+  color: #B3B3B3;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Remove old horizontal section items look for new grid context */
+.made-item, .recent-item, .trending-item, .made-cover, .recent-cover, .trending-cover { background:none !important; }
+
 .search-bar-container {
   padding: 20px 0;
 }
