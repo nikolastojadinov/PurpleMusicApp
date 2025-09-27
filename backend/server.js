@@ -13,6 +13,11 @@ if (!SUPABASE_SERVICE_KEY) {
 const supabase = SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const verifyLogin = require('./api/verify-login');
 
+// Pi API key presence log
+if (!process.env.PI_API_KEY) {
+  console.error('[BOOT] Missing PI_API_KEY environment variable. Set PI_API_KEY in Render Environment (Server API Key from Pi Developer dashboard).');
+}
+
 const app = express();
 
 app.use(cors());
@@ -29,7 +34,10 @@ app.post('/api/verify-payment', async (req, res) => {
   }
   try {
     // Verifikuj payment sa Pi backendom
-    const piApiKey = process.env.PI_API_KEY; // Dodaj svoj API key u env
+    const piApiKey = process.env.PI_API_KEY; // Server-side Pi API key
+    if (!piApiKey) {
+      return res.status(500).json({ success: false, error: 'Missing PI_API_KEY environment variable on server' });
+    }
     const piPaymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
     const piResponse = await axios.get(piPaymentUrl, {
       headers: { Authorization: `Key ${piApiKey}` }
