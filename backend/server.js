@@ -141,8 +141,30 @@ async function approveHandler(req, res) {
       }));
     } catch (_) {}
 
-    // Some Pi environments may return slightly different initial statuses; accept "pending" OR "created" as needing approval.
-    const acceptablePendingStatuses = ['pending', 'created'];
+    // Some Pi API versions return status as string, newer return an object with flags.
+    const rawStatus = payment.status;
+    const statusIsString = typeof rawStatus === 'string';
+    const statusObj = (!statusIsString && rawStatus && typeof rawStatus === 'object') ? rawStatus : null;
+
+    // Derive normalized states
+    let isPendingOrCreated = false;
+    let isAlreadyApproved = false;
+    let isAlreadyCompleted = false;
+
+    if (statusIsString) {
+      const s = rawStatus;
+      if (['pending', 'created'].includes(s)) isPendingOrCreated = true;
+      else if (s === 'approved') isAlreadyApproved = true;
+      else if (s === 'completed') isAlreadyCompleted = true;
+    } else if (statusObj) {
+      // Object form: determine from flags
+      if (statusObj.developer_completed) isAlreadyCompleted = true;
+      else if (statusObj.developer_approved) isAlreadyApproved = true;
+      else if (!statusObj.cancelled && !statusObj.user_cancelled && !statusObj.developer_approved && !statusObj.developer_completed) {
+        // Not approved yet, not completed, no cancellations
+        isPendingOrCreated = true;
+      }
+    }
 
     // Metadata/type validation (be tolerant): allow if metadata.type==='premium' OR memo contains 'Premium'
     const metaType = payment?.metadata?.type;
@@ -155,14 +177,17 @@ async function approveHandler(req, res) {
       console.warn('[approve] unexpected metadata.type', metaType);
       return res.status(400).json({ success: false, error: 'Unexpected payment metadata.type', expected: 'premium', got: metaType, code: 'BAD_TYPE', paymentStatus: payment.status });
     }
-
-    if (!acceptablePendingStatuses.includes(payment.status)) {
-      if (['approved', 'completed'].includes(payment.status)) {
-        console.log('[approve] payment already in state', payment.status, '(id=', paymentId, ')');
-        return res.json({ success: true, status: payment.status, already: true });
-      }
-      console.warn('[approve] rejecting due to status', payment.status, 'expected one of', acceptablePendingStatuses);
-      return res.status(400).json({ success: false, error: 'Payment not in pending/created state', status: payment.status, code: 'BAD_STATUS' });
+    if (isAlreadyCompleted) {
+      console.log('[approve] payment already completed', paymentId);
+      return res.json({ success: true, status: 'completed', already: true });
+    }
+    if (isAlreadyApproved) {
+      console.log('[approve] payment already approved', paymentId);
+      return res.json({ success: true, status: 'approved', already: true });
+    }
+    if (!isPendingOrCreated) {
+      console.warn('[approve] rejecting due to status shape', rawStatus);
+      return res.status(400).json({ success: false, error: 'Payment not in approvable state', status: rawStatus, code: 'BAD_STATUS_SHAPE' });
     }
     const approveUrl = `https://api.minepi.com/v2/payments/${paymentId}/approve`;
     await axios.post(approveUrl, {}, { headers: { Authorization: `Key ${piApiKey}` } });
@@ -203,8 +228,14 @@ async function completeHandler(req, res) {
     const paymentUrl = `https://api.minepi.com/v2/payments/${paymentId}`;
     const fetchResp = await axios.get(paymentUrl, { headers: { Authorization: `Key ${piApiKey}` } });
     const payment = fetchResp.data;
-    if (payment.status !== 'completed') {
-      console.warn('[complete] still not completed, status=', payment.status);
+    let isCompleted = false;
+    if (typeof payment.status === 'string') {
+      isCompleted = payment.status === 'completed';
+    } else if (payment.status && typeof payment.status === 'object') {
+      isCompleted = !!payment.status.developer_completed;
+    }
+    if (!isCompleted) {
+      console.warn('[complete] still not completed, raw status=', payment.status);
       return res.status(400).json({ success: false, error: 'Payment not completed after complete call', status: payment.status, code: 'NOT_COMPLETED' });
     }
     if (!supabase) {
