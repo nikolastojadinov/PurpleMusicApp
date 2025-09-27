@@ -48,6 +48,28 @@ export default function HomeScreen() {
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
   const [showDebug, setShowDebug] = React.useState(false);
+  const fallbackCover = '/fallback-cover.png';
+
+  // Try alternate extension (.jpg <-> .png) before final fallback
+  const handleImageError = (e, song) => {
+    const img = e.currentTarget;
+    const triedAlt = img.dataset.triedAlt === '1';
+    const original = song.cover;
+    if (!triedAlt) {
+      if (original.endsWith('.jpg')) {
+        const alt = original.replace(/\.jpg$/i, '.png');
+        img.dataset.triedAlt = '1';
+        img.src = alt;
+        return;
+      } else if (original.endsWith('.png')) {
+        const alt = original.replace(/\.png$/i, '.jpg');
+        img.dataset.triedAlt = '1';
+        img.src = alt;
+        return;
+      }
+    }
+    img.src = fallbackCover;
+  };
 
   const handlePlaySong = (song) => {
     setSelectedSong(song);
@@ -91,7 +113,7 @@ export default function HomeScreen() {
           {madeForYouSongs.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
-                <img src={song.cover} alt={song.title} loading="lazy" />
+                <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
               </div>
               <div className="song-card-title" title={song.title}>{song.title}</div>
             </div>
@@ -106,7 +128,7 @@ export default function HomeScreen() {
           {recentlyPlayedSongs.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
-                <img src={song.cover} alt={song.title} loading="lazy" />
+                <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
               </div>
               <div className="song-card-title" title={song.title}>{song.title}</div>
             </div>
@@ -121,7 +143,7 @@ export default function HomeScreen() {
           {trendingNowSongs.map((song, idx) => (
             <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
               <div className="song-card-cover">
-                <img src={song.cover} alt={song.title} loading="lazy" />
+                <img src={song.cover} alt={song.title} loading="lazy" onError={(e) => handleImageError(e, song)} />
               </div>
               <div className="song-card-title" title={song.title}>{song.title}</div>
             </div>
