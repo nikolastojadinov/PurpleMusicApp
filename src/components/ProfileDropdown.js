@@ -235,13 +235,19 @@ export default function ProfileDropdown() {
 
             {/* Go Premium Button */}
             <button
-              onClick={handleGoPremium}
-              className="dropdown-button premium"
+              onClick={user ? handleGoPremium : undefined}
+              className={`dropdown-button premium${!user ? ' disabled' : ''}`}
+              disabled={!user}
+              title={!user ? 'Login required to upgrade to Premium' : ''}
+              style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
             >
               <div className="button-icon premium-icon">⭐</div>
               <div className="button-text">
                 <div className="button-title">Go Premium – {PREMIUM_AMOUNT}π</div>
                 <div className="button-subtitle">Full access for {PREMIUM_AMOUNT} Pi</div>
+                {!user && (
+                  <div style={{color:'#ffb',fontSize:'12px',marginTop:'4px'}}>Login required to upgrade to Premium</div>
+                )}
               </div>
             </button>
           </div>
