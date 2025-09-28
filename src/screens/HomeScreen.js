@@ -25,16 +25,16 @@ export default function HomeScreen() {
   }, []);
 
   // Helper function to shuffle array and get random subset
-  const getRandomSongs = (songsArray, count = 6) => {
+  const getRandomSongs = (songsArray, count = 10) => {
     if (songsArray.length === 0) return [];
     const shuffled = [...songsArray].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, Math.min(count, shuffled.length));
   };
 
-  // Create different random sets for each category
-  const madeForYouSongs = getRandomSongs(songs, 6);
-  const recentlyPlayedSongs = getRandomSongs(songs, 6);
-  const trendingNowSongs = getRandomSongs(songs, 6);
+  // Create different random sets for each category - 10 songs each
+  const madeForYouSongs = getRandomSongs(songs, 10);
+  const recentlyPlayedSongs = getRandomSongs(songs, 10);
+  const trendingNowSongs = getRandomSongs(songs, 10);
 
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
@@ -85,13 +85,13 @@ export default function HomeScreen() {
       {/* Made for you section */}
       <section className="home-section">
         <h2 className="section-title">Made for you</h2>
-        <div className="songs-grid">
+        <div className="songs-slider">
           {madeForYouSongs.map((song, idx) => (
-            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
-              <div className="song-card-cover">
+            <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover-slider">
                 <img src={song.cover} alt={song.title} loading="lazy" />
               </div>
-              <div className="song-card-title" title={song.title}>{song.title}</div>
+              <div className="song-card-title-slider" title={song.title}>{song.title}</div>
             </div>
           ))}
         </div>
@@ -100,13 +100,13 @@ export default function HomeScreen() {
       {/* Recently played section */}
       <section className="home-section">
         <h2 className="section-title">Recently played</h2>
-        <div className="songs-grid">
+        <div className="songs-slider">
           {recentlyPlayedSongs.map((song, idx) => (
-            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
-              <div className="song-card-cover">
+            <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover-slider">
                 <img src={song.cover} alt={song.title} loading="lazy" />
               </div>
-              <div className="song-card-title" title={song.title}>{song.title}</div>
+              <div className="song-card-title-slider" title={song.title}>{song.title}</div>
             </div>
           ))}
         </div>
@@ -115,13 +115,13 @@ export default function HomeScreen() {
       {/* Trending now section */}
       <section className="home-section">
         <h2 className="section-title">Trending now</h2>
-        <div className="songs-grid">
+        <div className="songs-slider">
           {trendingNowSongs.map((song, idx) => (
-            <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
-              <div className="song-card-cover">
+            <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              <div className="song-card-cover-slider">
                 <img src={song.cover} alt={song.title} loading="lazy" />
               </div>
-              <div className="song-card-title" title={song.title}>{song.title}</div>
+              <div className="song-card-title-slider" title={song.title}>{song.title}</div>
             </div>
           ))}
         </div>

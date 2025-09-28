@@ -2,7 +2,7 @@ import { supabase } from '../supabaseClient';
 
 const MUSIC_BUCKET = 'Music';
 const COVERS_BUCKET = 'Covers';
-const PUBLIC_BASE = (path) => `${supabase.storageUrl || 'https://ofkfygqrfenctzitigae.supabase.co'}/storage/v1/object/public/${path}`;
+const PUBLIC_BASE = (path) => `https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/${path}`;
 
 function stripExt(name){
   return name.replace(/\.[^.]+$/,'');
@@ -49,7 +49,7 @@ export async function loadMusicLibrary() {
   });
 
   console.log('🎵 Created songs count:', songs.length);
-  console.log('🎵 Sample song URLs:', {
+  console.log('🎵 Sample song URLs (FIXED):', {
     first: songs[0]?.url,
     cover: songs[0]?.cover
   });
