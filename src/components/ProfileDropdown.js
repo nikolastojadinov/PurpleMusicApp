@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { loginOrRegisterUser, logoutUser, isUserLoggedIn, getCurrentUser } from '../services/userService';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfileDropdown() {
@@ -7,6 +8,15 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
   // Konstans za premium cenu
   const PREMIUM_AMOUNT = 3.14; // Pi
+
+    // User state
+    const [user, setUser] = useState(null);
+
+    // Restore user from localStorage on mount
+    useEffect(() => {
+      const stored = getCurrentUser();
+      if (stored) setUser(stored);
+    }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -22,39 +32,29 @@ export default function ProfileDropdown() {
 
 
   const handlePiNetworkLogin = async () => {
-    // Pi Network SDK login
-    if (window.Pi) {
+      // Pi Network SDK login
+      if (!window.Pi) {
+        alert('Pi SDK not loaded!');
+        setIsOpen(false);
+        return;
+      }
       const scopes = ['username', 'payments'];
       const onIncompletePaymentFound = (payment) => {
         console.log('Incomplete payment found:', payment);
       };
       try {
         const result = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-        // result: { user, accessToken }
         if (result && result.accessToken && result.user) {
           // Pošalji accessToken backendu na /api/verify-login
           const apiAxios = (await import('../apiAxios')).default;
           const response = await apiAxios.post('/api/verify-login', { accessToken: result.accessToken });
           if (response.data && response.data.username) {
-            // Sačuvaj korisnika na Supabase
-            const { supabase } = await import('../supabaseClient');
+            // Integrált Supabase + localStorage login
             const { username } = response.data;
             const { uid, wallet } = result.user;
-            const { error } = await supabase
-              .from('users')
-              .upsert([
-                {
-                  pi_user_uid: uid,
-                  username,
-                  wallet_address: wallet,
-                  is_premium: false,
-                }
-              ], { onConflict: ['pi_user_uid'] });
-            if (error) {
-              alert('Supabase save error: ' + error.message);
-            } else {
-              alert('Pi login successful! Username: ' + username);
-            }
+            const userObj = await loginOrRegisterUser({ pi_user_uid: uid, username, wallet_address: wallet });
+            setUser(userObj);
+            alert('Pi login successful! Username: ' + username);
           } else {
             alert('Login failed: ' + (response.data?.error || 'Unknown error'));
           }
@@ -64,32 +64,11 @@ export default function ProfileDropdown() {
       } catch (err) {
         alert('Login failed: ' + err);
       }
-    } else {
-      alert('Pi SDK not loaded!');
-    }
-    setIsOpen(false);
+      setIsOpen(false);
   };
 
   // Pi Network login callbacks
-  const onLoginSuccess = async (authResult) => {
-    // Save user info to Supabase
-    const { supabase } = await import('../supabaseClient');
-    const { user } = authResult;
-    if (user) {
-      const { id, username } = user;
-      // Upsert user into Supabase 'users' table
-      const { error } = await supabase
-        .from('users')
-        .upsert([{ id, username }], { onConflict: ['id'] });
-      if (error) {
-        alert('Supabase save error: ' + error.message);
-      } else {
-        alert('Pi Network login successful! User: ' + JSON.stringify(user));
-      }
-    } else {
-      alert('No user info from Pi Network!');
-    }
-  };
+    // Nem szükséges, helyette loginOrRegisterUser-t használunk
   const onLoginFailure = (error) => {
     alert('Pi Network login failed: ' + error);
   };
@@ -103,17 +82,11 @@ export default function ProfileDropdown() {
       return;
     }
     // Dohvati korisnika iz Supabase (pretpostavljamo da je login već urađen)
-    const { supabase } = await import('../supabaseClient');
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('is_premium', false)
-      .limit(1);
-    if (userError || !userData || userData.length === 0) {
+    // Use current user from state
+    if (!user) {
       alert('Nema korisnika za premium!');
       return;
     }
-    const user = userData[0];
     const paymentData = {
       amount: PREMIUM_AMOUNT, // Pi iznos
       memo: `PurpleMusic Premium ${PREMIUM_AMOUNT} Pi`,
@@ -191,6 +164,14 @@ export default function ProfileDropdown() {
   const handleViewProfile = () => {
     navigate('/profile');
     setIsOpen(false);
+    };
+
+    // Logout function
+    const handleLogout = () => {
+      logoutUser();
+      setUser(null);
+      setIsOpen(false);
+      alert('Logged out!');
   };
 
   return (
@@ -224,17 +205,30 @@ export default function ProfileDropdown() {
             {/* Divider */}
             <div className="dropdown-divider"></div>
 
-            {/* Pi Network Login Button */}
-            <button
-              onClick={handlePiNetworkLogin}
-              className="dropdown-button pi-network"
-            >
-              <div className="button-icon pi-icon">π</div>
-              <div className="button-text">
-                <div className="button-title">Login with Pi Network</div>
-                <div className="button-subtitle">Connect your Pi account</div>
-              </div>
-            </button>
+              {/* Pi Network Login/Logout Button */}
+              {!user ? (
+                <button
+                  onClick={handlePiNetworkLogin}
+                  className="dropdown-button pi-network"
+                >
+                  <div className="button-icon pi-icon">π</div>
+                  <div className="button-text">
+                    <div className="button-title">Login with Pi Network</div>
+                    <div className="button-subtitle">Connect your Pi account</div>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={handleLogout}
+                  className="dropdown-button logout"
+                >
+                  <div className="button-icon">🚪</div>
+                  <div className="button-text">
+                    <div className="button-title">Logout</div>
+                    <div className="button-subtitle">Sign out of your account</div>
+                  </div>
+                </button>
+              )}
 
             {/* Divider */}
             <div className="dropdown-divider"></div>

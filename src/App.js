@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // ...existing code...
 import HomeScreen from './screens/HomeScreen';
@@ -9,17 +9,34 @@ import ViewProfileScreen from './screens/ViewProfileScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
-import { setUserId } from './services/likeService';
+import { isUserLoggedIn, getCurrentUser } from './services/userService';
 // ...existing code...
 import './index.css';
 
 function App() {
-  // Set demo user on app start for testing like functionality
+  const [user, setUser] = useState(null);
+
   useEffect(() => {
-    if (!localStorage.getItem('user_id')) {
-      setUserId('demo_user_' + Math.random().toString(36).substr(2, 9));
-    }
+    const stored = getCurrentUser();
+    if (stored) setUser(stored);
   }, []);
+
+  // Ha nincs user, mutassuk a login képernyőt
+  if (!isUserLoggedIn()) {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+            <h2>Please log in with Pi Network to continue</h2>
+            <p>Click the profile icon (👤) in the top right to log in.</p>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <Router>
@@ -33,7 +50,7 @@ function App() {
             <Route path="/profile" element={<ViewProfileScreen />} />
           </Routes>
         </main>
-  <BottomNavigation />
+        <BottomNavigation />
       </Router>
     </div>
   );

@@ -1,9 +1,10 @@
 import { supabase } from '../supabaseClient';
+import { getCurrentUser } from './userService';
 
-// Get current user ID (simple mock for now - can be enhanced with real auth)
+// Get current user ID from persistent session
 const getCurrentUserId = () => {
-  // For now, use a simple user ID. This can be enhanced with real authentication
-  return localStorage.getItem('user_id') || 'demo_user';
+  const user = getCurrentUser();
+  return user?.pi_user_uid || null;
 };
 
 // Check if song is liked by current user
@@ -121,14 +122,7 @@ export const getLikedSongs = async () => {
 };
 
 // Set user ID (for simple authentication)
-export const setUserId = (userId) => {
-  localStorage.setItem('user_id', userId);
-};
+// setUserId nem szükséges, persistent session van
 
 // Check if user is logged in (for real authentication)
-export const isUserLoggedIn = () => {
-  const userId = getCurrentUserId();
-  // For now, consider demo users as "not logged in" for proper auth flow
-  // This can be updated when real authentication is implemented
-  return userId && !userId.startsWith('demo_user');
-};
+// (exportált függvény már fentebb van)
