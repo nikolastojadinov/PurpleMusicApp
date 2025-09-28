@@ -1,36 +1,32 @@
 import React from 'react';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
-// ...existing code...
-
-// Updated list using only the MP3 URLs you just provided and the real cover filenames.
-// (Trenutno si poslao 4 MP3 fajla, ostali prethodni nisu potvrđeni – zato je lista sada 4 pesme.)
-const STATIC_SONGS = [
-  {
-    title: "Apocalypse 1 (Original Lyrics)",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/apocalypse-1-original-lyrics-344749.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/apocalyptic_synthwav_d29e41ff.jpg"
-  },
-  {
-    title: "Retro 80s Sax",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/retro-80s-sax-398114.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/retro_saxophone_albu_2cc5c11a.jpg"
-  },
-  {
-    title: "80’s Nostalgia",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/8039s-nostalgia-21344.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/nostalgic_80s_album__7b2fff5f.jpg"
-  },
-  {
-    title: "80s Baby (Original Lyrics)",
-    url: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Music/80s-baby-original-lyrics-335952.mp3",
-    cover: "https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/Covers/synthwave_retro_albu_327209ad.jpg"
-  }
-];
+import { loadMusicLibrary } from '../services/libraryLoader';
+// Dinamičko učitavanje (mp3 + png) parova iz Supabase Storage-a.
 
 export default function HomeScreen() {
-  const madeForYouSongs = STATIC_SONGS;
-  const recentlyPlayedSongs = STATIC_SONGS;
-  const trendingNowSongs = STATIC_SONGS;
+  const [songs, setSongs] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const list = await loadMusicLibrary();
+        if (active) setSongs(list);
+      } catch (e) {
+        if (active) setError(e.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const madeForYouSongs = songs;
+  const recentlyPlayedSongs = songs;
+  const trendingNowSongs = songs;
 
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
@@ -58,7 +54,7 @@ export default function HomeScreen() {
             readOnly
           />
         </div>
-        {madeForYouSongs.length > 0 && (
+        {songs.length > 0 && (
           <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
             {showDebug ? 'Hide debug' : 'Show debug'}
           </button>
@@ -66,9 +62,16 @@ export default function HomeScreen() {
       </div>
 
       {showDebug && (
-        <pre style={{maxHeight:200, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify(madeForYouSongs, null, 2)}
+        <pre style={{maxHeight:240, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
+{JSON.stringify({ count: songs.length, songs, loading, error }, null, 2)}
         </pre>
+      )}
+
+      {loading && (
+        <div style={{color:'#888', fontSize:12, marginBottom:20}}>Loading songs...</div>
+      )}
+      {error && (
+        <div style={{color:'#ff5555', fontSize:12, marginBottom:20}}>Error: {error}</div>
       )}
 
       {/* Made for you section */}
