@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { checkSongLiked, likeSong, unlikeSong, isUserLoggedIn } from '../services/likeService';
+import { isPremiumUser, likeSongSupabase, unlikeSongSupabase, isSongLikedSupabase } from '../services/likeSupabaseService';
 
 const demoSong = {
   id: 'demo_night_owl',
@@ -26,14 +26,8 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [isLiked, setIsLiked] = useState(false);
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
 
-  // Premium check function - for demo purposes, simulate some premium users
-  const isPremium = () => {
-    // For demo: Check if user has set premium in localStorage for testing
-    // In real app, this would check actual subscription/payment status
-    const userId = localStorage.getItem('user_id');
-    return localStorage.getItem('premium_demo') === 'true' || 
-           (userId && userId.includes('premium')); // demo premium users
-  };
+  // Premium check function (Supabase)
+  const isPremium = isPremiumUser;
 
   // Play/Pause
   const togglePlay = () => {
@@ -136,46 +130,35 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
     return `${m}:${sec}`;
   };
 
-  // Like/Unlike functionality
+  // Like/Unlike functionality (Supabase)
   const toggleLike = async () => {
-    if (!isUserLoggedIn()) {
-      alert('Please log in to like songs!');
-      return;
-    }
-    
     if (!isPremium()) {
-      setShowPremiumPopup(true);
+      alert('Only premium users can like songs');
       return;
     }
-    
     try {
       if (isLiked) {
-        const success = await unlikeSong(song.id);
-        if (success) {
-          setIsLiked(false);
-        }
+        await unlikeSongSupabase(song);
+        setIsLiked(false);
       } else {
-        const success = await likeSong(song);
-        if (success) {
-          setIsLiked(true);
-        }
+        await likeSongSupabase(song);
+        setIsLiked(true);
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
+      alert(error.message || 'Error toggling like');
     }
   };
   
-  // Check if song is liked on component mount
+  // Check if song is liked on component mount (Supabase)
   useEffect(() => {
     const checkLikeStatus = async () => {
-      if (song?.id && isUserLoggedIn()) {
-        const liked = await checkSongLiked(song.id);
+      if (song?.url) {
+        const liked = await isSongLikedSupabase(song);
         setIsLiked(liked);
       }
     };
-    
     checkLikeStatus();
-  }, [song?.id]);
+  }, [song?.url]);
 
   // Skip functionality with premium check
   const handlePrev = () => {
@@ -268,13 +251,13 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         )}
         
         {/* Bottom left control: Like */}
-        {song?.id && (
+        {song?.url && (
           <button 
             onClick={e => { e.stopPropagation(); toggleLike(); }} 
             className="absolute bottom-2 left-2 z-10 p-1 group"
-            title={!isUserLoggedIn() ? 'Please log in to like songs' : !isPremium() ? 'Premium Feature - Like songs' : isLiked ? 'Unlike song' : 'Like song'}
+            title={!isPremium() ? 'Only premium users can like songs' : isLiked ? 'Unlike song' : 'Like song'}
           >
-            <svg width="20" height="20" fill={isLiked ? "#e53e3e" : "none"} stroke="currentColor" strokeWidth="2" className={`${isLiked ? 'text-red-500' : 'text-white/80'} group-hover:text-red-400 transition ${!isUserLoggedIn() ? 'opacity-50' : ''}`}>
+            <svg width="20" height="20" fill={isLiked ? "#e53e3e" : "none"} stroke="currentColor" strokeWidth="2" className={`${isLiked ? 'text-red-500' : 'text-white/80'} group-hover:text-red-400 transition`}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
