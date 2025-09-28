@@ -63,12 +63,6 @@ export default function PlaylistsScreen() {
         </button>
       </div>
 
-      <div className="quick-access">
-        <div className="quick-item liked-songs" onClick={() => handlePlayPlaylist('liked')}>
-          <span className="quick-icon">💚</span>
-          <span className="quick-text">Liked Songs</span>
-        </div>
-      </div>
 
       <div className="playlists-list">
         <h2 className="section-title">Made by you</h2>
