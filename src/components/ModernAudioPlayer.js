@@ -24,6 +24,16 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [touchStartY, setTouchStartY] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+
+  // Premium check function - for demo purposes, simulate some premium users
+  const isPremium = () => {
+    // For demo: Check if user has set premium in localStorage for testing
+    // In real app, this would check actual subscription/payment status
+    const userId = localStorage.getItem('user_id');
+    return localStorage.getItem('premium_demo') === 'true' || 
+           (userId && userId.includes('premium')); // demo premium users
+  };
 
   // Play/Pause
   const togglePlay = () => {
@@ -133,6 +143,11 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
       return;
     }
     
+    if (!isPremium()) {
+      setShowPremiumPopup(true);
+      return;
+    }
+    
     try {
       if (isLiked) {
         const success = await unlikeSong(song.id);
@@ -162,14 +177,28 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
     checkLikeStatus();
   }, [song?.id]);
 
-  // Dummy next/prev
+  // Skip functionality with premium check
   const handlePrev = () => {
+    if (!isPremium()) {
+      setShowPremiumPopup(true);
+      return;
+    }
+    // Premium functionality: actual skip to previous track
     audioRef.current.currentTime = 0;
     setProgress(0);
   };
   const handleNext = () => {
+    if (!isPremium()) {
+      setShowPremiumPopup(true);
+      return;
+    }
+    // Premium functionality: actual skip to next track
     audioRef.current.currentTime = duration;
     setProgress(duration);
+  };
+
+  const closePremiumPopup = () => {
+    setShowPremiumPopup(false);
   };
 
   // Attach drag listeners
@@ -243,8 +272,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
           <button 
             onClick={e => { e.stopPropagation(); toggleLike(); }} 
             className="absolute bottom-2 left-2 z-10 p-1 group"
-            disabled={!isUserLoggedIn()}
-            title={!isUserLoggedIn() ? 'Please log in to like songs' : isLiked ? 'Unlike song' : 'Like song'}
+            title={!isUserLoggedIn() ? 'Please log in to like songs' : !isPremium() ? 'Premium Feature - Like songs' : isLiked ? 'Unlike song' : 'Like song'}
           >
             <svg width="20" height="20" fill={isLiked ? "#e53e3e" : "none"} stroke="currentColor" strokeWidth="2" className={`${isLiked ? 'text-red-500' : 'text-white/80'} group-hover:text-red-400 transition ${!isUserLoggedIn() ? 'opacity-50' : ''}`}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -291,7 +319,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         </div>
         {/* Main Controls - Centered */}
         <div className="flex items-center justify-center gap-6">
-          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-2 group">
+          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-2 group" title="Premium Feature - Skip Previous">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
               <path d="M19 20L9 12L19 4V20Z"/>
               <line x1="5" y1="19" x2="5" y2="5"/>
@@ -311,7 +339,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
             )}
           </button>
           
-          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-2 group">
+          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-2 group" title="Premium Feature - Skip Next">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
               <path d="M5 4L15 12L5 20V4Z"/>
               <line x1="19" y1="5" x2="19" y2="19"/>
@@ -331,6 +359,40 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
           </div>
         </div>
       </div>
+
+      {/* Premium Popup */}
+      {showPremiumPopup && (
+        <div className="premium-popup-overlay" onClick={closePremiumPopup}>
+          <div className="premium-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="premium-header">
+              <h2>🎵 Premium Feature</h2>
+              <button className="close-btn" onClick={closePremiumPopup}>×</button>
+            </div>
+            <div className="premium-content">
+              <div className="premium-icon">⭐</div>
+              <h3>Enhanced Music Controls</h3>
+              <p>Like songs and skip tracks with premium controls that give you full control over your music experience.</p>
+              
+              <div className="premium-price">
+                <span className="price">3.14π</span>
+                <span className="period">Premium Membership</span>
+              </div>
+              
+              <div className="premium-features">
+                <div className="feature">✓ Like and save favorite songs</div>
+                <div className="feature">✓ Skip to next/previous tracks</div>
+                <div className="feature">✓ Advanced audio controls</div>
+                <div className="feature">✓ Create custom playlists</div>
+              </div>
+              
+              <div className="premium-buttons">
+                <button className="upgrade-btn">Upgrade to Premium</button>
+                <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
