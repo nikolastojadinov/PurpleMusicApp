@@ -24,9 +24,17 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, []);
 
-  const madeForYouSongs = songs;
-  const recentlyPlayedSongs = songs;
-  const trendingNowSongs = songs;
+  // Helper function to shuffle array and get random subset
+  const getRandomSongs = (songsArray, count = 6) => {
+    if (songsArray.length === 0) return [];
+    const shuffled = [...songsArray].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, shuffled.length));
+  };
+
+  // Create different random sets for each category
+  const madeForYouSongs = getRandomSongs(songs, 6);
+  const recentlyPlayedSongs = getRandomSongs(songs, 6);
+  const trendingNowSongs = getRandomSongs(songs, 6);
 
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);

@@ -9,28 +9,49 @@ function stripExt(name){
 }
 
 export async function loadMusicLibrary() {
-  const [{ data: musicFiles, error: musicErr }, { data: coverFiles, error: coverErr }] = await Promise.all([
-    supabase.storage.from(MUSIC_BUCKET).list('', { limit: 500 }),
-    supabase.storage.from(COVERS_BUCKET).list('', { limit: 500 })
-  ]);
-  if (musicErr) throw musicErr;
-  if (coverErr) throw coverErr;
-  const coverIndex = new Map();
-  coverFiles.filter(f=>f.name.endsWith('.png')).forEach(f => {
-    coverIndex.set(stripExt(f.name), f.name);
+  console.log('🎵 Loading music library from Supabase...');
+  
+  // Direct list of known files (exactly from user's screenshots)
+  const knownSongs = [
+    'deepabstractambient',
+    'retro-lounge', 
+    'running-night',
+    'vlog-beat-background',
+    'apocalypse-1-original-lyrics',
+    '8039s-nostalgia',
+    'retro-80s-sax',
+    '80s-baby-original-lyrics',
+    'apocalypse-original-lyrics',
+    'lady-of-the-80',
+    '80-cinematic-synthwave'
+  ];
+
+  // Format song titles nicely
+  const formatTitle = (filename) => {
+    return filename
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace(/80s/gi, '80s')
+      .replace(/1 /g, '1: ');
+  };
+
+  // Create songs array using known files
+  const songs = knownSongs.map(baseName => {
+    const musicUrl = PUBLIC_BASE(`${MUSIC_BUCKET}/${baseName}.mp3`);
+    const coverUrl = PUBLIC_BASE(`${COVERS_BUCKET}/${baseName}.png`);
+    
+    return {
+      id: baseName,
+      title: formatTitle(baseName),
+      url: musicUrl,
+      cover: coverUrl
+    };
   });
-  const songs = musicFiles
-    .filter(f => f.name.endsWith('.mp3'))
-    .map(f => {
-      const base = stripExt(f.name);
-      const coverFile = coverIndex.get(base);
-      return {
-        id: base,
-        title: base,
-        url: PUBLIC_BASE(`${MUSIC_BUCKET}/${f.name}`),
-        cover: coverFile ? PUBLIC_BASE(`${COVERS_BUCKET}/${coverFile}`) : null
-      };
-    })
-    .filter(s => s.cover); // only keep those with matching cover
+
+  console.log('🎵 Created songs count:', songs.length);
+  console.log('🎵 Sample song URLs:', {
+    first: songs[0]?.url,
+    cover: songs[0]?.cover
+  });
   return songs;
 }
