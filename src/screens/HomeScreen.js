@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 import { loadMusicLibrary } from '../services/libraryLoader';
 // Dinamičko učitavanje (mp3 + png) parova iz Supabase Storage-a.
 
 export default function HomeScreen() {
+  const navigate = useNavigate();
   const [songs, setSongs] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
@@ -38,7 +40,6 @@ export default function HomeScreen() {
 
   const [selectedSong, setSelectedSong] = React.useState(null);
   const [playerOpen, setPlayerOpen] = React.useState(false);
-  const [showDebug, setShowDebug] = React.useState(false);
 
   const handlePlaySong = (song) => {
     setSelectedSong(song);
@@ -53,27 +54,18 @@ export default function HomeScreen() {
   return (
     <div className="home-screen">
       <div className="search-bar-container">
-        <div className="search-bar">
+        <div className="search-bar" onClick={() => navigate('/search')} style={{cursor: 'pointer'}}>
           <span className="search-icon">🔍</span>
           <input
             type="text"
             placeholder="Artists, songs, or podcasts"
             className="search-input"
+            onClick={() => navigate('/search')}
+            style={{cursor: 'pointer'}}
             readOnly
           />
         </div>
-        {songs.length > 0 && (
-          <button onClick={() => setShowDebug(d => !d)} style={{marginTop:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'#fff', padding:'6px 12px', borderRadius:6, cursor:'pointer', fontSize:12}}>
-            {showDebug ? 'Hide debug' : 'Show debug'}
-          </button>
-        )}
       </div>
-
-      {showDebug && (
-        <pre style={{maxHeight:240, overflow:'auto', fontSize:10, background:'rgba(255,255,255,0.05)', padding:12, borderRadius:8, marginBottom:20}}>
-{JSON.stringify({ count: songs.length, songs, loading, error }, null, 2)}
-        </pre>
-      )}
 
       {loading && (
         <div style={{color:'#888', fontSize:12, marginBottom:20}}>Loading songs...</div>
