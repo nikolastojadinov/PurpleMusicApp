@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { getLikedSongs, isUserLoggedIn } from '../services/likeService';
+import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
+import { getCurrentUser } from '../services/userService';
 
 export default function LikedSongsScreen() {
   // ...existing code...
   
   const [likedSongs, setLikedSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const user = getCurrentUser();
   
   useEffect(() => {
     const loadLikedSongs = async () => {
-      if (!isUserLoggedIn()) {
+      if (!user || !user.pi_user_uid) {
         setLikedSongs([]);
         setLoading(false);
         return;
       }
-      
       try {
-        const songs = await getLikedSongs();
+        const songs = await getLikedSongsSupabase();
         setLikedSongs(songs);
       } catch (error) {
         console.error('Error loading liked songs:', error);
@@ -24,20 +25,12 @@ export default function LikedSongsScreen() {
         setLoading(false);
       }
     };
-    
     loadLikedSongs();
-  }, []);
+  }, [user]);
 
   const handlePlaySong = (song, index) => {
-    // Convert liked song back to song format for player
-    const songData = {
-      id: song.song_id,
-      title: song.song_title,
-      artist: song.song_artist,
-      cover: song.song_cover,
-      src: song.song_src
-    };
-    alert('Play: ' + song.song_title + ' - This will integrate with player later');
+    // Play liked song
+    alert('Play: ' + song.title + ' - This will integrate with player later');
   };
 
   const handlePlayAll = () => {
@@ -69,7 +62,7 @@ export default function LikedSongsScreen() {
           <div className="loading-message">
             <p>Loading liked songs...</p>
           </div>
-        ) : !isUserLoggedIn() ? (
+        ) : !user ? (
           <div className="not-logged-in">
             <p>Please log in to see your liked songs</p>
           </div>
@@ -79,17 +72,17 @@ export default function LikedSongsScreen() {
           </div>
         ) : (
           likedSongs.map((song, index) => (
-            <div key={song.id} className="song-item" onClick={() => handlePlaySong(song, index)}>
+            <div key={song.track_url} className="song-item" onClick={() => handlePlaySong(song, index)}>
               <div className="song-number">{index + 1}</div>
               <div className="song-cover">
-                <img src={song.song_cover} alt={song.song_title} className="cover-image" />
+                <img src={song.cover_url} alt={song.title} className="cover-image" />
               </div>
               <div className="song-details">
-                <h3 className="song-title">{song.song_title}</h3>
-                <p className="song-artist">{song.song_artist}</p>
+                <h3 className="song-title">{song.title}</h3>
+                <p className="song-artist">{song.artist}</p>
               </div>
               <div className="song-date">
-                {new Date(song.created_at).toLocaleDateString()}
+                {song.liked_at ? new Date(song.liked_at).toLocaleDateString() : ''}
               </div>
               <button 
                 className="song-menu"
