@@ -121,15 +121,23 @@ export default function ProfileDropdown() {
     const onReadyForServerCompletion = async (paymentId, txid) => {
       try {
         const apiAxios = (await import('../apiAxios')).default;
+        const { supabase } = await import('../supabaseClient');
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
-          const { error } = await supabase
+          // Update Supabase users table
+          const { data, error } = await supabase
             .from('users')
             .update({ is_premium: true })
-            .eq('pi_user_uid', user.pi_user_uid);
+            .eq('pi_user_uid', user.pi_user_uid)
+            .select()
+            .single();
           if (error) {
-            alert('Premium activ, ali lokalni update pao: ' + error.message);
+            alert('Premium aktiviran, de Supabase update error: ' + error.message);
           } else {
+            // Save premium status in localStorage
+            const updatedUser = { ...user, is_premium: true };
+            window.localStorage.setItem('pm_user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
             alert('Plaćanje završeno! Premium aktiviran.');
           }
         } else {
