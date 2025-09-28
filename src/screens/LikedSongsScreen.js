@@ -62,9 +62,6 @@ export default function LikedSongsScreen() {
           <span>▶</span>
           Play
         </button>
-        <button className="shuffle-btn">
-          🔀
-        </button>
       </div>
 
       <div className="songs-list">
