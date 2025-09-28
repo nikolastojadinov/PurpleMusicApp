@@ -187,59 +187,87 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         onEnded={() => setIsPlaying(false)}
         volume={volume}
       />
-      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-2 select-none w-full relative" style={{minWidth:'0'}}>        {/* Close button */}
-        {onClose && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClose(); }} 
-            className="absolute top-1 right-1 z-10 w-4 h-4 rounded-full border border-white/40 hover:border-white/80 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition text-xs"
-            aria-label="Close player"
-          >
-            ×
-          </button>
-        )}
-        <div className="flex items-center justify-between gap-1 mb-0.5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <img src={song.cover} alt="cover" className="w-6 h-6 rounded object-cover shadow" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-white font-medium truncate text-xs leading-tight">{song.title}</span>
-              <span className="text-white/60 text-xs truncate">{song.artist}</span>
-            </div>
-          </div>
-          <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="p-0.5 group">
+      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-3 select-none w-full relative" style={{minWidth:'0'}}>
+        {/* Top right controls: Mute and Close */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+          <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="w-6 h-6 rounded-full border border-white/40 hover:border-white/80 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition group">
             {isMuted ? (
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/><line x1="18" y1="8" x2="8" y2="18" stroke="currentColor" strokeWidth="2"/><line x1="8" y1="8" x2="18" y2="18" stroke="currentColor" strokeWidth="2"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/><line x1="18" y1="8" x2="8" y2="18" stroke="currentColor" strokeWidth="2"/><line x1="8" y1="8" x2="18" y2="18" stroke="currentColor" strokeWidth="2"/></svg>
             ) : (
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M4 9V15H8L13 19V5L8 9H4Z"/></svg>
             )}
           </button>
+          {onClose && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onClose(); }} 
+              className="w-6 h-6 rounded-full border border-white/40 hover:border-white/80 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition"
+              aria-label="Close player"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        
+        {/* Song info */}
+        <div className="flex items-center gap-3 mb-3 pr-16">
+          <img src={song.cover} alt="cover" className="w-12 h-12 rounded-lg object-cover shadow-lg" />
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white font-semibold truncate text-sm leading-tight">{song.title}</span>
+            <span className="text-white/70 text-sm truncate">{song.artist}</span>
+          </div>
         </div>
         {/* Progress bar */}
-        <div className="flex items-center gap-1 mb-0.5">
-          <span className="text-xs text-white/60 w-6 text-left">{formatTime(progress)}</span>
-          <div className="relative flex-1 h-1 group cursor-pointer" onClick={e => { e.stopPropagation(); handleSeek(e); }}>
-            <div className="absolute w-full h-0.5 bg-white/20 rounded-full" />
-            <div className="absolute h-0.5 bg-white rounded-full" style={{ width: `${(progress / duration) * 100}%` }} />
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-sm text-white/70 w-10 text-left">{formatTime(progress)}</span>
+          <div className="relative flex-1 h-2 group cursor-pointer" onClick={e => { e.stopPropagation(); handleSeek(e); }}>
+            <div className="absolute w-full h-1 bg-white/20 rounded-full top-0.5" />
+            <div className="absolute h-1 bg-white rounded-full top-0.5" style={{ width: `${(progress / duration) * 100}%` }} />
+            <div 
+              className="absolute w-3 h-3 bg-white rounded-full shadow-lg transform -translate-y-1 opacity-0 group-hover:opacity-100 transition-opacity" 
+              style={{ left: `calc(${(progress / duration) * 100}% - 6px)` }}
+            />
           </div>
-          <span className="text-xs text-white/60 w-6 text-right">{formatTime(duration)}</span>
+          <span className="text-sm text-white/70 w-10 text-right">{formatTime(duration)}</span>
         </div>
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-1">
-          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-0.5 group">
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M22 26L10 16L22 6V26Z"/><path d="M10 6V26"/></svg>
+        {/* Main Controls - Centered */}
+        <div className="flex items-center justify-center gap-6">
+          <button onClick={e => { e.stopPropagation(); handlePrev(); }} className="p-2 group">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
+              <path d="M19 20L9 12L19 4V20Z"/>
+              <line x1="5" y1="19" x2="5" y2="5"/>
+            </svg>
           </button>
-          <button onClick={e => { e.stopPropagation(); togglePlay(); }} className="p-0.5 group">
+          
+          <button onClick={e => { e.stopPropagation(); togglePlay(); }} className="p-3 group bg-white/10 rounded-full hover:bg-white/20 transition">
             {isPlaying ? (
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><rect x="11" y="9" width="6" height="20" rx="2"/><rect x="21" y="9" width="6" height="20" rx="2"/></svg>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white group-hover:text-white transition">
+                <rect x="14" y="4" width="4" height="16" rx="2"/>
+                <rect x="6" y="4" width="4" height="16" rx="2"/>
+              </svg>
             ) : (
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><polygon points="12,9 32,19 12,29"/></svg>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white group-hover:text-white transition">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
             )}
           </button>
-          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-0.5 group">
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition"><path d="M10 6L22 16L10 26V6Z"/><path d="M22 6V26"/></svg>
+          
+          <button onClick={e => { e.stopPropagation(); handleNext(); }} className="p-2 group">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
+              <path d="M5 4L15 12L5 20V4Z"/>
+              <line x1="19" y1="5" x2="19" y2="19"/>
+            </svg>
           </button>
-          <div className="relative w-10 h-1 flex items-center group cursor-pointer ml-1" onClick={e => { e.stopPropagation(); handleVolumeChange(e); }}>
-            <div className="absolute w-full h-0.5 bg-white/20 rounded-full" />
-            <div className="absolute h-0.5 bg-white rounded-full" style={{ width: `${volume * 100}%` }} />
+        </div>
+        
+        {/* Volume Control */}
+        <div className="flex items-center justify-center mt-3">
+          <div className="relative w-24 h-2 flex items-center group cursor-pointer" onClick={e => { e.stopPropagation(); handleVolumeChange(e); }}>
+            <div className="absolute w-full h-1 bg-white/20 rounded-full" />
+            <div className="absolute h-1 bg-white/60 rounded-full" style={{ width: `${volume * 100}%` }} />
+            <div 
+              className="absolute w-3 h-3 bg-white rounded-full shadow-lg transform -translate-y-1 opacity-0 group-hover:opacity-100 transition-opacity" 
+              style={{ left: `calc(${volume * 100}% - 6px)` }}
+            />
           </div>
         </div>
       </div>
