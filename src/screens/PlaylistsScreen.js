@@ -5,6 +5,7 @@ export default function PlaylistsScreen() {
   // ...existing code...
   
   const [playlists, setPlaylists] = React.useState([]);
+  const [showPremiumPopup, setShowPremiumPopup] = React.useState(false);
   React.useEffect(() => {
     import('../supabaseClient').then(({ supabase }) => {
       supabase
@@ -30,11 +31,20 @@ export default function PlaylistsScreen() {
     alert('Play: ' + (playlist.name || playlist));
   };
 
+  const handleCreatePlaylist = () => {
+    // Show premium popup since playlist creation requires premium membership
+    setShowPremiumPopup(true);
+  };
+
+  const closePremiumPopup = () => {
+    setShowPremiumPopup(false);
+  };
+
   return (
     <div className="playlists-screen">
       <div className="playlists-header">
         <h1 className="screen-title">My Playlists</h1>
-        <button className="create-playlist-btn">
+        <button className="create-playlist-btn" onClick={handleCreatePlaylist}>
           <span>+</span>
           Create Playlist
         </button>
@@ -44,10 +54,6 @@ export default function PlaylistsScreen() {
         <div className="quick-item liked-songs" onClick={() => handlePlayPlaylist('liked')}>
           <span className="quick-icon">💚</span>
           <span className="quick-text">Liked Songs</span>
-        </div>
-        <div className="quick-item downloaded" onClick={() => handlePlayPlaylist('downloaded')}>
-          <span className="quick-icon">⬇️</span>
-          <span className="quick-text">Downloaded</span>
         </div>
       </div>
 
@@ -71,6 +77,40 @@ export default function PlaylistsScreen() {
           </div>
         ))}
       </div>
+
+      {/* Premium Popup */}
+      {showPremiumPopup && (
+        <div className="premium-popup-overlay" onClick={closePremiumPopup}>
+          <div className="premium-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="premium-header">
+              <h2>🎵 Premium Feature</h2>
+              <button className="close-btn" onClick={closePremiumPopup}>×</button>
+            </div>
+            <div className="premium-content">
+              <div className="premium-icon">⭐</div>
+              <h3>Create Custom Playlists</h3>
+              <p>Creating custom playlists is a premium feature that lets you organize your favorite music exactly how you want.</p>
+              
+              <div className="premium-price">
+                <span className="price">3.14π</span>
+                <span className="period">Premium Membership</span>
+              </div>
+              
+              <div className="premium-features">
+                <div className="feature">✓ Create unlimited playlists</div>
+                <div className="feature">✓ Custom playlist covers</div>
+                <div className="feature">✓ Advanced playlist management</div>
+                <div className="feature">✓ Offline playlist download</div>
+              </div>
+              
+              <div className="premium-buttons">
+                <button className="upgrade-btn">Upgrade to Premium</button>
+                <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

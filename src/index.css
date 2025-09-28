@@ -1262,3 +1262,168 @@ body::-webkit-scrollbar {
     max-width: 240px;
   }
 }
+
+/* ===== Premium Popup ===== */
+.premium-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.premium-popup {
+  background: #1a1a1a;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #333;
+}
+
+.premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0 20px;
+}
+
+.premium-header h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.premium-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.premium-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.premium-content h3 {
+  color: #fff;
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.premium-content p {
+  color: #ccc;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.premium-price {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #1DB954, #1ed760);
+  border-radius: 12px;
+}
+
+.price {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.period {
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.premium-features {
+  text-align: left;
+  margin: 24px 0;
+}
+
+.feature {
+  color: #1DB954;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.feature::before {
+  content: '✓';
+  margin-right: 12px;
+  font-weight: bold;
+}
+
+.premium-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.upgrade-btn {
+  background: linear-gradient(135deg, #1DB954, #1ed760);
+  color: #fff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(29, 185, 84, 0.3);
+}
+
+.cancel-btn {
+  background: transparent;
+  color: #999;
+  border: 1px solid #333;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #333;
+  color: #fff;
+}
