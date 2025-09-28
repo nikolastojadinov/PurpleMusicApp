@@ -124,10 +124,14 @@ export default function ProfileDropdown() {
         const { supabase } = await import('../supabaseClient');
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
+          // Calculate premium_until (30 days from now)
+          const now = new Date();
+          const premiumUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const premiumUntilStr = premiumUntil.toISOString();
           // Update Supabase users table
           const { data, error } = await supabase
             .from('users')
-            .update({ is_premium: true })
+            .update({ is_premium: true, premium_until: premiumUntilStr })
             .eq('pi_user_uid', user.pi_user_uid)
             .select()
             .single();
@@ -135,7 +139,7 @@ export default function ProfileDropdown() {
             alert('Premium aktiviran, de Supabase update error: ' + error.message);
           } else {
             // Save premium status in localStorage
-            const updatedUser = { ...user, is_premium: true };
+            const updatedUser = { ...user, is_premium: true, premium_until: premiumUntilStr };
             window.localStorage.setItem('pm_user', JSON.stringify(updatedUser));
             setUser(updatedUser);
             alert('Plaćanje završeno! Premium aktiviran.');
@@ -241,23 +245,38 @@ export default function ProfileDropdown() {
             {/* Divider */}
             <div className="dropdown-divider"></div>
 
-            {/* Go Premium Button */}
-            <button
-              onClick={user ? handleGoPremium : undefined}
-              className={`dropdown-button premium${!user ? ' disabled' : ''}`}
-              disabled={!user}
-              title={!user ? 'Login required to upgrade to Premium' : ''}
-              style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
-            >
-              <div className="button-icon premium-icon">⭐</div>
-              <div className="button-text">
-                <div className="button-title">Go Premium – {PREMIUM_AMOUNT}π</div>
-                <div className="button-subtitle">Full access for {PREMIUM_AMOUNT} Pi</div>
-                {!user && (
-                  <div style={{color:'#ffb',fontSize:'12px',marginTop:'4px'}}>Login required to upgrade to Premium</div>
-                )}
-              </div>
-            </button>
+            {/* Go Premium Button / Premium Status */}
+            {user && user.is_premium ? (
+              <button
+                className="dropdown-button premium"
+                disabled
+                style={{opacity:0.8, cursor:'default'}}
+                title={user.premium_until ? `Premium until ${new Date(user.premium_until).toISOString().slice(0,10)}` : 'Premium Member'}
+              >
+                <div className="button-icon premium-icon">⭐</div>
+                <div className="button-text">
+                  <div className="button-title">Premium Member</div>
+                  <div className="button-subtitle">Until {user.premium_until ? new Date(user.premium_until).toISOString().slice(0,10) : '-'}</div>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={user ? handleGoPremium : undefined}
+                className={`dropdown-button premium${!user ? ' disabled' : ''}`}
+                disabled={!user}
+                title={!user ? 'Login required to upgrade to Premium' : ''}
+                style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
+              >
+                <div className="button-icon premium-icon">⭐</div>
+                <div className="button-text">
+                  <div className="button-title">Go Premium – {PREMIUM_AMOUNT}π</div>
+                  <div className="button-subtitle">Full access for {PREMIUM_AMOUNT} Pi</div>
+                  {!user && (
+                    <div style={{color:'#ffb',fontSize:'12px',marginTop:'4px'}}>Login required to upgrade to Premium</div>
+                  )}
+                </div>
+              </button>
+            )}
           </div>
         </div>
       )}
