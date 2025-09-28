@@ -15,7 +15,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [duration, setDuration] = useState(song.duration);
   const [volume, setVolume] = useState(0.8);
   const [dragOffset, setDragOffset] = useState(0);
-  const [playerBottom, setPlayerBottom] = useState(64); // default offset from bottom
+  const [playerBottom, setPlayerBottom] = useState(120); // default offset from bottom - above footer
   const [translateY, setTranslateY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [startY, setStartY] = useState(null);
