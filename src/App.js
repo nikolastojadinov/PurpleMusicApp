@@ -14,15 +14,18 @@ import { isUserLoggedIn, getCurrentUser } from './services/userService';
 import './index.css';
 
 function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getCurrentUser());
 
   useEffect(() => {
-    const stored = getCurrentUser();
-    if (stored) setUser(stored);
+    const handleStorage = () => {
+      setUser(getCurrentUser());
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   // Ha nincs user, mutassuk a login képernyőt
-  if (!isUserLoggedIn()) {
+  if (!user) {
     return (
       <div className="app">
         <Header />
