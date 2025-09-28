@@ -38,7 +38,31 @@ Preferred communication style: Simple, everyday language.
 ### Data Management
 - **Mock Data**: Currently uses hardcoded data for playlists, songs, and content
 - **Data Structure**: Objects contain id, title, artist, covers (emoji-based), and metadata
-- **No Persistence**: No database or local storage implementation currently
+- **Backend Integration**: Express server provides Pi Network payment APIs and user authentication
+
+## Backend Architecture
+### Express Server
+- **Framework**: Express.js with CORS and body-parser middleware
+- **Port**: Runs on port 8080 (configurable via PORT environment variable)
+- **APIs**: Pi Network payment verification endpoints and user authentication
+- **Database**: Supabase integration for user management and premium status
+
+### Payment Integration
+- **Pi Network**: Complete payment flow with approve/complete pattern
+- **Endpoints**: `/api/verify-payment`, `/api/payments/approve`, `/api/payments/complete`
+- **Authentication**: Requires PI_API_KEY and SUPABASE_SERVICE_KEY environment variables
+
+## Replit Environment Setup
+### Development Configuration
+- **Frontend**: React dev server on port 5000 with host verification disabled for Replit proxy
+- **Backend**: Express server on port 8080 with local development support
+- **Proxy**: Configured to work with Replit's iframe-based preview system
+- **Host Settings**: `DANGEROUSLY_DISABLE_HOST_CHECK=true` and `HOST=0.0.0.0` for React
+
+### Deployment Configuration
+- **Target**: Autoscale deployment for stateless web application
+- **Build**: `npm run build` for React production build
+- **Runtime**: `npm start` runs backend server for production
 
 ## External Dependencies
 
@@ -59,6 +83,14 @@ Preferred communication style: Simple, everyday language.
 - **svgo**: SVG optimization tools
 
 ## Recent Changes
+
+### September 28, 2025
+- **Replit Setup**: Configured for Replit development environment
+- **Dependencies**: Installed all frontend (React) and backend (Express) dependencies
+- **Host Configuration**: Set up React dev server to work with Replit proxy
+- **Workflow**: Configured frontend workflow on port 5000
+- **Backend**: Set up Express server on port 8080 (separate from frontend)
+- **Deployment**: Configured autoscale deployment with proper build/run commands
 
 ### September 25, 2025
 - Complete redesign from React Native to React web application
