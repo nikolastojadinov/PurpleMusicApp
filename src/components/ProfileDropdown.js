@@ -197,8 +197,8 @@ export default function ProfileDropdown() {
             >
               <div className="button-icon profile-icon">👤</div>
               <div className="button-text">
-                <div className="button-title">View Profile</div>
-                <div className="button-subtitle">Manage your account</div>
+                <div className="button-title">View Profile{user && user.username ? ` – ${user.username}` : ''}</div>
+                <div className="button-subtitle">{user && user.username ? user.username : 'Manage your account'}</div>
               </div>
             </button>
 
