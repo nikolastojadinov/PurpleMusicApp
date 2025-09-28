@@ -120,21 +120,15 @@ export default function HomeScreen() {
       </section>
 
       {playerOpen && selectedSong && (
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 80, zIndex: 1000 }}>
-          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 1100 }}>
-            <button
-              style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 32, height: 32, fontSize: 20, cursor: 'pointer' }}
-              onClick={handleClosePlayer}
-              aria-label="Close player"
-            >
-              ×
-            </button>
-          </div>
-          <ModernAudioPlayer key={selectedSong.title} autoPlay song={{
+        <ModernAudioPlayer 
+          key={selectedSong.title} 
+          autoPlay 
+          onClose={handleClosePlayer}
+          song={{
             ...selectedSong,
             src: selectedSong.url
-          }} />
-        </div>
+          }} 
+        />
       )}
     </div>
   );
