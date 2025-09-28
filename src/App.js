@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen';
 import SearchScreen from './screens/SearchScreen';
 import LikedSongsScreen from './screens/LikedSongsScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
+import ViewProfileScreen from './screens/ViewProfileScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/search" element={<SearchScreen />} />
             <Route path="/liked" element={<LikedSongsScreen />} />
             <Route path="/playlists" element={<PlaylistsScreen />} />
+            <Route path="/profile" element={<ViewProfileScreen />} />
           </Routes>
         </main>
   <BottomNavigation />

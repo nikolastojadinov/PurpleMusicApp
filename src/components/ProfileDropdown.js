@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
   // Konstans za premium cenu
   const PREMIUM_AMOUNT = 3.14; // Pi
 
@@ -186,6 +188,11 @@ export default function ProfileDropdown() {
     setIsOpen(false);
   };
 
+  const handleViewProfile = () => {
+    navigate('/profile');
+    setIsOpen(false);
+  };
+
   return (
     <div className="profile-dropdown" ref={dropdownRef}>
       {/* Profile Icon */}
@@ -202,6 +209,21 @@ export default function ProfileDropdown() {
           <div className="dropdown-arrow"></div>
           
           <div className="dropdown-content">
+            {/* View Profile Button */}
+            <button
+              onClick={handleViewProfile}
+              className="dropdown-button view-profile"
+            >
+              <div className="button-icon profile-icon">👤</div>
+              <div className="button-text">
+                <div className="button-title">View Profile</div>
+                <div className="button-subtitle">Manage your account</div>
+              </div>
+            </button>
+
+            {/* Divider */}
+            <div className="dropdown-divider"></div>
+
             {/* Pi Network Login Button */}
             <button
               onClick={handlePiNetworkLogin}
