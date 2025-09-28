@@ -61,7 +61,12 @@ export default function SearchScreen() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <span className="search-icon">🔍</span>
+        <span className="search-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
       </div>
 
       {!searchQuery && (
@@ -98,19 +103,27 @@ export default function SearchScreen() {
           {loading ? (
             <div style={{color:'#888', fontSize:12, marginTop:20}}>Loading songs...</div>
           ) : filteredSongs.length > 0 ? (
-            <div className="songs-grid" style={{marginTop: 20}}>
+            <div className="songs-list-vertical" style={{marginTop: 20}}>
               {filteredSongs.map((song, idx) => (
-                <div key={idx} className="song-card" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
-                  <div className="song-card-cover">
+                <div key={idx} className="song-item-search" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+                  <div className="song-thumbnail">
                     <img src={song.cover || '/fallback-cover.png'} alt={song.title} loading="lazy" />
                   </div>
-                  <div className="song-card-title" title={song.title}>{song.title}</div>
+                  <div className="song-info">
+                    <div className="song-title">{song.title}</div>
+                    <div className="song-artist">{song.artist}</div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-results">
-              <span className="no-results-icon">🔍</span>
+              <span className="no-results-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+              </span>
               <p>No results found</p>
             </div>
           )}

@@ -283,6 +283,17 @@ app.get('/', (req, res) => {
   res.send('PurpleMusic Pi Network backend is running!');
 });
 
+// Health check endpoint (Render / monitoring eszközök számára)
+app.get('/healthz', (req, res) => {
+  res.json({
+    ok: true,
+    status: 'up',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    node: process.version
+  });
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

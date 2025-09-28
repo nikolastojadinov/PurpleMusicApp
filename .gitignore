@@ -1,4 +1,30 @@
-node_modules
+# Node
+node_modules/
+*.log
+npm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+
+# Build output
+build/
+dist/
+
+# Env
+.env
+.env.local
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Archives
+*.zip
+*.tar
+*.tar.gznode_modules
 backend/node_modules
 build
 dist
