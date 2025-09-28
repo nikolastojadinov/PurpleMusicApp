@@ -342,7 +342,9 @@ body::-webkit-scrollbar {
   -webkit-user-drag: none;
   transition: transform 0.18s ease, filter 0.18s ease;
   flex-shrink: 0;
-  width: 140px;
+  width: calc((100vw - 80px) / 5 - 16px);
+  min-width: 60px;
+  max-width: 110px;
 }
 
 .song-card-slider:active { 
@@ -354,10 +356,9 @@ body::-webkit-scrollbar {
 }
 
 .song-card-cover-slider {
-  width: 140px;
-  height: 140px;
+  width: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: 18px;
+  border-radius: 12px;
   overflow: hidden;
   background: #111;
   display: flex;
@@ -376,12 +377,12 @@ body::-webkit-scrollbar {
 }
 
 .song-card-title-slider {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #FFFFFF;
-  margin-top: 12px;
+  margin-top: 8px;
   line-height: 1.2;
-  max-width: 140px;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
