@@ -1,6 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { checkSongLiked, likeSong, unlikeSong, isUserLoggedIn } from '../services/likeService';
 
 const demoSong = {
+  id: 'demo_night_owl',
   title: 'Night Owl',
   artist: 'Annie Walker',
   cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=facearea&w=64&h=64',
@@ -21,6 +23,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [startY, setStartY] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
   // Play/Pause
   const togglePlay = () => {
@@ -123,6 +126,42 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
     return `${m}:${sec}`;
   };
 
+  // Like/Unlike functionality
+  const toggleLike = async () => {
+    if (!isUserLoggedIn()) {
+      alert('Please log in to like songs!');
+      return;
+    }
+    
+    try {
+      if (isLiked) {
+        const success = await unlikeSong(song.id);
+        if (success) {
+          setIsLiked(false);
+        }
+      } else {
+        const success = await likeSong(song);
+        if (success) {
+          setIsLiked(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+  
+  // Check if song is liked on component mount
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (song?.id && isUserLoggedIn()) {
+        const liked = await checkSongLiked(song.id);
+        setIsLiked(liked);
+      }
+    };
+    
+    checkLikeStatus();
+  }, [song?.id]);
+
   // Dummy next/prev
   const handlePrev = () => {
     audioRef.current.currentTime = 0;
@@ -196,6 +235,20 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
             aria-label="Close player"
           >
             ×
+          </button>
+        )}
+        
+        {/* Bottom left control: Like */}
+        {song?.id && (
+          <button 
+            onClick={e => { e.stopPropagation(); toggleLike(); }} 
+            className="absolute bottom-2 left-2 z-10 p-1 group"
+            disabled={!isUserLoggedIn()}
+            title={!isUserLoggedIn() ? 'Please log in to like songs' : isLiked ? 'Unlike song' : 'Like song'}
+          >
+            <svg width="20" height="20" fill={isLiked ? "#e53e3e" : "none"} stroke="currentColor" strokeWidth="2" className={`${isLiked ? 'text-red-500' : 'text-white/80'} group-hover:text-red-400 transition ${!isUserLoggedIn() ? 'opacity-50' : ''}`}>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
           </button>
         )}
         
