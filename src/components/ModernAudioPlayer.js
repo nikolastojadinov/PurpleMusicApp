@@ -189,7 +189,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
       />
       <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-3 select-none w-full relative" style={{minWidth:'0'}}>
         {/* Top right controls: Mute and Close */}
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-4">
           <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="p-1 group">
             {isMuted ? (
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
