@@ -188,32 +188,32 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         volume={volume}
       />
       <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-3 select-none w-full relative" style={{minWidth:'0'}}>
-        {/* Top right controls: Mute and Close */}
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-4">
-          <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="p-1 group">
-            {isMuted ? (
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
-                <path d="M11 5L6 9H2V15H6L11 19V5Z"/>
-                <line x1="23" y1="9" x2="17" y2="15"/>
-                <line x1="17" y1="9" x2="23" y2="15"/>
-              </svg>
-            ) : (
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
-                <path d="M11 5L6 9H2V15H6L11 19V5Z"/>
-                <path d="M19.07 4.93A10 10 0 0122 12A10 10 0 0119.07 19.07M15.54 8.46A5 5 0 0117 12A5 5 0 0115.54 15.54"/>
-              </svg>
-            )}
+        {/* Top right controls: Close only */}
+        {onClose && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onClose(); }} 
+            className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full border border-white/40 hover:border-white/80 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition"
+            aria-label="Close player"
+          >
+            ×
           </button>
-          {onClose && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onClose(); }} 
-              className="w-6 h-6 rounded-full border border-white/40 hover:border-white/80 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition"
-              aria-label="Close player"
-            >
-              ×
-            </button>
+        )}
+        
+        {/* Bottom right control: Mute */}
+        <button onClick={e => { e.stopPropagation(); toggleMute(); }} className="absolute bottom-2 right-2 z-10 p-1 group">
+          {isMuted ? (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
+              <path d="M11 5L6 9H2V15H6L11 19V5Z"/>
+              <line x1="23" y1="9" x2="17" y2="15"/>
+              <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+          ) : (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80 group-hover:text-white transition">
+              <path d="M11 5L6 9H2V15H6L11 19V5Z"/>
+              <path d="M19.07 4.93A10 10 0 0122 12A10 10 0 0119.07 19.07M15.54 8.46A5 5 0 0117 12A5 5 0 0115.54 15.54"/>
+            </svg>
           )}
-        </div>
+        </button>
         
         {/* Song info */}
         <div className="flex items-center gap-3 mb-3 pr-16">
