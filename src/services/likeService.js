@@ -125,4 +125,7 @@ export const getLikedSongs = async () => {
 // setUserId nem szükséges, persistent session van
 
 // Check if user is logged in (for real authentication)
-// (exportált függvény már fentebb van)
+export const isUserLoggedIn = () => {
+  const userId = getCurrentUserId();
+  return !!userId;
+};
