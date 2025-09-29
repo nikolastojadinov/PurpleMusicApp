@@ -6,10 +6,6 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
 
   const handleCreate = async () => {
     if (!playlistName.trim()) return;
-    if (!isPremium) {
-      alert('Samo premium korisnici mogu da kreiraju plejlistu.');
-      return;
-    }
     setLoading(true);
     try {
       const { supabase } = await import('../supabaseClient');

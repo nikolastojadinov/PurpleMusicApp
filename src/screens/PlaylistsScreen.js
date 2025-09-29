@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getCurrentUser } from '../services/userService';
+import { isCurrentlyPremium } from '../services/premiumService';
 import CreatePlaylistModal from '../components/CreatePlaylistModal';
 import { useNavigate } from 'react-router-dom';
 // ...existing code...
@@ -43,12 +44,18 @@ export default function PlaylistsScreen() {
     navigate(`/playlist/${playlist.id}`);
   };
 
-  const handleCreatePlaylist = () => {
-    if (!isPremium) {
-      setShowPremiumPopup(true);
-      return;
+  const handleCreatePlaylist = async () => {
+    if (!user?.id) return;
+    try {
+      const premium = await isCurrentlyPremium(user.id);
+      if (!premium) {
+        setShowPremiumPopup(true);
+        return;
+      }
+      setShowCreateModal(true);
+    } catch (err) {
+      alert('Greška pri proveri premium statusa: ' + err.message);
     }
-    setShowCreateModal(true);
   };
 
   const handleModalClose = () => setShowCreateModal(false);
