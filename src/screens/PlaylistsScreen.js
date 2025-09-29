@@ -13,7 +13,6 @@ export default function PlaylistsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
-  // Premium check function - Supabase/localStorage
   const user = getCurrentUser();
   console.log('Current user:', user);
   React.useEffect(() => {
@@ -43,24 +42,12 @@ export default function PlaylistsScreen() {
     navigate(`/playlist/${playlist.id}`);
   };
 
-  const handleCreatePlaylist = async () => {
-    if (!user?.id) return;
-    try {
-      const { supabase } = await import('../supabaseClient');
-      const { data, error } = await supabase
-        .from('user_premium_status')
-        .select('is_currently_premium')
-        .eq('user_id', user.id)
-        .single();
-      if (error) throw error;
-      if (!data?.is_currently_premium) {
-        setShowPremiumPopup(true);
-        return;
-      }
-      setShowCreateModal(true);
-    } catch (err) {
-      alert('Greška pri proveri premium statusa: ' + err.message);
+  const handleCreatePlaylist = () => {
+    if (!user?.id) {
+      alert('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.');
+      return;
     }
+    setShowCreateModal(true);
   };
 
   const handleModalClose = () => setShowCreateModal(false);
@@ -120,13 +107,11 @@ export default function PlaylistsScreen() {
 
       {/* Create Playlist Modal */}
       {showCreateModal && (
-        <CreatePlaylistModal
-          onClose={handleModalClose}
-          onCreate={handleModalCreate}
-          pi_user_uid={user?.pi_user_uid}
-          username={user?.username}
-          wallet_address={user?.wallet_address}
-        />
+          <CreatePlaylistModal
+            onClose={handleModalClose}
+            onCreate={handleModalCreate}
+            currentUser={user}
+          />
       )}
     </div>
   );
