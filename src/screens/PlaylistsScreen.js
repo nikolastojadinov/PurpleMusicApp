@@ -111,8 +111,9 @@ export default function PlaylistsScreen() {
         <CreatePlaylistModal
           onClose={handleModalClose}
           onCreate={handleModalCreate}
-          currentUser={user}
-          isPremium={isPremium}
+          pi_user_uid={user?.pi_user_uid}
+          username={user?.username}
+          wallet_address={user?.wallet_address}
         />
       )}
     </div>
