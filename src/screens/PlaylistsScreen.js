@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getCurrentUser } from '../services/userService';
+import CreatePlaylistModal from '../components/CreatePlaylistModal';
+import { useNavigate } from 'react-router-dom';
 // ...existing code...
 
 export default function PlaylistsScreen() {
   // ...existing code...
   
-  const [playlists, setPlaylists] = React.useState([]);
-  const [showPremiumPopup, setShowPremiumPopup] = React.useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const navigate = useNavigate();
 
   // Premium check function - Supabase/localStorage
   const user = getCurrentUser();
@@ -42,8 +46,16 @@ export default function PlaylistsScreen() {
       setShowPremiumPopup(true);
       return;
     }
-    // Premium functionality: actual playlist creation
-    alert('Create playlist functionality for premium users!');
+    setShowCreateModal(true);
+  };
+
+  const handleModalClose = () => setShowCreateModal(false);
+
+  const handleModalCreate = (playlist) => {
+    setShowCreateModal(false);
+    setPlaylists(prev => [playlist, ...prev]);
+    // Navigate to playlist detail page (assume /playlist/:id)
+    navigate(`/playlist/${playlist.id}`);
   };
 
   const closePremiumPopup = () => {
@@ -101,19 +113,16 @@ export default function PlaylistsScreen() {
               <div className="premium-icon">⭐</div>
               <h3>Create Custom Playlists</h3>
               <p>Creating custom playlists is a premium feature that lets you organize your favorite music exactly how you want.</p>
-              
               <div className="premium-price">
                 <span className="price">3.14π</span>
                 <span className="period">Premium Membership</span>
               </div>
-              
               <div className="premium-features">
                 <div className="feature">✓ Create unlimited playlists</div>
                 <div className="feature">✓ Custom playlist covers</div>
                 <div className="feature">✓ Advanced playlist management</div>
                 <div className="feature">✓ Offline playlist download</div>
               </div>
-              
               <div className="premium-buttons">
                 <button className="upgrade-btn">Upgrade to Premium</button>
                 <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
@@ -121,6 +130,11 @@ export default function PlaylistsScreen() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create Playlist Modal */}
+      {showCreateModal && (
+        <CreatePlaylistModal onClose={handleModalClose} onCreate={handleModalCreate} />
       )}
     </div>
   );
