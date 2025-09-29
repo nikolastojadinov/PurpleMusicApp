@@ -17,10 +17,12 @@ export default function PlaylistsScreen() {
   console.log('Current user:', user);
   const isPremium = user?.is_premium === true;
   React.useEffect(() => {
+    if (!user?.id) return;
     import('../supabaseClient').then(({ supabase }) => {
       supabase
         .from('playlists')
         .select('*')
+        .eq('user_id', user.id)
         .then(({ data, error }) => {
           if (error) {
             alert('Error loading playlists: ' + error.message);
@@ -29,7 +31,7 @@ export default function PlaylistsScreen() {
           }
         });
     });
-  }, []);
+  }, [user?.id]);
 
   const sampleSongs = [
     { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', cover: '🌟', album: 'After Hours' },
@@ -38,7 +40,7 @@ export default function PlaylistsScreen() {
   ];
 
   const handlePlayPlaylist = (playlist) => {
-    alert('Play: ' + (playlist.name || playlist));
+    navigate(`/playlist/${playlist.id}`);
   };
 
   const handleCreatePlaylist = () => {
@@ -66,37 +68,20 @@ export default function PlaylistsScreen() {
     <div className="playlists-screen">
       <div className="playlists-header">
         <h1 className="screen-title">My Playlists</h1>
-        {isPremium ? (
-          <button className="create-playlist-btn" onClick={handleCreatePlaylist} title="Premium Feature - Create Custom Playlists">
-            <span>+</span>
-            Create Playlist
-          </button>
-        ) : (
-          <button className="create-playlist-btn" disabled style={{opacity:0.5, cursor:'not-allowed'}} title="Premium required to create playlists">
-            <span>+</span>
-            Create Playlist
-          </button>
-        )}
+        <button className="create-playlist-btn" onClick={handleCreatePlaylist} title="Create Playlist">
+          <span>+</span>
+          Create Playlist
+        </button>
       </div>
-
 
       <div className="playlists-list">
         <h2 className="section-title">Made by you</h2>
         {playlists.map((playlist) => (
           <div key={playlist.id} className="playlist-item" onClick={() => handlePlayPlaylist(playlist)}>
-            <div className="playlist-cover">
-              <span>{playlist.cover}</span>
-            </div>
             <div className="playlist-details">
               <h3 className="playlist-name">{playlist.name}</h3>
-              <p className="playlist-info">{playlist.songCount} songs • {playlist.lastUpdated}</p>
+              <p className="playlist-info">{playlist.lastUpdated}</p>
             </div>
-            <button 
-              className="playlist-menu"
-              onClick={(e) => e.stopPropagation()}
-            >
-              ⋯
-            </button>
           </div>
         ))}
       </div>
@@ -110,19 +95,8 @@ export default function PlaylistsScreen() {
               <button className="close-btn" onClick={closePremiumPopup}>×</button>
             </div>
             <div className="premium-content">
-              <div className="premium-icon">⭐</div>
               <h3>Create Custom Playlists</h3>
-              <p>Creating custom playlists is a premium feature that lets you organize your favorite music exactly how you want.</p>
-              <div className="premium-price">
-                <span className="price">3.14π</span>
-                <span className="period">Premium Membership</span>
-              </div>
-              <div className="premium-features">
-                <div className="feature">✓ Create unlimited playlists</div>
-                <div className="feature">✓ Custom playlist covers</div>
-                <div className="feature">✓ Advanced playlist management</div>
-                <div className="feature">✓ Offline playlist download</div>
-              </div>
+              <p>Creating custom playlists is a premium feature.</p>
               <div className="premium-buttons">
                 <button className="upgrade-btn">Upgrade to Premium</button>
                 <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
@@ -134,7 +108,12 @@ export default function PlaylistsScreen() {
 
       {/* Create Playlist Modal */}
       {showCreateModal && (
-        <CreatePlaylistModal onClose={handleModalClose} onCreate={handleModalCreate} />
+        <CreatePlaylistModal
+          onClose={handleModalClose}
+          onCreate={handleModalCreate}
+          currentUser={user}
+          isPremium={isPremium}
+        />
       )}
     </div>
   );
