@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCurrentUser } from '../services/userService';
 // ...existing code...
 
 export default function PlaylistsScreen() {
@@ -7,14 +8,10 @@ export default function PlaylistsScreen() {
   const [playlists, setPlaylists] = React.useState([]);
   const [showPremiumPopup, setShowPremiumPopup] = React.useState(false);
 
-  // Premium check function - for demo purposes, simulate some premium users
-  const isPremium = () => {
-    // For demo: Check if user has set premium in localStorage for testing
-    // In real app, this would check actual subscription/payment status
-    const userId = localStorage.getItem('user_id');
-    return localStorage.getItem('premium_demo') === 'true' || 
-           (userId && userId.includes('premium')); // demo premium users
-  };
+  // Premium check function - Supabase/localStorage
+  const user = getCurrentUser();
+  console.log('Current user:', user);
+  const isPremium = user?.is_premium === true;
   React.useEffect(() => {
     import('../supabaseClient').then(({ supabase }) => {
       supabase
@@ -41,7 +38,7 @@ export default function PlaylistsScreen() {
   };
 
   const handleCreatePlaylist = () => {
-    if (!isPremium()) {
+    if (!isPremium) {
       setShowPremiumPopup(true);
       return;
     }
@@ -57,10 +54,17 @@ export default function PlaylistsScreen() {
     <div className="playlists-screen">
       <div className="playlists-header">
         <h1 className="screen-title">My Playlists</h1>
-        <button className="create-playlist-btn" onClick={handleCreatePlaylist} title="Premium Feature - Create Custom Playlists">
-          <span>+</span>
-          Create Playlist
-        </button>
+        {isPremium ? (
+          <button className="create-playlist-btn" onClick={handleCreatePlaylist} title="Premium Feature - Create Custom Playlists">
+            <span>+</span>
+            Create Playlist
+          </button>
+        ) : (
+          <button className="create-playlist-btn" disabled style={{opacity:0.5, cursor:'not-allowed'}} title="Premium required to create playlists">
+            <span>+</span>
+            Create Playlist
+          </button>
+        )}
       </div>
 
 
