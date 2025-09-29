@@ -4,7 +4,7 @@ import { getCurrentUser } from './userService';
 // Get current user ID from persistent session
 const getCurrentUserId = () => {
   const user = getCurrentUser();
-  return user?.pi_user_uid || null;
+  return user?.id || null;
 };
 
 // Check if song is liked by current user

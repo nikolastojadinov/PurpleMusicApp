@@ -47,8 +47,14 @@ export default function PlaylistsScreen() {
   const handleCreatePlaylist = async () => {
     if (!user?.id) return;
     try {
-      const premium = await isCurrentlyPremium(user.id);
-      if (!premium) {
+      const { supabase } = await import('../supabaseClient');
+      const { data, error } = await supabase
+        .from('user_premium_status')
+        .select('is_currently_premium')
+        .eq('user_id', user.id)
+        .single();
+      if (error) throw error;
+      if (!data?.is_currently_premium) {
         setShowPremiumPopup(true);
         return;
       }

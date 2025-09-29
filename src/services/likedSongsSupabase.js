@@ -4,7 +4,7 @@ import { getCurrentUser } from './userService';
 
 export async function getLikedSongsSupabase() {
   const user = getCurrentUser();
-  if (!user || !user.pi_user_uid) {
+  if (!user || !user.id) {
     console.warn('No user_id available for liked songs fetch');
     return [];
   }
@@ -12,7 +12,7 @@ export async function getLikedSongsSupabase() {
     const { data, error } = await supabase
       .from('likes')
       .select('track_url, cover_url, title, artist, liked_at')
-      .eq('user_id', user.pi_user_uid)
+  .eq('user_id', user.id)
       .order('liked_at', { ascending: false });
     if (error) throw error;
     return data || [];
