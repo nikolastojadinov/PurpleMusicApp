@@ -16,7 +16,6 @@ export default function PlaylistsScreen() {
   // Premium check function - Supabase/localStorage
   const user = getCurrentUser();
   console.log('Current user:', user);
-  const isPremium = user?.is_premium === true;
   React.useEffect(() => {
     if (!user?.id) return;
     import('../supabaseClient').then(({ supabase }) => {

@@ -6,6 +6,10 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
 
   const handleCreate = async () => {
     if (!playlistName.trim()) return;
+    if (!currentUser || !currentUser.id) {
+      alert('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.');
+      return;
+    }
     setLoading(true);
     try {
       const { supabase } = await import('../supabaseClient');

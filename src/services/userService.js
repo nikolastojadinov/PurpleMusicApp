@@ -9,7 +9,7 @@ export async function loginOrRegisterUser({ pi_user_uid, username, wallet_addres
     // Check if user exists
     const { data: userData, error: fetchError } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, wallet_address, is_premium, premium_until, created_at')
       .eq('pi_user_uid', pi_user_uid)
       .single();
     if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
@@ -24,7 +24,7 @@ export async function loginOrRegisterUser({ pi_user_uid, username, wallet_addres
           wallet_address,
           is_premium: false
         })
-        .select()
+        .select('id, username, wallet_address, is_premium, premium_until, created_at')
         .single();
       if (insertError) throw insertError;
       user = insertData;
