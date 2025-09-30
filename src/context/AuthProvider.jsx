@@ -43,15 +43,26 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       if (!window.Pi) throw new Error('Pi Network SDK not loaded');
-      await window.Pi.init({ version: '2.0', sandbox: false }); // osiguraj da je init
+      // Osiguraj inicijalizaciju
+      await window.Pi.init({ version: '2.0', sandbox: false });
       const piAuth = await window.Pi.authenticate(['username', 'wallet_address']);
       const { user: piUser, accessToken } = piAuth;
-      // Proveri Supabase user
-      let { data: dbUser, error } = await supabase
+
+      // Supabase auth preko ID tokena (Pi accessToken tretiramo kao id_token)
+      try {
+        await supabase.auth.signInWithIdToken({ provider: 'pi', token: accessToken });
+      } catch (supabaseAuthErr) {
+        console.error('Supabase signInWithIdToken error:', supabaseAuthErr);
+        // Nastavljamo dalje jer korisnički red ćemo ručno obezbediti
+      }
+
+      // Osiguraj da postoji red u users tabeli (pi_user_uid unique)
+      let { data: dbUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('pi_user_uid', piUser.uid)
         .single();
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
       if (!dbUser) {
         const { data: newUser, error: insertError } = await supabase
           .from('users')
@@ -59,16 +70,14 @@ export function AuthProvider({ children }) {
             pi_user_uid: piUser.uid,
             username: piUser.username,
             wallet_address: piUser.wallet_address,
+            is_premium: false
           })
           .select('*')
           .single();
         if (insertError) throw insertError;
         dbUser = newUser;
       }
-      localStorage.setItem('pm_token', accessToken);
-      localStorage.setItem('pm_user', JSON.stringify(dbUser));
       setUser(dbUser);
-      // Učitaj lajkovane pesme
       await fetchLikedSongs(dbUser.id);
     } catch (err) {
       console.error('Pi login error:', err);
@@ -83,15 +92,29 @@ export function AuthProvider({ children }) {
   const autoLogin = async () => {
     setLoading(true);
     try {
-      const savedToken = localStorage.getItem('pm_token');
-      const savedUser = localStorage.getItem('pm_user');
-      if (savedToken && savedUser) {
-        const userObj = JSON.parse(savedUser);
-        setUser(userObj);
-        await fetchLikedSongs(userObj.id);
+      // Dohvati supabase session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!session) {
+        setUser(null);
+        setLikedSongs([]);
         setLoading(false);
         return;
       }
+      // Imamo session: pokušaj da upariš korisnika preko pi_user_uid ako je sačuvan u localStorage
+      // (fallback) ili dohvati users red ponovo ako imamo user.id u localStorage-u
+      let localUser = null;
+      try {
+        const raw = localStorage.getItem('pm_user');
+        if (raw) localUser = JSON.parse(raw);
+      } catch {}
+      if (localUser?.id) {
+        setUser(localUser);
+        await fetchLikedSongs(localUser.id);
+        setLoading(false);
+        return;
+      }
+      // Ako nemamo localUser, probaj da rekonstruišeš preko auth user email / sub (nije definisano u Pi) – pa fallback nema korisnika.
       setUser(null);
       setLikedSongs([]);
       setLoading(false);
@@ -107,11 +130,10 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setLoading(true);
     try {
-      localStorage.removeItem('pm_token');
       localStorage.removeItem('pm_user');
+      await supabase.auth.signOut();
       setUser(null);
       setLikedSongs([]);
-      await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
