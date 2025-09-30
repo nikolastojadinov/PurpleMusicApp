@@ -126,29 +126,22 @@ export function AuthProvider({ children }) {
       const username = piUser.username ?? null;
       const wallet_address = (piUser.wallet?.address) || null; // undefined -> null
 
-      // Prvo proveri da li postoji
-      const existing = await getUserByPiUid(pi_user_uid);
-      let dbUser = null;
-      if (existing) {
-        // Update samo promenljiva polja (username, wallet_address) - ignoriši undefined
+      // Upsert baziran isključivo na pi_user_uid (ručno: pokušaj update, posle insert ako ne postoji)
+      let dbUser = await getUserByPiUid(pi_user_uid);
+      if (dbUser) {
         try {
           const { data, error } = await supabase
             .from('users')
-            .update({
-              username: username,
-              wallet_address: wallet_address,
-            })
+            .update({ username, wallet_address })
             .eq('pi_user_uid', pi_user_uid)
             .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, created_at')
             .single();
           if (error) throw error;
           dbUser = data;
         } catch (err) {
-          console.error('users update error:', err);
-          dbUser = existing; // fallback na staro
+          console.error('users update (pi_user_uid) error:', err);
         }
       } else {
-        // Insert novi red
         try {
           const insertPayload = {
             pi_user_uid,
@@ -166,7 +159,7 @@ export function AuthProvider({ children }) {
           if (error) throw error;
           dbUser = data;
         } catch (err) {
-          console.error('users insert error:', err);
+          console.error('users insert (pi_user_uid) error:', err);
           throw err;
         }
       }
