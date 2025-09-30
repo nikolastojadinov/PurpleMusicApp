@@ -3,15 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 
-// Inicijalizacija Pi Network SDK
-if (window.Pi) {
-  window.Pi.init({ version: "2.0" });
-}
-
-// Pi Network SDK init
-if (window.Pi) {
-  window.Pi.init({ version: "2.0" });
-}
+// (Pi SDK init now handled inside AuthProvider with retry logic)
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

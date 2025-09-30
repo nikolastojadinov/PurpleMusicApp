@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { loginOrRegisterUser, logoutUser, isUserLoggedIn, getCurrentUser } from '../services/userService';
+import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfileDropdown() {
@@ -8,15 +8,7 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
   // Konstans za premium cenu
   const PREMIUM_AMOUNT = 3.14; // Pi
-
-    // User state
-    const [user, setUser] = useState(null);
-
-    // Restore user from localStorage on mount
-    useEffect(() => {
-      const stored = getCurrentUser();
-      if (stored) setUser(stored);
-    }, []);
+  const { user, loginWithPi, logout, updateUser } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -32,39 +24,14 @@ export default function ProfileDropdown() {
 
 
   const handlePiNetworkLogin = async () => {
-      // Pi Network SDK login
-      if (!window.Pi) {
-        alert('Pi SDK not loaded!');
-        setIsOpen(false);
-        return;
-      }
-      const scopes = ['username', 'payments'];
-      const onIncompletePaymentFound = (payment) => {
-        console.log('Incomplete payment found:', payment);
-      };
-      try {
-        const result = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-        if (result && result.accessToken && result.user) {
-          // Pošalji accessToken backendu na /api/verify-login
-          const apiAxios = (await import('../apiAxios')).default;
-          const response = await apiAxios.post('/api/verify-login', { accessToken: result.accessToken });
-          if (response.data && response.data.username) {
-            // Integrált Supabase + localStorage login
-            const { username } = response.data;
-            const { uid, wallet } = result.user;
-            const userObj = await loginOrRegisterUser({ pi_user_uid: uid, username, wallet_address: wallet });
-            setUser(userObj);
-            alert('Pi login successful! Username: ' + username);
-          } else {
-            alert('Login failed: ' + (response.data?.error || 'Unknown error'));
-          }
-        } else {
-          alert('No accessToken or user from Pi Network!');
-        }
-      } catch (err) {
-        alert('Login failed: ' + err);
-      }
+    try {
+      await loginWithPi();
+      alert('Pi login successful!');
+    } catch (e) {
+      alert('Login failed: ' + e.message);
+    } finally {
       setIsOpen(false);
+    }
   };
 
   // Pi Network login callbacks
@@ -180,8 +147,7 @@ export default function ProfileDropdown() {
 
     // Logout function
     const handleLogout = () => {
-      logoutUser();
-      setUser(null);
+      logout();
       setIsOpen(false);
       alert('Logged out!');
   };
