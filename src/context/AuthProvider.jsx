@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [piSdkReady, setPiSdkReady] = useState(false);
+  const [likedSongs, setLikedSongs] = useState([]);
 
   // 1. Inicijalizacija Pi Network SDK
   useEffect(() => {
@@ -67,9 +68,12 @@ export function AuthProvider({ children }) {
       localStorage.setItem('pm_token', accessToken);
       localStorage.setItem('pm_user', JSON.stringify(dbUser));
       setUser(dbUser);
+      // Učitaj lajkovane pesme
+      await fetchLikedSongs(dbUser.id);
     } catch (err) {
       console.error('Pi login error:', err);
       setUser(null);
+      setLikedSongs([]);
     } finally {
       setLoading(false);
     }
@@ -82,7 +86,9 @@ export function AuthProvider({ children }) {
       const savedToken = localStorage.getItem('pm_token');
       const savedUser = localStorage.getItem('pm_user');
       if (savedToken && savedUser) {
-        setUser(JSON.parse(savedUser));
+        const userObj = JSON.parse(savedUser);
+        setUser(userObj);
+        await fetchLikedSongs(userObj.id);
         setLoading(false);
         return;
       }
@@ -90,6 +96,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Auto login error:', err);
       setUser(null);
+      setLikedSongs([]);
       setLoading(false);
     }
   };
@@ -101,11 +108,59 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('pm_token');
       localStorage.removeItem('pm_user');
       setUser(null);
+      setLikedSongs([]);
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+  // --- Liked songs logic ---
+  const fetchLikedSongs = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('liked_songs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setLikedSongs(data || []);
+      return data || [];
+    } catch (err) {
+      console.error('Fetch liked songs error:', err);
+      setLikedSongs([]);
+      return [];
+    }
+  };
+
+  const getLikedSongs = () => likedSongs;
+
+  const likeSong = async (songId) => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('liked_songs')
+        .insert({ user_id: user.id, song_id: songId });
+      if (error) throw error;
+      await fetchLikedSongs(user.id);
+    } catch (err) {
+      console.error('Like song error:', err);
+    }
+  };
+
+  const unlikeSong = async (songId) => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('liked_songs')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('song_id', songId);
+      if (error) throw error;
+      await fetchLikedSongs(user.id);
+    } catch (err) {
+      console.error('Unlike song error:', err);
     }
   };
 
@@ -122,6 +177,10 @@ export function AuthProvider({ children }) {
         user,
         loading,
         piSdkReady,
+        likedSongs,
+        getLikedSongs,
+        likeSong,
+        unlikeSong,
         loginWithPi,
         autoLogin,
         logout,
