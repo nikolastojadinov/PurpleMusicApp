@@ -10,7 +10,7 @@ import ViewProfileScreen from './screens/ViewProfileScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthProvider.jsx';
 // ...existing code...
 import './index.css';
 
