@@ -86,6 +86,17 @@ export function AuthProvider({ children }) {
       const savedToken = localStorage.getItem('pm_token');
       const savedUser = localStorage.getItem('pm_user');
       if (savedToken && savedUser) {
+        // Validacija Supabase sesije
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !sessionData?.session) {
+          // Token nije validan, logout
+          localStorage.removeItem('pm_token');
+          localStorage.removeItem('pm_user');
+          setUser(null);
+          setLikedSongs([]);
+          setLoading(false);
+          return;
+        }
         const userObj = JSON.parse(savedUser);
         setUser(userObj);
         await fetchLikedSongs(userObj.id);
