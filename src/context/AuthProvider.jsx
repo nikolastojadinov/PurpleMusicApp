@@ -131,6 +131,7 @@ export function AuthProvider({ children }) {
       console.error('loginWithPi error:', e);
       setUser(null);
       setLikedSongs([]);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -146,6 +147,26 @@ export function AuthProvider({ children }) {
       setUser(null);
       setLikedSongs([]);
       setLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!session?.user?.id) return null;
+      const { data, error: selErr } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      if (selErr) throw selErr;
+      setUser(data);
+      await fetchLikedSongs(data.id);
+      return data;
+    } catch (e) {
+      console.error('refreshUser error:', e);
+      return null;
     }
   };
 
@@ -259,7 +280,8 @@ export function AuthProvider({ children }) {
     loading,
     likedSongs,
     loginWithPi,
-    logout
+    logout,
+    refreshUser
   };
 
   return (

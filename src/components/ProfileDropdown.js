@@ -1,22 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { loginOrRegisterUser, logoutUser, isUserLoggedIn, getCurrentUser } from '../services/userService';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthProvider.jsx';
+
+const PREMIUM_AMOUNT = 3.14; // Pi
+
+const formatErrorMessage = (error) => {
+  if (!error) return 'Unknown error';
+  if (typeof error === 'string') return error;
+  if (error.message) return error.message;
+  if (error.error_description) return error.error_description;
+  if (error.error) {
+    if (typeof error.error === 'string') return error.error;
+    if (error.error.message) return error.error.message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+};
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  // Konstans za premium cenu
-  const PREMIUM_AMOUNT = 3.14; // Pi
-
-    // User state
-    const [user, setUser] = useState(null);
-
-    // Restore user from localStorage on mount
-    useEffect(() => {
-      const stored = getCurrentUser();
-      if (stored) setUser(stored);
-    }, []);
+  const { user, loading, loginWithPi, logout, refreshUser } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,47 +38,15 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-
   const handlePiNetworkLogin = async () => {
-      // Pi Network SDK login
-      if (!window.Pi) {
-        alert('Pi SDK not loaded!');
-        setIsOpen(false);
-        return;
-      }
-      const scopes = ['username', 'payments'];
-      const onIncompletePaymentFound = (payment) => {
-        console.log('Incomplete payment found:', payment);
-      };
-      try {
-        const result = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-        if (result && result.accessToken && result.user) {
-          // Pošalji accessToken backendu na /api/verify-login
-          const apiAxios = (await import('../apiAxios')).default;
-          const response = await apiAxios.post('/api/verify-login', { accessToken: result.accessToken });
-          if (response.data && response.data.username) {
-            // Integrált Supabase + localStorage login
-            const { username } = response.data;
-            const { uid, wallet } = result.user;
-            const userObj = await loginOrRegisterUser({ pi_user_uid: uid, username, wallet_address: wallet });
-            setUser(userObj);
-            alert('Pi login successful! Username: ' + username);
-          } else {
-            alert('Login failed: ' + (response.data?.error || 'Unknown error'));
-          }
-        } else {
-          alert('No accessToken or user from Pi Network!');
-        }
-      } catch (err) {
-        alert('Login failed: ' + err);
-      }
-      setIsOpen(false);
-  };
-
-  // Pi Network login callbacks
-    // Nem szükséges, helyette loginOrRegisterUser-t használunk
-  const onLoginFailure = (error) => {
-    alert('Pi Network login failed: ' + error);
+    setIsOpen(false);
+    try {
+      await loginWithPi();
+      alert('Pi login successful!');
+    } catch (error) {
+      console.error('Pi Network login failed:', error);
+      alert('Login failed: ' + formatErrorMessage(error));
+    }
   };
 
 
@@ -81,10 +57,8 @@ export default function ProfileDropdown() {
       alert('Pi SDK nije učitan!');
       return;
     }
-    // Dohvati korisnika iz Supabase (pretpostavljamo da je login već urađen)
-    // Use current user from state
     if (!user) {
-      alert('Nema korisnika za premium!');
+      alert('Morate se prijaviti da biste kupili premium!');
       return;
     }
     const paymentData = {
@@ -97,7 +71,7 @@ export default function ProfileDropdown() {
     const onReadyForServerApproval = async (paymentId) => {
       try {
         const apiAxios = (await import('../apiAxios')).default;
-        const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
+  const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid || null, user_id: user.id });
         if (!response.data.success) {
           console.warn('[APPROVE FAIL]', response.data);
           // Pokušaj inspect da prikupiš više podataka
@@ -122,7 +96,7 @@ export default function ProfileDropdown() {
       try {
         const apiAxios = (await import('../apiAxios')).default;
         const { supabase } = await import('../supabaseClient');
-        const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
+          const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid || null, user_id: user.id });
         if (response.data.success) {
           // Calculate premium_until (30 days from now)
           const now = new Date();
@@ -132,16 +106,13 @@ export default function ProfileDropdown() {
           const { data, error } = await supabase
             .from('users')
             .update({ is_premium: true, premium_until: premiumUntilStr })
-            .eq('pi_user_uid', user.pi_user_uid)
+            .eq('id', user.id)
             .select()
             .single();
           if (error) {
             alert('Premium aktiviran, de Supabase update error: ' + error.message);
           } else {
-            // Save premium status in localStorage
-            const updatedUser = { ...user, is_premium: true, premium_until: premiumUntilStr };
-            window.localStorage.setItem('pm_user', JSON.stringify(updatedUser));
-            setUser(updatedUser);
+            await refreshUser();
             alert('Plaćanje završeno! Premium aktiviran.');
           }
         } else {
@@ -179,10 +150,9 @@ export default function ProfileDropdown() {
     };
 
     // Logout function
-    const handleLogout = () => {
-      logoutUser();
-      setUser(null);
+    const handleLogout = async () => {
       setIsOpen(false);
+      await logout();
       alert('Logged out!');
   };
 
@@ -222,11 +192,12 @@ export default function ProfileDropdown() {
                 <button
                   onClick={handlePiNetworkLogin}
                   className="dropdown-button pi-network"
+                  disabled={loading}
                 >
                   <div className="button-icon pi-icon">π</div>
                   <div className="button-text">
                     <div className="button-title">Login with Pi Network</div>
-                    <div className="button-subtitle">Connect your Pi account</div>
+                    <div className="button-subtitle">{loading ? 'Connecting…' : 'Connect your Pi account'}</div>
                   </div>
                 </button>
               ) : (
