@@ -6,15 +6,17 @@
 //  - likedSongs: učitava se iz 'likes' tabele filtrirano po user_id
 //  - Svi Supabase upiti u try/catch sa console.error
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);           // Red iz users tabele
-  const [likedSongs, setLikedSongs] = useState([]); // Redovi iz 'likes'
+  const [user, setUser] = useState(null);            // Red iz users
+  const [likedSongsRaw, setLikedSongsRaw] = useState([]); // Sirovi redovi iz likes
+  const [playlists, setPlaylists] = useState([]);    // Playlists sa opcionalnim items
   const [loading, setLoading] = useState(false);
+  const likesIntervalRef = useRef(null);
 
   // ---- Helper: load Pi SDK ako nije prisutan ----
   const ensurePiSdk = async () => {
@@ -32,7 +34,7 @@ export function AuthProvider({ children }) {
 
   // ---- Helper: fetch liked songs ----
   const fetchLikedSongs = async (userId) => {
-    if (!userId) { setLikedSongs([]); return; }
+    if (!userId) { setLikedSongsRaw([]); return; }
     try {
       const { data, error } = await supabase
         .from('likes')
@@ -40,10 +42,50 @@ export function AuthProvider({ children }) {
         .eq('user_id', userId)
         .order('liked_at', { ascending: false });
       if (error) throw error;
-      setLikedSongs(data || []);
+      setLikedSongsRaw(data || []);
     } catch (err) {
       console.error('fetchLikedSongs error:', err);
-      setLikedSongs([]);
+      setLikedSongsRaw([]);
+    }
+  };
+
+  // ---- Helper: fetch playlists + optional items ----
+  const fetchPlaylists = async (userId) => {
+    if (!userId) { setPlaylists([]); return; }
+    try {
+      // Dohvati liste
+      const { data: pls, error } = await supabase
+        .from('playlists')
+        .select('id, user_id, name, created_at, lastupdated')
+        .eq('user_id', userId)
+        .order('lastupdated', { ascending: false });
+      if (error) throw error;
+
+      const playlistsData = pls || [];
+      if (playlistsData.length === 0) { setPlaylists([]); return; }
+
+      // Dohvati sve items za te playliste u jednoj query (IN)
+      const playlistIds = playlistsData.map(p => p.id);
+      try {
+        const { data: items, error: itemsErr } = await supabase
+          .from('playlist_items')
+          .select('id, playlist_id, track_url, cover_url, title, artist, added_at')
+          .in('playlist_id', playlistIds);
+        if (itemsErr) throw itemsErr;
+        const grouped = (items || []).reduce((acc, it) => {
+          acc[it.playlist_id] = acc[it.playlist_id] || [];
+          acc[it.playlist_id].push(it);
+          return acc;
+        }, {});
+        setPlaylists(playlistsData.map(pl => ({ ...pl, items: grouped[pl.id] || [] })));
+      } catch (itemsFetchErr) {
+        console.error('fetchPlaylists items error:', itemsFetchErr);
+        // Ako ne uspemo items, bar postavi liste bez njih
+        setPlaylists(playlistsData.map(pl => ({ ...pl, items: [] })));
+      }
+    } catch (err) {
+      console.error('fetchPlaylists error:', err);
+      setPlaylists([]);
     }
   };
 
@@ -131,12 +173,16 @@ export function AuthProvider({ children }) {
 
       setUser(dbUser);
       try { localStorage.setItem('pi_user_uid', pi_user_uid); } catch {}
-      await fetchLikedSongs(dbUser?.id);
+      await Promise.all([
+        fetchLikedSongs(dbUser?.id),
+        fetchPlaylists(dbUser?.id)
+      ]);
       return dbUser;
     } catch (err) {
       console.error('loginWithPi error:', err);
       setUser(null);
-      setLikedSongs([]);
+      setLikedSongsRaw([]);
+      setPlaylists([]);
       throw err;
     } finally {
       setLoading(false);
@@ -148,19 +194,24 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const stored = typeof window !== 'undefined' ? localStorage.getItem('pi_user_uid') : null;
-      if (!stored) { setUser(null); setLikedSongs([]); return; }
+      if (!stored) { setUser(null); setLikedSongsRaw([]); setPlaylists([]); return; }
       const dbUser = await getUserByPiUid(stored);
       if (dbUser) {
         setUser(dbUser);
-        await fetchLikedSongs(dbUser.id);
+        await Promise.all([
+          fetchLikedSongs(dbUser.id),
+          fetchPlaylists(dbUser.id)
+        ]);
       } else {
         setUser(null);
-        setLikedSongs([]);
+        setLikedSongsRaw([]);
+        setPlaylists([]);
       }
     } catch (err) {
       console.error('autoLogin error:', err);
       setUser(null);
-      setLikedSongs([]);
+      setLikedSongsRaw([]);
+      setPlaylists([]);
     } finally {
       setLoading(false);
     }
@@ -170,14 +221,43 @@ export function AuthProvider({ children }) {
   const logout = () => {
     try { localStorage.removeItem('pi_user_uid'); } catch {}
     setUser(null);
-    setLikedSongs([]);
+    setLikedSongsRaw([]);
+    setPlaylists([]);
+    if (likesIntervalRef.current) {
+      clearInterval(likesIntervalRef.current);
+      likesIntervalRef.current = null;
+    }
   };
 
   // Auto login na mount
   useEffect(() => { autoLogin(); }, []);
 
+  // Interval refresh liked songs (60s)
+  useEffect(() => {
+    if (!user?.id) {
+      if (likesIntervalRef.current) {
+        clearInterval(likesIntervalRef.current);
+        likesIntervalRef.current = null;
+      }
+      return;
+    }
+    // Initial fetch already done in autoLogin/login; ensure interval for updates
+    likesIntervalRef.current = setInterval(() => {
+      fetchLikedSongs(user.id);
+    }, 60000);
+    return () => {
+      if (likesIntervalRef.current) {
+        clearInterval(likesIntervalRef.current);
+        likesIntervalRef.current = null;
+      }
+    };
+  }, [user?.id]);
+
+  // Memoized likedSongs (možda kasnije transformacije)
+  const likedSongs = useMemo(() => likedSongsRaw, [likedSongsRaw]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, likedSongs, loginWithPi, logout }}>
+    <AuthContext.Provider value={{ user, loading, likedSongs, playlists, loginWithPi, logout }}>
       {children}
     </AuthContext.Provider>
   );
