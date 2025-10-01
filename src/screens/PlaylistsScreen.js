@@ -28,7 +28,12 @@ export default function PlaylistsScreen() {
           if (error) {
             show('Error loading playlists: ' + error.message, { type: 'error', autoClose: 4000 });
           } else {
-            setPlaylists(data || []);
+            // Normalize lastUpdated (could be lastupdated or lastUpdated depending on migration)
+            const normalized = (data || []).map(p => ({
+              ...p,
+              lastUpdated: p.lastUpdated || p.lastupdated || p.updated_at || p.created_at
+            }));
+            setPlaylists(normalized);
           }
         });
     });
@@ -81,7 +86,7 @@ export default function PlaylistsScreen() {
           <div key={playlist.id} className="playlist-item" onClick={() => handlePlayPlaylist(playlist)}>
             <div className="playlist-details">
               <h3 className="playlist-name">{playlist.name}</h3>
-              <p className="playlist-info">{playlist.lastUpdated}</p>
+              <p className="playlist-info">{playlist.lastUpdated ? new Date(playlist.lastUpdated).toLocaleString() : ''}</p>
             </div>
           </div>
         ))}

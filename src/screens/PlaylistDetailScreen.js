@@ -39,7 +39,9 @@ export default function PlaylistDetailScreen() {
         navigate('/');
         return;
       }
-      setPlaylist(data);
+  // Normalize lastUpdated naming variations
+  const normalized = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
+  setPlaylist(normalized);
     }
     fetchPlaylist();
   }, [playlistId, navigate]);
@@ -157,7 +159,8 @@ export default function PlaylistDetailScreen() {
       }
       show(msg, { type: 'error', autoClose: 6000 });
     } else {
-      setPlaylist(data);
+  const normalizedAfterRename = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
+  setPlaylist(normalizedAfterRename);
       show('Ime playliste sačuvano.', { type: 'success', autoClose: 2000 });
     }
     setUpdatingName(false);
@@ -209,7 +212,8 @@ export default function PlaylistDetailScreen() {
         .single();
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPDATE_RESULT] error:', error, 'data:', data);
       if (error) throw error;
-      setPlaylist(data);
+  const normalizedAfterCover = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
+  setPlaylist(normalizedAfterCover);
       show('Cover ažuriran.', { type: 'success', autoClose: 1800 });
     } catch (err) {
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_EXCEPTION]', err);
@@ -251,7 +255,12 @@ export default function PlaylistDetailScreen() {
                 <button onClick={()=>setUpdatingName(false)} style={{padding:'8px 14px',background:'transparent',color:'#bbb',border:'1px solid #444',borderRadius:8,cursor:'pointer',fontWeight:500}}>Cancel</button>
               </div>
             ) : (
-              <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
+              <div>
+                <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
+                {playlist.lastUpdated && (
+                  <div style={{fontSize:12,color:'#888'}}>Updated: {new Date(playlist.lastUpdated).toLocaleString()}</div>
+                )}
+              </div>
             )}
           </div>
           {!updatingName && (

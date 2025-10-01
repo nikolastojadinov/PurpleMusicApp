@@ -18,10 +18,11 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
       const { data, error } = await supabase
         .from('playlists')
         .insert([{ user_id: currentUser.id, name: playlistName }])
-        .select()
+        .select('*')
         .single();
       if (error) throw error;
-      onCreate(data);
+      const normalized = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
+      onCreate(normalized);
     } catch (err) {
   show('Greška pri kreiranju plejliste: ' + err.message, { type: 'error', autoClose: 4000 });
     } finally {
