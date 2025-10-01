@@ -12,6 +12,8 @@ import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
 // Auth context (restored & improved)
 import { AuthProvider } from './context/AuthProvider.jsx';
+import AuthIntroOverlay from './components/AuthIntroOverlay';
+import AuthModal from './components/AuthModal';
 // ...existing code...
 import './index.css';
 
@@ -29,10 +31,12 @@ function App() {
               <Route path="/playlists" element={<PlaylistsScreen />} />
               <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
               <Route path="/profile" element={<ViewProfileScreen />} />
-              <AuthModal />
             </Routes>
           </main>
           <BottomNavigation />
+          {/* Global overlays */}
+          <AuthIntroOverlay />
+          <AuthModal />
         </Router>
       </div>
     </AuthProvider>
