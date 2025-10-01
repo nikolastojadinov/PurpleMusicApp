@@ -36,13 +36,24 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
 
   // Play/Pause
   const togglePlay = () => {
+    // If ad is currently playing, control the ad audio instead of the main track
+    if (isAdPlaying && adAudioRef.current) {
+      if (adAudioRef.current.paused) {
+        adAudioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      } else {
+        adAudioRef.current.pause();
+        setIsPlaying(false);
+      }
+      return;
+    }
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
-    setIsPlaying(!isPlaying);
   };
 
   // Mute/Unmute
@@ -205,36 +216,46 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
     }
   }, [dragging, startY, touchStartY]);
 
-  // Auto play when song changes if requested
+  // Reset ad state when track changes
+  React.useEffect(() => {
+    setAdPlayedForTrack(false);
+    setIsAdPlaying(false);
+  }, [song?.src]);
+
+  // Auto play logic with enforced sequencing (ad first -> then song)
   React.useEffect(() => {
     if (!autoPlay || !audioRef.current) return;
     let cancelled = false;
-    const startPlayback = async () => {
-      // If user not premium and ad not yet played this session
-      if (!isPremium() && !adPlayedForTrack) {
-        setIsAdPlaying(true);
-        try {
-          if (adAudioRef.current) {
-            adAudioRef.current.currentTime = 0;
-            await adAudioRef.current.play();
-          }
-        } catch (e) {
-          console.warn('Ad playback failed, skipping ad:', e);
-          setIsAdPlaying(false);
-        }
-      }
-      if (!cancelled) {
+    const start = async () => {
+      // Premium users skip ad or if ad already played
+      if (isPremium() || adPlayedForTrack) {
         try {
           await audioRef.current.play();
-          setIsPlaying(true);
+          if (!cancelled) setIsPlaying(true);
+        } catch {}
+        return;
+      }
+      // Non-premium: play ad first
+      if (adAudioRef.current) {
+        setIsAdPlaying(true);
+        setIsPlaying(true); // reflect playing state in UI (pause button shown)
+        adAudioRef.current.currentTime = 0;
+        try {
+          await adAudioRef.current.play();
+          // Do NOT start main audio here – wait for handleAdEnded
         } catch (e) {
-          // silent
+          console.warn('Ad playback failed, fallback to direct song:', e);
+          setIsAdPlaying(false);
+          try {
+            await audioRef.current.play();
+            if (!cancelled) setIsPlaying(true);
+          } catch {}
         }
       }
     };
-    const t = setTimeout(startPlayback, 60);
+    const t = setTimeout(start, 40);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [song?.src, autoPlay, isPremium, adPlayedForTrack]);
+  }, [song?.src, autoPlay, adPlayedForTrack, isPremium]);
 
   // When ad ends -> play song
   const handleAdEnded = () => {
