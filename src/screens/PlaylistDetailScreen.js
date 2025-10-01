@@ -7,6 +7,8 @@ import { supabase } from '../supabaseClient';
 import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
 
 export default function PlaylistDetailScreen() {
+  // Debug flag for verbose Supabase logging (set to false to silence)
+  const SUPA_DEBUG = true;
   const { id: playlistId } = useParams();
   const { show } = useGlobalModal();
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ export default function PlaylistDetailScreen() {
         .select('*')
         .eq('id', playlistId)
         .single();
+      if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_FETCH] id:', playlistId, 'error:', error, 'data:', data);
       if (error) {
         show('Greška pri učitavanju plejliste.', { type: 'error', autoClose: 3000 });
         navigate('/');
@@ -50,6 +53,7 @@ export default function PlaylistDetailScreen() {
         .select('track_url, cover_url, title, artist, added_at')
         .eq('playlist_id', playlistId)
         .order('added_at', { ascending: false });
+      if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_ITEMS_FETCH] playlist_id:', playlistId, 'count:', data?.length, 'error:', error, 'dataSample:', data?.[0]);
       setPlaylistSongs(data || []);
     }
     fetchPlaylistSongs();
@@ -115,6 +119,7 @@ export default function PlaylistDetailScreen() {
 
   // Add song to playlist
   async function handleAddSong(song) {
+    if (SUPA_DEBUG) console.log('[SUPA][ADD_SONG] inserting', { playlist_id: playlistId, song });
     const { error } = await supabase
       .from('playlist_items')
       .insert({
@@ -124,6 +129,7 @@ export default function PlaylistDetailScreen() {
         title: song.title,
         artist: song.artist
       });
+    if (SUPA_DEBUG) console.log('[SUPA][ADD_SONG_RESULT] error:', error);
     if (error) {
       show('Greška pri dodavanju pesme: ' + error.message, { type: 'error', autoClose: 3500 });
       return;
@@ -134,6 +140,7 @@ export default function PlaylistDetailScreen() {
       .select('track_url, cover_url, title, artist, added_at')
       .eq('playlist_id', playlistId)
       .order('added_at', { ascending: false });
+    if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_ITEMS_POST_INSERT_FETCH] newCount:', data?.length, 'first:', data?.[0]);
     setPlaylistSongs(data || []);
     // If added from modal we can optionally show feedback
     show('Pesma dodata u playlistu', { type: 'success', autoClose: 1800 });
@@ -149,12 +156,14 @@ export default function PlaylistDetailScreen() {
   const handleSaveName = async () => {
     if (!newName.trim() || !playlist) return setUpdatingName(false);
     if (newName.trim() === playlist.name) return setUpdatingName(false);
+    if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_RENAME] updating id:', playlistId, 'newName:', newName.trim());
     const { data, error } = await supabase
       .from('playlists')
       .update({ name: newName.trim() })
       .eq('id', playlistId)
       .select('*')
       .single();
+    if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_RENAME_RESULT] error:', error, 'data:', data);
     if (error) {
       show('Neuspešno ažuriranje imena: ' + error.message, { type: 'error', autoClose: 3000 });
     } else {
@@ -182,22 +191,28 @@ export default function PlaylistDetailScreen() {
     try {
       const ext = file.name.split('.').pop();
       const path = `${playlistId}_${Date.now()}.${ext}`;
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_START] path:', path, 'fileName:', file.name, 'size:', file.size);
       const { error: uploadErr } = await supabase.storage
         .from('playlist-covers')
         .upload(path, file, { upsert: true });
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_RESULT] path:', path, 'error:', uploadErr);
       if (uploadErr) throw uploadErr;
       const { data: pub } = supabase.storage.from('playlist-covers').getPublicUrl(path);
       const coverUrl = pub?.publicUrl;
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_PUBLIC_URL] url:', coverUrl);
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPDATE_PLAYLIST] id:', playlistId, 'cover_url:', coverUrl);
       const { data, error } = await supabase
         .from('playlists')
         .update({ cover_url: coverUrl })
         .eq('id', playlistId)
         .select('*')
         .single();
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPDATE_RESULT] error:', error, 'data:', data);
       if (error) throw error;
       setPlaylist(data);
       show('Cover ažuriran.', { type: 'success', autoClose: 1800 });
     } catch (err) {
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_EXCEPTION]', err);
       show('Neuspešan upload covera: ' + err.message, { type: 'error', autoClose: 3500 });
     } finally {
       setCoverUploading(false);
