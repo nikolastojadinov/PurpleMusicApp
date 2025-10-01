@@ -72,42 +72,23 @@ export default function PlaylistDetailScreen() {
     if (!modalOpen) return;
     let cancelled = false;
     const run = async () => {
-      if (!modalSearch.trim()) {
-        setModalResults(recommendedSongs);
-        return;
-      }
-      const term = modalSearch.trim();
-      let results = [];
+      const raw = modalSearch.trim();
+      if (!raw) { setModalResults([]); return; }
+      const term = raw.replace(/%/g, ''); // basic sanitize for wildcard explosion
       try {
-        // Primary attempt: OR filter across title & artist
         const { data, error } = await supabase
           .from('Music')
-          .select('track_url, cover_url, title, artist')
-          .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
-          .limit(50);
-        if (!error && data) results = data;
-        // Fallback if empty: perform two separate queries (title then artist) and merge
-        if (results.length === 0) {
-          const [titleRes, artistRes] = await Promise.all([
-            supabase.from('Music').select('track_url, cover_url, title, artist').ilike('title', `%${term}%`).limit(30),
-            supabase.from('Music').select('track_url, cover_url, title, artist').ilike('artist', `%${term}%`).limit(30)
-          ]);
-          const merged = [...(titleRes.data||[]), ...(artistRes.data||[])];
-          const seen = new Set();
-            results = merged.filter(r => {
-              if (seen.has(r.track_url)) return false;
-              seen.add(r.track_url);
-              return true;
-            });
-        }
-      } catch (e) {
-        results = [];
+            .select('track_url, cover_url, title, artist')
+            .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
+            .limit(50);
+        if (!cancelled) setModalResults(error ? [] : (data || []));
+      } catch {
+        if (!cancelled) setModalResults([]);
       }
-      if (!cancelled) setModalResults(results);
     };
-    const t = setTimeout(run, 140); // small debounce
+    const t = setTimeout(run, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [modalSearch, modalOpen, recommendedSongs]);
+  }, [modalSearch, modalOpen]);
 
   // Add song to playlist
   async function handleAddSong(song) {
