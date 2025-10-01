@@ -1833,3 +1833,9 @@ body::-webkit-scrollbar {
   .auth-intro-video-wrapper { position:relative; max-width:90vw; max-height:90vh; }
   .auth-intro-video { max-width:100%; max-height:100%; display:block; object-fit:contain; }
   .auth-intro-error { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#ffbaba; padding:6px 12px; border-radius:6px; font-size:14px; font-weight:500; }
+/* Playlist Title Component */
+.playlist-title-wrapper { width:100%; max-width:100%; }
+.playlist-title { font-weight:700; line-height:1.06; letter-spacing:-0.5px; margin:0 0 2px; display:block; }
+/* Each line is its own block to allow controlled wrapping logic in JS. Ellipsis is applied per line if truncated by JS logic */
+.playlist-title-line { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media (max-width: 480px) { .playlist-title { letter-spacing:-0.3px; } }
