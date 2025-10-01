@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { fetchMusicLibraryCached } from '../services/musicLibrary';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -13,6 +14,7 @@ export default function PlaylistDetailScreen() {
   const [modalResults, setModalResults] = useState([]);
   const [playlistSongs, setPlaylistSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fallbackLibrary, setFallbackLibrary] = useState([]); // storage-based songs
   const [modalOpen, setModalOpen] = useState(false);
   const [updatingName, setUpdatingName] = useState(false);
   const [newName, setNewName] = useState('');
@@ -64,12 +66,30 @@ export default function PlaylistDetailScreen() {
         console.log('[PlaylistDetail] Recommended fetch error:', error);
         console.log('[PlaylistDetail] Recommended raw data:', data);
       }
-      const mapped = (data||[]).map(r => ({
-        track_url: r.track_url || r.url || r.trackUrl || '',
-        cover_url: r.cover_url || r.cover || r.coverUrl || '/fallback-cover.png',
-        title: r.title || 'Untitled',
-        artist: r.artist || 'Unknown'
+      let mapped = (data||[]).map(r => ({
+        track_url: r.track_url || r.url || r.trackUrl || r.file_url || r.source_url || '',
+        cover_url: r.cover_url || r.cover || r.coverUrl || r.image_url || '/fallback-cover.png',
+        title: r.title || r.name || 'Untitled',
+        artist: r.artist || r.artist_name || r.author || 'Unknown'
       })).filter(r => r.track_url);
+      if (mapped.length === 0) {
+        // fallback to storage bucket library
+        try {
+          const lib = await fetchMusicLibraryCached(false, { fallbackCover: '/fallback-cover.png' });
+          setFallbackLibrary(lib);
+          mapped = lib.slice(0, 10).map(s => ({
+            track_url: s.url,
+            cover_url: s.cover,
+            title: s.title,
+            artist: s.artist || 'Unknown'
+          }));
+          if (window?.location?.search?.includes('pmDebug=1')) {
+            console.log('[PlaylistDetail] Using storage fallback for recommendations:', mapped);
+          }
+        } catch (e) {
+          if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Storage fallback failed:', e);
+        }
+      }
       if (active) setRecommendedSongs(mapped);
       setLoading(false);
     }
@@ -92,17 +112,49 @@ export default function PlaylistDetailScreen() {
           .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
           .limit(50);
         if (window?.location?.search?.includes('pmDebug=1')) {
-          console.log('[PlaylistDetail] Search term:', term, 'error:', error, 'data:', data);
+          console.log('[PlaylistDetail] Search term:', term, 'error:', error, 'data length:', data?.length);
         }
-        const mapped = (data||[]).map(r => ({
-          track_url: r.track_url || r.url || r.trackUrl || '',
-          cover_url: r.cover_url || r.cover || r.coverUrl || '/fallback-cover.png',
-          title: r.title || 'Untitled',
-          artist: r.artist || 'Unknown'
+        let mapped = (data||[]).map(r => ({
+          track_url: r.track_url || r.url || r.trackUrl || r.file_url || r.source_url || '',
+          cover_url: r.cover_url || r.cover || r.coverUrl || r.image_url || '/fallback-cover.png',
+          title: r.title || r.name || 'Untitled',
+          artist: r.artist || r.artist_name || r.author || 'Unknown'
         })).filter(r => r.track_url);
+        if (mapped.length === 0 && !error) {
+          // fallback to storage library filter
+            if (fallbackLibrary.length === 0) {
+              try {
+                const lib = await fetchMusicLibraryCached(false, { fallbackCover: '/fallback-cover.png' });
+                setFallbackLibrary(lib);
+                mapped = lib.filter(s => (
+                  s.title.toLowerCase().includes(term.toLowerCase()) ||
+                  (s.artist||'').toLowerCase().includes(term.toLowerCase())
+                )).slice(0, 50).map(s => ({
+                  track_url: s.url,
+                  cover_url: s.cover,
+                  title: s.title,
+                  artist: s.artist || 'Unknown'
+                }));
+              } catch (e) {
+                if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Storage fallback search failed:', e);
+              }
+            } else {
+              mapped = fallbackLibrary.filter(s => (
+                s.title.toLowerCase().includes(term.toLowerCase()) ||
+                (s.artist||'').toLowerCase().includes(term.toLowerCase())
+              )).slice(0, 50).map(s => ({
+                track_url: s.url,
+                cover_url: s.cover,
+                title: s.title,
+                artist: s.artist || 'Unknown'
+              }));
+            }
+            if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Fallback search mapped:', mapped.length);
+        }
         if (!cancelled) setModalResults(error ? [] : mapped);
-      } catch {
+      } catch (e) {
         if (!cancelled) setModalResults([]);
+        if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Search exception:', e);
       }
     };
     const t = setTimeout(run, 120);
