@@ -4,6 +4,7 @@ import { loadMusicLibrary } from '../services/libraryLoader';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
 
 export default function PlaylistDetailScreen() {
   const { id: playlistId } = useParams();
@@ -14,6 +15,7 @@ export default function PlaylistDetailScreen() {
   const [modalSearch, setModalSearch] = useState('');
   const [modalResults, setModalResults] = useState([]);
   const [playlistSongs, setPlaylistSongs] = useState([]);
+  const [likedSongs, setLikedSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [musicLibrary, setMusicLibrary] = useState([]); // full library loaded from storage / known list
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +53,20 @@ export default function PlaylistDetailScreen() {
       setPlaylistSongs(data || []);
     }
     fetchPlaylistSongs();
+  }, [playlistId]);
+
+  // Fetch liked songs (for My Liked Songs section inside playlist detail)
+  useEffect(() => {
+    async function loadLiked() {
+      try {
+        const ls = await getLikedSongsSupabase();
+        setLikedSongs(ls || []);
+      } catch (e) {
+        console.warn('Failed loading liked songs', e);
+        setLikedSongs([]);
+      }
+    }
+    loadLiked();
   }, [playlistId]);
 
   // Load full library once and derive recommended songs
@@ -199,23 +215,31 @@ export default function PlaylistDetailScreen() {
           ) : (
             <span style={{fontSize:48,opacity:.4}}>♪</span>
           )}
+          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.55)',fontSize:11,padding:'4px 6px',textAlign:'center',letterSpacing:.5}}>Change Cover</div>
           {coverUploading && <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}}>Uploading...</div>}
         </div>
         <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleCoverChange} />
         <div style={{flex:1,minWidth:0}}>
-          {updatingName ? (
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <input id="playlist-name-input" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') handleSaveName(); if(e.key==='Escape') setUpdatingName(false); }} style={{fontSize:'2rem',fontWeight:'bold',padding:'4px 10px',borderRadius:8,border:'1px solid #555',flex:1,background:'#111',color:'#fff'}} />
-              <button onClick={handleSaveName} style={{padding:'8px 14px',background:'#1db954',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600}}>Save</button>
-            </div>
-          ) : (
-            <h1 onClick={startEditName} style={{fontSize:'2.4rem',fontWeight:700,margin:0,cursor:'text'}} title="Click to edit name">{playlist.name}</h1>
-          )}
-          <div style={{marginTop:12,display:'flex',gap:12}}>
-            <button onClick={()=>setModalOpen(true)} style={{background:'#fff',color:'#000',padding:'10px 18px',borderRadius:999,border:'none',cursor:'pointer',fontWeight:600,display:'flex',alignItems:'center',gap:6,fontSize:14}}>+
-              <span>Add to this playlist</span>
-            </button>
+          <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+            {updatingName ? (
+              <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:220}}>
+                <input id="playlist-name-input" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') handleSaveName(); if(e.key==='Escape') setUpdatingName(false); }} style={{fontSize:'1.9rem',fontWeight:'bold',padding:'4px 10px',borderRadius:8,border:'1px solid #555',flex:1,background:'#111',color:'#fff'}} />
+                <button onClick={handleSaveName} style={{padding:'8px 14px',background:'#1db954',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600}}>Save</button>
+                <button onClick={()=>setUpdatingName(false)} style={{padding:'8px 14px',background:'transparent',color:'#bbb',border:'1px solid #444',borderRadius:8,cursor:'pointer',fontWeight:500}}>Cancel</button>
+              </div>
+            ) : (
+              <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
+            )}
           </div>
+          {!updatingName && (
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:10}}>
+              <button onClick={startEditName} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Rename</button>
+              <button onClick={handleCoverClick} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Change Cover</button>
+              <button onClick={()=>setModalOpen(true)} style={{background:'#fff',color:'#000',padding:'8px 18px',borderRadius:30,border:'none',cursor:'pointer',fontWeight:600,display:'flex',alignItems:'center',gap:6,fontSize:14}}>+
+                <span>Add Songs</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <h2 style={{fontSize:'1.2rem',marginBottom:'1rem'}}>Recommended songs</h2>
@@ -232,24 +256,33 @@ export default function PlaylistDetailScreen() {
                   <div style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{song.title}</div>
                   <div style={{color:'#aaa',fontSize:12}}>{song.artist}</div>
                 </div>
-                <button disabled={already} onClick={() => handleAddSong(song)} style={{padding:'0.45rem',borderRadius:8,background:already?'#222':'#1db954',color:already?'#666':'#fff',border:'none',cursor:already?'default':'pointer',minWidth:36,fontWeight:600}}>{already ? '✓' : '+'}</button>
+                <button disabled={already} onClick={() => handleAddSong(song)} style={{padding:'0.45rem',borderRadius:8,background:'transparent',color:already?'#555':'#fff',border: already?'1px solid #333':'1px solid #fff',cursor:already?'default':'pointer',minWidth:36,fontWeight:600}}>{already ? '✓' : '+'}</button>
               </div>
             );
           })}
         </div>
       )}
-      <h2 style={{fontSize:'1.2rem',margin:'2rem 0 1rem'}}>Songs in this playlist</h2>
-      {playlistSongs.length === 0 ? <div>No songs yet.</div> : (
+      <h2 style={{fontSize:'1.2rem',margin:'2rem 0 1rem'}}>My Liked Songs</h2>
+      {likedSongs.length === 0 ? <div style={{opacity:.6}}>No liked songs yet.</div> : (
         <div>
-          {playlistSongs.map(song => (
-            <div key={song.track_url+song.added_at} style={{display:'flex',alignItems:'center',marginBottom:'1rem',background:'#333',borderRadius:8,padding:'0.5rem'}}>
-              <img src={song.cover_url} alt="cover" style={{width:40,height:40,borderRadius:8,marginRight:'1rem'}} />
-              <div style={{flex:1}}>
-                <div style={{fontWeight:'bold'}}>{song.title}</div>
-                <div style={{color:'#aaa'}}>{song.artist}</div>
+          {likedSongs.map(song => {
+            const already = playlistSongs.some(ps => ps.track_url === song.track_url);
+            return (
+              <div key={song.track_url + (song.liked_at||'')} style={{display:'flex',alignItems:'center',marginBottom:'0.85rem',background:'#242424',borderRadius:10,padding:'0.55rem 0.7rem',border:'1px solid #303030'}}>
+                <img src={song.cover_url} alt="cover" style={{width:46,height:46,borderRadius:8,marginRight:'0.85rem',objectFit:'cover'}} />
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{song.title}</div>
+                  <div style={{color:'#aaa',fontSize:12}}>{song.artist}</div>
+                </div>
+                <button disabled={already} onClick={() => handleAddSong({
+                  track_url: song.track_url,
+                  cover_url: song.cover_url,
+                  title: song.title,
+                  artist: song.artist
+                })} style={{padding:'0.45rem',borderRadius:8,background:'transparent',color:already?'#555':'#fff',border:already?'1px solid #333':'1px solid #fff',cursor:already?'default':'pointer',minWidth:36,fontWeight:600}}>{already ? '✓' : '+'}</button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -272,7 +305,7 @@ export default function PlaylistDetailScreen() {
                       <div style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{song.title}</div>
                       <div style={{fontSize:12,color:'#aaa'}}>{song.artist}</div>
                     </div>
-                    <button disabled={already} onClick={()=>handleAddSong(song)} style={{background:already?'#222':'#1db954',color:already?'#666':'#fff',border:'none',borderRadius:10,padding:'0.55rem 0.8rem',cursor:already?'default':'pointer',fontSize:14,fontWeight:600,minWidth:46}}>
+                    <button disabled={already} onClick={()=>handleAddSong(song)} style={{background:'transparent',color:already?'#555':'#fff',border:already?'1px solid #333':'1px solid #fff',borderRadius:10,padding:'0.55rem 0.8rem',cursor:already?'default':'pointer',fontSize:14,fontWeight:600,minWidth:46}}>
                       {already ? '✓' : '+'}
                     </button>
                   </div>
