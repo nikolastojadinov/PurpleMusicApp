@@ -12,6 +12,7 @@ import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
 // Auth context (restored & improved)
 import { AuthProvider } from './context/AuthProvider.jsx';
+import { GlobalModalProvider } from './context/GlobalModalContext.jsx';
 import AuthIntroOverlay from './components/AuthIntroOverlay';
 import AuthModal from './components/AuthModal';
 // ...existing code...
@@ -20,25 +21,27 @@ import './index.css';
 function App() {
   return (
     <AuthProvider>
-      <div className="app">
-        <Router>
-          <Header />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<HomeScreen />} />
-              <Route path="/search" element={<SearchScreen />} />
-              <Route path="/liked" element={<LikedSongsScreen />} />
-              <Route path="/playlists" element={<PlaylistsScreen />} />
-              <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
-              <Route path="/profile" element={<ViewProfileScreen />} />
-            </Routes>
-          </main>
-          <BottomNavigation />
-          {/* Global overlays */}
-          <AuthIntroOverlay />
-          <AuthModal />
-        </Router>
-      </div>
+      <GlobalModalProvider>
+        <div className="app">
+          <Router>
+            <Header />
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<HomeScreen />} />
+                <Route path="/search" element={<SearchScreen />} />
+                <Route path="/liked" element={<LikedSongsScreen />} />
+                <Route path="/playlists" element={<PlaylistsScreen />} />
+                <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
+                <Route path="/profile" element={<ViewProfileScreen />} />
+              </Routes>
+            </main>
+            <BottomNavigation />
+            {/* Global overlays */}
+            <AuthIntroOverlay />
+            <AuthModal />
+          </Router>
+        </div>
+      </GlobalModalProvider>
     </AuthProvider>
   );
 }

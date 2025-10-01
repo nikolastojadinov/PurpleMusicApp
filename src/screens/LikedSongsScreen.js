@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
 import { getCurrentUser } from '../services/userService';
 
@@ -6,6 +7,7 @@ export default function LikedSongsScreen() {
   // ...existing code...
   
   const [likedSongs, setLikedSongs] = useState([]);
+  const { show } = useGlobalModal();
   const [loading, setLoading] = useState(true);
   const user = getCurrentUser();
   
@@ -30,11 +32,11 @@ export default function LikedSongsScreen() {
 
   const handlePlaySong = (song, index) => {
     // Play liked song
-    alert('Play: ' + song.title + ' - This will integrate with player later');
+    show('Play: ' + song.title + ' (player integration coming soon)', { type: 'info', autoClose: 2500 });
   };
 
   const handlePlayAll = () => {
-    alert('Play all liked songs');
+    show('Playing all liked songs (demo)', { type: 'info', autoClose: 2500 });
   };
 
   return (

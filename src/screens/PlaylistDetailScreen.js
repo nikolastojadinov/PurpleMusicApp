@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function PlaylistDetailScreen() {
   const { id: playlistId } = useParams();
+  const { show } = useGlobalModal();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState(null);
   const [search, setSearch] = useState('');
@@ -20,7 +22,7 @@ export default function PlaylistDetailScreen() {
         .eq('id', playlistId)
         .single();
       if (error) {
-        alert('Greška pri učitavanju plejliste.');
+        show('Greška pri učitavanju plejliste.', { type: 'error', autoClose: 3000 });
         navigate('/');
         return;
       }
@@ -73,7 +75,7 @@ export default function PlaylistDetailScreen() {
         artist: song.artist
       });
     if (error) {
-      alert('Greška pri dodavanju pesme: ' + error.message);
+      show('Greška pri dodavanju pesme: ' + error.message, { type: 'error', autoClose: 3500 });
       return;
     }
     // Refresh playlist songs

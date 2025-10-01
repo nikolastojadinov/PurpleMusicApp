@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { isPremiumUser, likeSongSupabase, unlikeSongSupabase, isSongLikedSupabase } from '../services/likeSupabaseService';
 
 const demoSong = {
@@ -12,6 +13,7 @@ const demoSong = {
 
 export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, onClose = null }) {
   const audioRef = useRef(null);
+  const adAudioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(song.duration);
@@ -25,6 +27,9 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+  const [isAdPlaying, setIsAdPlaying] = useState(false);
+  const [adPlayedForTrack, setAdPlayedForTrack] = useState(false);
+  const { show } = useGlobalModal();
 
   // Premium check function (Supabase)
   const isPremium = isPremiumUser;
@@ -133,7 +138,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   // Like/Unlike functionality (Supabase)
   const toggleLike = async () => {
     if (!isPremium()) {
-      alert('Only premium users can like songs');
+      show('Only premium users can like songs', { type: 'warning', autoClose: 2500 });
       return;
     }
     try {
@@ -145,7 +150,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         setIsLiked(true);
       }
     } catch (error) {
-      alert(error.message || 'Error toggling like');
+      show(error.message || 'Error toggling like', { type: 'error', autoClose: 3000 });
     }
   };
   
@@ -202,14 +207,44 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
 
   // Auto play when song changes if requested
   React.useEffect(() => {
-    if (autoPlay && audioRef.current) {
-      // slight timeout to ensure metadata loads
-      const t = setTimeout(() => {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-      }, 50);
-      return () => clearTimeout(t);
+    if (!autoPlay || !audioRef.current) return;
+    let cancelled = false;
+    const startPlayback = async () => {
+      // If user not premium and ad not yet played this session
+      if (!isPremium() && !adPlayedForTrack) {
+        setIsAdPlaying(true);
+        try {
+          if (adAudioRef.current) {
+            adAudioRef.current.currentTime = 0;
+            await adAudioRef.current.play();
+          }
+        } catch (e) {
+          console.warn('Ad playback failed, skipping ad:', e);
+          setIsAdPlaying(false);
+        }
+      }
+      if (!cancelled) {
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (e) {
+          // silent
+        }
+      }
+    };
+    const t = setTimeout(startPlayback, 60);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [song?.src, autoPlay, isPremium, adPlayedForTrack]);
+
+  // When ad ends -> play song
+  const handleAdEnded = () => {
+    setIsAdPlaying(false);
+    setAdPlayedForTrack(true);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
-  }, [song?.src, autoPlay]);
+  };
 
   return (
     <div
@@ -238,6 +273,15 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         onEnded={() => setIsPlaying(false)}
         volume={volume}
       />
+      {/* Ad audio element (hidden) */}
+      {!isPremium() && (
+        <audio
+          ref={adAudioRef}
+          src="/PurpleMusic_Premium_Jingle_2025-09-30T050307.mp3"
+          onEnded={handleAdEnded}
+          style={{ display: 'none' }}
+        />
+      )}
       <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/80 to-[#2d0036]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col px-4 py-3 select-none w-full relative" style={{minWidth:'0'}}>
         {/* Top right controls: Close only */}
         {onClose && (
@@ -287,6 +331,9 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
             <span className="text-white/70 text-sm truncate">{song.artist}</span>
           </div>
         </div>
+        {isAdPlaying && (
+          <div className="text-xs text-purple-200/80 mb-2 animate-pulse">Playing sponsor message…</div>
+        )}
         {/* Progress bar */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-sm text-white/70 w-10 text-left">{formatTime(progress)}</span>

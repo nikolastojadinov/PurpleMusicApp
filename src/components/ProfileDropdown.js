@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,7 @@ export default function ProfileDropdown() {
   // Konstans za premium cenu
   const PREMIUM_AMOUNT = 3.14; // Pi
   const { user, loginWithPi, logout, updateUser } = useAuth();
+  const { show } = useGlobalModal();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function ProfileDropdown() {
   // Pi Network login callbacks
     // Nem szükséges, helyette loginOrRegisterUser-t használunk
   const onLoginFailure = (error) => {
-    alert('Pi Network login failed: ' + error);
+    show('Pi Network login failed: ' + error, { type: 'error', autoClose: 4000 });
   };
 
 

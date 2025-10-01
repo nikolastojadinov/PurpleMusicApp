@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 
 export default function ViewProfileScreen() {
   const [profilePicture, setProfilePicture] = useState(null);
+  const { show } = useGlobalModal();
   const [username, setUsername] = useState('Music Lover');
   const [email, setEmail] = useState('user@example.com');
   const [isEditing, setIsEditing] = useState(false);
@@ -25,7 +27,7 @@ export default function ViewProfileScreen() {
   const handleSaveProfile = () => {
     setIsEditing(false);
     // Here you would save to backend/Supabase
-    alert('Profile updated successfully!');
+    show('Profile updated successfully!', { type: 'success', autoClose: 2500 });
   };
 
   return (

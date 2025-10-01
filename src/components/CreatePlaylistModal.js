@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 
 export default function CreatePlaylistModal({ onClose, onCreate, currentUser, isPremium }) {
   const [playlistName, setPlaylistName] = useState('');
+  const { show } = useGlobalModal();
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
     if (!playlistName.trim()) return;
     if (!currentUser || !currentUser.id) {
-      alert('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.');
+      show('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.', { type: 'warning', autoClose: 3500 });
       return;
     }
     setLoading(true);
@@ -21,7 +23,7 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
       if (error) throw error;
       onCreate(data);
     } catch (err) {
-      alert('Greška pri kreiranju plejliste: ' + err.message);
+  show('Greška pri kreiranju plejliste: ' + err.message, { type: 'error', autoClose: 4000 });
     } finally {
       setLoading(false);
     }

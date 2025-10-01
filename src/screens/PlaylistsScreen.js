@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { getCurrentUser } from '../services/userService';
 import { isCurrentlyPremium } from '../services/premiumService';
 import CreatePlaylistModal from '../components/CreatePlaylistModal';
@@ -9,6 +10,7 @@ export default function PlaylistsScreen() {
   // ...existing code...
   
   const [playlists, setPlaylists] = useState([]);
+  const { show } = useGlobalModal();
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +26,7 @@ export default function PlaylistsScreen() {
         .eq('user_id', user.id)
         .then(({ data, error }) => {
           if (error) {
-            alert('Error loading playlists: ' + error.message);
+            show('Error loading playlists: ' + error.message, { type: 'error', autoClose: 4000 });
           } else {
             setPlaylists(data || []);
           }
@@ -44,7 +46,7 @@ export default function PlaylistsScreen() {
 
   const handleCreatePlaylist = () => {
     if (!user?.id) {
-      alert('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.');
+      show('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.', { type: 'warning', autoClose: 3500 });
       return;
     }
     setShowCreateModal(true);
