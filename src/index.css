@@ -1793,3 +1793,10 @@ body::-webkit-scrollbar {
     font-size: 24px;
   }
 }
+
+  /* === Auth Intro Overlay === */
+  .auth-intro-overlay { position: fixed; inset:0; background:#000; display:flex; align-items:center; justify-content:center; z-index:9999; opacity:1; transition: opacity .65s ease; }
+  .auth-intro-overlay.fade-out { opacity:0; pointer-events:none; }
+  .auth-intro-video-wrapper { position:relative; max-width:90vw; max-height:90vh; }
+  .auth-intro-video { max-width:100%; max-height:100%; display:block; object-fit:contain; }
+  .auth-intro-error { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#ffbaba; padding:6px 12px; border-radius:6px; font-size:14px; font-weight:500; }
