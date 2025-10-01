@@ -165,7 +165,11 @@ export default function PlaylistDetailScreen() {
       .single();
     if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_RENAME_RESULT] error:', error, 'data:', data);
     if (error) {
-      show('Neuspešno ažuriranje imena: ' + error.message, { type: 'error', autoClose: 3000 });
+      let msg = 'Neuspešno ažuriranje imena: ' + error.message;
+      if (/lastUpdated/i.test(error.message)) {
+        msg += '\nTip: U Supabase postoji trigger ili funkcija koja koristi kolonu "lastUpdated" ali ona ne postoji. Rešenja: (1) Dodaj kolonu "lastUpdated" (timestamptz) ili (2) izmeni/droppuj trigger da koristi postojeću kolonu (npr. lastupdated) ili (3) kreiraj novu funkciju sa ispravnim nazivom kolone.';
+      }
+      show(msg, { type: 'error', autoClose: 6000 });
     } else {
       setPlaylist(data);
       show('Ime playliste sačuvano.', { type: 'success', autoClose: 2000 });
@@ -213,7 +217,11 @@ export default function PlaylistDetailScreen() {
       show('Cover ažuriran.', { type: 'success', autoClose: 1800 });
     } catch (err) {
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_EXCEPTION]', err);
-      show('Neuspešan upload covera: ' + err.message, { type: 'error', autoClose: 3500 });
+      let msg = 'Neuspešan upload covera: ' + (err?.message || 'Nepoznata greška');
+      if (/bucket.*not.*found/i.test(err?.message || '')) {
+        msg += '\nTip: Kreiraj public bucket "playlist-covers" u Supabase Storage (Dashboard → Storage → New bucket → Name: playlist-covers, Public: ON).';
+      }
+      show(msg, { type: 'error', autoClose: 6000 });
     } finally {
       setCoverUploading(false);
     }
