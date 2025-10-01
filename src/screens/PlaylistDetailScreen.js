@@ -9,6 +9,7 @@ import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
 export default function PlaylistDetailScreen() {
   // Debug flag for verbose Supabase logging (set to false to silence)
   const SUPA_DEBUG = true;
+  const PLAYLIST_COVER_BUCKET_CANDIDATES = ['playlist-covers', 'playlist covers'];
   const { id: playlistId } = useParams();
   const { show } = useGlobalModal();
   const navigate = useNavigate();
@@ -196,14 +197,24 @@ export default function PlaylistDetailScreen() {
       const ext = file.name.split('.').pop();
       const path = `${playlistId}_${Date.now()}.${ext}`;
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_START] path:', path, 'fileName:', file.name, 'size:', file.size);
-      const { error: uploadErr } = await supabase.storage
-        .from('playlist-covers')
-        .upload(path, file, { upsert: true });
-      if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_RESULT] path:', path, 'error:', uploadErr);
-      if (uploadErr) throw uploadErr;
-      const { data: pub } = supabase.storage.from('playlist-covers').getPublicUrl(path);
+      let lastErr = null;
+      let chosenBucket = null;
+      for (const bucketName of PLAYLIST_COVER_BUCKET_CANDIDATES) {
+        const { error: attemptErr } = await supabase.storage
+          .from(bucketName)
+          .upload(path, file, { upsert: true });
+        if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_ATTEMPT]', bucketName, 'error:', attemptErr);
+        if (!attemptErr) { chosenBucket = bucketName; lastErr = null; break; }
+        lastErr = attemptErr;
+        if (!/bucket.*not.*found/i.test(attemptErr?.message || '')) {
+          // some other error -> no need to try next
+          break;
+        }
+      }
+      if (lastErr) throw lastErr;
+      const { data: pub } = supabase.storage.from(chosenBucket).getPublicUrl(path);
       const coverUrl = pub?.publicUrl;
-      if (SUPA_DEBUG) console.log('[SUPA][COVER_PUBLIC_URL] url:', coverUrl);
+      if (SUPA_DEBUG) console.log('[SUPA][COVER_PUBLIC_URL] bucket:', chosenBucket, 'url:', coverUrl);
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPDATE_PLAYLIST] id:', playlistId, 'cover_url:', coverUrl);
       const { data, error } = await supabase
         .from('playlists')
@@ -219,7 +230,7 @@ export default function PlaylistDetailScreen() {
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_EXCEPTION]', err);
       let msg = 'Neuspešan upload covera: ' + (err?.message || 'Nepoznata greška');
       if (/bucket.*not.*found/i.test(err?.message || '')) {
-        msg += '\nTip: Kreiraj public bucket "playlist-covers" u Supabase Storage (Dashboard → Storage → New bucket → Name: playlist-covers, Public: ON).';
+        msg += '\nTip: Trenutno postoji bucket sa imenom drugačijim od očekivanog (npr. "playlist covers"). Možeš: (1) Kreirati novi bucket tačnog imena "playlist-covers" ili (2) ostaviti postojeći sa razmakom – kod sada pokušava oba naziva.';
       }
       show(msg, { type: 'error', autoClose: 6000 });
     } finally {
