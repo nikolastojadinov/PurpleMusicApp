@@ -26,9 +26,8 @@ export default function ProfileDropdown() {
   const handlePiNetworkLogin = async () => {
     try {
       await loginWithPi();
-      alert('Pi login successful!');
     } catch (e) {
-      alert('Login failed: ' + e.message);
+      // Error modal already handled in context
     } finally {
       setIsOpen(false);
     }
@@ -44,16 +43,10 @@ export default function ProfileDropdown() {
   // Pi Network payment integration (Pi demo flow)
 
   const handleGoPremium = async () => {
-    if (!window.Pi) {
-      alert('Pi SDK nije učitan!');
-      return;
-    }
+    if (!window.Pi) return; // Could trigger a modal in future
     // Dohvati korisnika iz Supabase (pretpostavljamo da je login već urađen)
     // Use current user from state
-    if (!user) {
-      alert('Nema korisnika za premium!');
-      return;
-    }
+    if (!user) return;
     const paymentData = {
       amount: PREMIUM_AMOUNT, // Pi iznos
       memo: `PurpleMusic Premium ${PREMIUM_AMOUNT} Pi`,
@@ -74,13 +67,13 @@ export default function ProfileDropdown() {
             } catch (ie) {
               console.warn('[INSPECT ERROR]', ie?.response?.data || ie.message);
             }
-          alert('Approve greška: ' + (response.data.error || 'Nepoznata greška') + (response.data.code ? (' [' + response.data.code + ']') : ''));
+          // TODO integrate modal feedback for payment approve failure
         } else {
           console.log('Payment approved na serveru');
         }
       } catch (err) {
         console.error('[APPROVE EXCEPTION]', err);
-        alert('Greška (approve) komunikacija: ' + err.message);
+  // TODO modal approve exception
       }
     };
 
@@ -102,34 +95,26 @@ export default function ProfileDropdown() {
             .eq('pi_user_uid', user.pi_user_uid)
             .select()
             .single();
-          if (error) {
-            alert('Premium aktiviran, de Supabase update error: ' + error.message);
-          } else {
+          if (!error) {
             // Save premium status in localStorage
             const updatedUser = { ...user, is_premium: true, premium_until: premiumUntilStr };
             window.localStorage.setItem('pm_user', JSON.stringify(updatedUser));
-            setUser(updatedUser);
-            alert('Plaćanje završeno! Premium aktiviran.');
+            // updateUser for context consistency
+            updateUser({ is_premium: true, premium_until: premiumUntilStr });
           }
         } else {
           console.warn('[COMPLETE FAIL]', response.data);
-          alert('Complete greška: ' + (response.data.error || 'Nepoznata greška') + (response.data.code ? (' [' + response.data.code + ']') : ''));
         }
       } catch (err) {
         console.error('[COMPLETE EXCEPTION]', err);
-        alert('Greška (complete) komunikacija: ' + err.message);
       }
     };
 
     // Callback: otkazano
-    const onCancel = (paymentId) => {
-      alert('Plaćanje otkazano.');
-    };
+    const onCancel = (paymentId) => {};
 
     // Callback: greška
-    const onError = (error, payment) => {
-      alert('Greška u plaćanju: ' + error);
-    };
+    const onError = (error, payment) => {};
 
     window.Pi.createPayment(paymentData, {
       onReadyForServerApproval,
@@ -149,7 +134,6 @@ export default function ProfileDropdown() {
     const handleLogout = () => {
       logout();
       setIsOpen(false);
-      alert('Logged out!');
   };
 
   return (

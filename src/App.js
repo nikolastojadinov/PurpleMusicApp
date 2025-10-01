@@ -29,6 +29,7 @@ function App() {
               <Route path="/playlists" element={<PlaylistsScreen />} />
               <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
               <Route path="/profile" element={<ViewProfileScreen />} />
+              <AuthModal />
             </Routes>
           </main>
           <BottomNavigation />

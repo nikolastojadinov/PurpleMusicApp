@@ -12,6 +12,10 @@ export function AuthProvider({ children }) {
   const [piAccessToken, setPiAccessToken] = useState(null); // Pi authenticate access token
   const [loading, setLoading] = useState(true);
   const piInitializedRef = useRef(false);
+  // Intro video overlay state
+  const [authIntro, setAuthIntro] = useState({ visible: false, status: 'idle', error: null });
+  // Modal feedback state
+  const [authModal, setAuthModal] = useState({ visible: false, type: null, message: '', dismissible: true });
 
   // Helper: persist user & token
   const persistSession = useCallback((usr, token) => {
@@ -74,6 +78,8 @@ export function AuthProvider({ children }) {
   // Login with Pi Network & upsert Supabase user
   const loginWithPi = useCallback(async () => {
     setLoading(true);
+    // show intro instantly
+    setAuthIntro({ visible: true, status: 'in-progress', error: null });
     try {
       initPiSdk();
       if (!window.Pi) throw new Error('Pi SDK not loaded');
@@ -108,12 +114,24 @@ export function AuthProvider({ children }) {
       setUser(dbUser);
       setPiAccessToken(accessToken);
       persistSession(dbUser, accessToken);
+      // success sequence: hide intro -> show success modal
+      setAuthIntro({ visible: true, status: 'success', error: null });
+      setTimeout(() => {
+        setAuthIntro({ visible: false, status: 'idle', error: null });
+        setAuthModal({ visible: true, type: 'success', message: `Welcome, ${dbUser.username || 'Pioneer'}!`, dismissible: false });
+      }, 600);
       return dbUser;
     } catch (e) {
       console.error('Pi login failed:', e);
       setUser(null);
       setPiAccessToken(null);
       persistSession(null, null);
+      // show error modal
+      setAuthIntro({ visible: true, status: 'error', error: e.message });
+      setTimeout(() => {
+        setAuthIntro({ visible: false, status: 'idle', error: null });
+        setAuthModal({ visible: true, type: 'error', message: 'Login failed. Please try again.', dismissible: true });
+      }, 400);
       throw e;
     } finally {
       setLoading(false);
@@ -141,6 +159,7 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  const hideAuthModal = useCallback(() => setAuthModal(m => ({ ...m, visible: false })), []);
   const value = {
     user,
     loading,
@@ -148,6 +167,9 @@ export function AuthProvider({ children }) {
     loginWithPi,
     logout,
     updateUser,
+    authIntro,
+    authModal,
+    hideAuthModal,
     isLoggedIn: !!user,
   };
 
