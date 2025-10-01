@@ -216,6 +216,10 @@ export default function PlaylistDetailScreen() {
       let msg = 'Neuspešan upload covera: ' + (err?.message || 'Nepoznata greška');
       if (/bucket.*not.*found/i.test(err?.message || '')) {
         msg += '\nTip: Trenutno postoji bucket sa imenom drugačijim od očekivanog (npr. "playlist covers"). Možeš: (1) Kreirati novi bucket tačnog imena "playlist-covers" ili (2) ostaviti postojeći sa razmakom – kod sada pokušava oba naziva.';
+      } else if (/row-level security/i.test(err?.message || '')) {
+        msg += '\nRLS problem: moraš dodati policies za storage.objects za taj bucket. Otvori SQL editor i pokreni:\n' +
+          'create policy "playlist covers select" on storage.objects for select using (bucket_id in (\'playlist-covers\', \'playlist covers\'));\n' +
+          'create policy "playlist covers insert" on storage.objects for insert with check (bucket_id in (\'playlist-covers\', \'playlist covers\'));';
       }
       show(msg, { type: 'error', autoClose: 6000 });
     } finally {
