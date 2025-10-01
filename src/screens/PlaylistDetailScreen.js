@@ -73,25 +73,39 @@ export default function PlaylistDetailScreen() {
     let cancelled = false;
     const run = async () => {
       if (!modalSearch.trim()) {
-        // fallback to recommended style list when no search
         setModalResults(recommendedSongs);
         return;
       }
       const term = modalSearch.trim();
-      // Case-insensitive match on title OR artist (contains, not only prefix)
-      const { data, error } = await supabase
-        .from('Music')
-        .select('track_url, cover_url, title, artist')
-        .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
-        .limit(40);
-      if (error) {
-        // fail silently – could show modal but unnecessary for search
-        if (!cancelled) setModalResults([]);
-        return;
+      let results = [];
+      try {
+        // Primary attempt: OR filter across title & artist
+        const { data, error } = await supabase
+          .from('Music')
+          .select('track_url, cover_url, title, artist')
+          .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
+          .limit(50);
+        if (!error && data) results = data;
+        // Fallback if empty: perform two separate queries (title then artist) and merge
+        if (results.length === 0) {
+          const [titleRes, artistRes] = await Promise.all([
+            supabase.from('Music').select('track_url, cover_url, title, artist').ilike('title', `%${term}%`).limit(30),
+            supabase.from('Music').select('track_url, cover_url, title, artist').ilike('artist', `%${term}%`).limit(30)
+          ]);
+          const merged = [...(titleRes.data||[]), ...(artistRes.data||[])];
+          const seen = new Set();
+            results = merged.filter(r => {
+              if (seen.has(r.track_url)) return false;
+              seen.add(r.track_url);
+              return true;
+            });
+        }
+      } catch (e) {
+        results = [];
       }
-      if (!cancelled) setModalResults(data || []);
+      if (!cancelled) setModalResults(results);
     };
-    const t = setTimeout(run, 120); // small debounce
+    const t = setTimeout(run, 140); // small debounce
     return () => { cancelled = true; clearTimeout(t); };
   }, [modalSearch, modalOpen, recommendedSongs]);
 
