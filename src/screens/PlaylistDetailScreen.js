@@ -59,7 +59,7 @@ export default function PlaylistDetailScreen() {
         .from('Music')
         .select('track_url, cover_url, title, artist')
         .order('random()', { ascending: true })
-        .limit(12);
+        .limit(10);
       if (active) setRecommendedSongs(data || []);
       setLoading(false);
     }
@@ -77,11 +77,18 @@ export default function PlaylistDetailScreen() {
         setModalResults(recommendedSongs);
         return;
       }
-      const { data } = await supabase
+      const term = modalSearch.trim();
+      // Case-insensitive match on title OR artist (contains, not only prefix)
+      const { data, error } = await supabase
         .from('Music')
         .select('track_url, cover_url, title, artist')
-        .ilike('title', `${modalSearch.trim()}%`) // prefix match for first letter behavior
-        .limit(25);
+        .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
+        .limit(40);
+      if (error) {
+        // fail silently – could show modal but unnecessary for search
+        if (!cancelled) setModalResults([]);
+        return;
+      }
       if (!cancelled) setModalResults(data || []);
     };
     const t = setTimeout(run, 120); // small debounce
@@ -210,19 +217,23 @@ export default function PlaylistDetailScreen() {
         </div>
       </div>
       <h2 style={{fontSize:'1.2rem',marginBottom:'1rem'}}>Recommended songs</h2>
-      {loading ? <div>Loading songs...</div> : (
+      {loading ? <div>Loading songs...</div> : recommendedSongs.length === 0 ? (
+        <div style={{opacity:.6,fontSize:14}}>No recommendations available</div>
+      ) : (
         <div>
-          {recommendedSongs.map(song => (
-            <div key={song.track_url} style={{display:'flex',alignItems:'center',marginBottom:'0.9rem',background:'#191919',borderRadius:10,padding:'0.55rem 0.75rem',border:'1px solid #262626'}}>
-              <img src={song.cover_url} alt="cover" style={{width:50,height:50,borderRadius:8,marginRight:'1rem',objectFit:'cover'}} />
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{song.title}</div>
-                <div style={{color:'#aaa',fontSize:12}}>{song.artist}</div>
+          {recommendedSongs.map(song => {
+            const already = playlistSongs.some(ps => ps.track_url === song.track_url);
+            return (
+              <div key={song.track_url} style={{display:'flex',alignItems:'center',marginBottom:'0.9rem',background:'#191919',borderRadius:10,padding:'0.55rem 0.75rem',border:'1px solid #262626'}}>
+                <img src={song.cover_url} alt="cover" style={{width:50,height:50,borderRadius:8,marginRight:'1rem',objectFit:'cover'}} />
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{song.title}</div>
+                  <div style={{color:'#aaa',fontSize:12}}>{song.artist}</div>
+                </div>
+                <button disabled={already} onClick={() => handleAddSong(song)} style={{padding:'0.45rem',borderRadius:8,background:already?'#222':'#1db954',color:already?'#666':'#fff',border:'none',cursor:already?'default':'pointer',minWidth:36,fontWeight:600}}>{already ? '✓' : '+'}</button>
               </div>
-              <button onClick={() => handlePlaySong(song)} style={{marginRight:8,padding:'0.45rem',borderRadius:8,background:'#333',color:'#fff',border:'none',cursor:'pointer'}}>▶</button>
-              <button onClick={() => handleAddSong(song)} style={{padding:'0.45rem',borderRadius:8,background:'#1db954',color:'#fff',border:'none',cursor:'pointer'}}>+</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <h2 style={{fontSize:'1.2rem',margin:'2rem 0 1rem'}}>Songs in this playlist</h2>
