@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { fetchMusicLibraryCached } from '../services/musicLibrary';
+// Unified: use same loader as global SearchScreen so results are guaranteed even if DB Music table is empty
+import { loadMusicLibrary } from '../services/libraryLoader';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -14,7 +15,7 @@ export default function PlaylistDetailScreen() {
   const [modalResults, setModalResults] = useState([]);
   const [playlistSongs, setPlaylistSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fallbackLibrary, setFallbackLibrary] = useState([]); // storage-based songs
+  const [musicLibrary, setMusicLibrary] = useState([]); // full library loaded from storage / known list
   const [modalOpen, setModalOpen] = useState(false);
   const [updatingName, setUpdatingName] = useState(false);
   const [newName, setNewName] = useState('');
@@ -52,114 +53,49 @@ export default function PlaylistDetailScreen() {
     fetchPlaylistSongs();
   }, [playlistId]);
 
-  // Fetch recommended songs (random) when opening the playlist
+  // Load full library once and derive recommended songs
   useEffect(() => {
-    let active = true;
-    async function fetchRecommended() {
+    let cancelled = false;
+    async function loadLib() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('Music')
-        .select('track_url, cover_url, title, artist')
-        .order('random()', { ascending: true })
-        .limit(10);
-      if (window?.location?.search?.includes('pmDebug=1')) {
-        console.log('[PlaylistDetail] Recommended fetch error:', error);
-        console.log('[PlaylistDetail] Recommended raw data:', data);
+      try {
+        const songs = await loadMusicLibrary();
+        if (cancelled) return;
+        // Normalize into playlist-friendly shape
+        const normalized = songs.map(s => ({
+          track_url: s.url,
+          cover_url: s.cover || '/fallback-cover.png',
+            // Keep existing structure (if search later wants artist)
+          title: s.title,
+          artist: s.artist || 'Unknown'
+        }));
+        setMusicLibrary(normalized);
+        // Pick 10 random (or all if <10)
+        const shuffled = [...normalized].sort(() => Math.random() - 0.5).slice(0, 10);
+        setRecommendedSongs(shuffled);
+      } catch (e) {
+        if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] loadMusicLibrary error:', e);
+        setMusicLibrary([]);
+        setRecommendedSongs([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      let mapped = (data||[]).map(r => ({
-        track_url: r.track_url || r.url || r.trackUrl || r.file_url || r.source_url || '',
-        cover_url: r.cover_url || r.cover || r.coverUrl || r.image_url || '/fallback-cover.png',
-        title: r.title || r.name || 'Untitled',
-        artist: r.artist || r.artist_name || r.author || 'Unknown'
-      })).filter(r => r.track_url);
-      if (mapped.length === 0) {
-        // fallback to storage bucket library
-        try {
-          const lib = await fetchMusicLibraryCached(false, { fallbackCover: '/fallback-cover.png' });
-          setFallbackLibrary(lib);
-          mapped = lib.slice(0, 10).map(s => ({
-            track_url: s.url,
-            cover_url: s.cover,
-            title: s.title,
-            artist: s.artist || 'Unknown'
-          }));
-          if (window?.location?.search?.includes('pmDebug=1')) {
-            console.log('[PlaylistDetail] Using storage fallback for recommendations:', mapped);
-          }
-        } catch (e) {
-          if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Storage fallback failed:', e);
-        }
-      }
-      if (active) setRecommendedSongs(mapped);
-      setLoading(false);
     }
-    fetchRecommended();
-    return () => { active = false; };
+    loadLib();
+    return () => { cancelled = true; };
   }, [playlistId]);
 
-  // Modal search (autocomplete) – runs on each keystroke
+  // Modal search (autocomplete) – now purely client-side over loaded library
   useEffect(() => {
     if (!modalOpen) return;
-    let cancelled = false;
-    const run = async () => {
-      const raw = modalSearch.trim();
-      if (!raw) { setModalResults([]); return; }
-      const term = raw.replace(/%/g, ''); // basic sanitize for wildcard explosion
-      try {
-        const { data, error } = await supabase
-          .from('Music')
-          .select('track_url, cover_url, title, artist')
-          .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
-          .limit(50);
-        if (window?.location?.search?.includes('pmDebug=1')) {
-          console.log('[PlaylistDetail] Search term:', term, 'error:', error, 'data length:', data?.length);
-        }
-        let mapped = (data||[]).map(r => ({
-          track_url: r.track_url || r.url || r.trackUrl || r.file_url || r.source_url || '',
-          cover_url: r.cover_url || r.cover || r.coverUrl || r.image_url || '/fallback-cover.png',
-          title: r.title || r.name || 'Untitled',
-          artist: r.artist || r.artist_name || r.author || 'Unknown'
-        })).filter(r => r.track_url);
-        if (mapped.length === 0 && !error) {
-          // fallback to storage library filter
-            if (fallbackLibrary.length === 0) {
-              try {
-                const lib = await fetchMusicLibraryCached(false, { fallbackCover: '/fallback-cover.png' });
-                setFallbackLibrary(lib);
-                mapped = lib.filter(s => (
-                  s.title.toLowerCase().includes(term.toLowerCase()) ||
-                  (s.artist||'').toLowerCase().includes(term.toLowerCase())
-                )).slice(0, 50).map(s => ({
-                  track_url: s.url,
-                  cover_url: s.cover,
-                  title: s.title,
-                  artist: s.artist || 'Unknown'
-                }));
-              } catch (e) {
-                if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Storage fallback search failed:', e);
-              }
-            } else {
-              mapped = fallbackLibrary.filter(s => (
-                s.title.toLowerCase().includes(term.toLowerCase()) ||
-                (s.artist||'').toLowerCase().includes(term.toLowerCase())
-              )).slice(0, 50).map(s => ({
-                track_url: s.url,
-                cover_url: s.cover,
-                title: s.title,
-                artist: s.artist || 'Unknown'
-              }));
-            }
-            if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Fallback search mapped:', mapped.length);
-        }
-        if (!cancelled) setModalResults(error ? [] : mapped);
-      } catch (e) {
-        if (!cancelled) setModalResults([]);
-        if (window?.location?.search?.includes('pmDebug=1')) console.log('[PlaylistDetail] Search exception:', e);
-      }
-    };
-    const t = setTimeout(run, 120);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [modalSearch, modalOpen]);
+    const raw = modalSearch.trim();
+    if (!raw) { setModalResults([]); return; }
+    const term = raw.toLowerCase();
+    const filtered = musicLibrary.filter(s =>
+      s.title.toLowerCase().includes(term) || (s.artist||'').toLowerCase().includes(term)
+    ).slice(0,50);
+    setModalResults(filtered);
+  }, [modalSearch, modalOpen, musicLibrary]);
 
   // Add song to playlist
   async function handleAddSong(song) {
@@ -345,9 +281,6 @@ export default function PlaylistDetailScreen() {
               { (modalSearch.trim() && modalResults.length===0) && (
                 <div style={{padding:'1rem 0',textAlign:'center',fontSize:14,color:'#888'}}>
                   No results.
-                  {window?.location?.search?.includes('pmDebug=1') && (
-                    <div style={{marginTop:6,opacity:.6,fontSize:12}}>Debug: proveri RLS policy ili da li tabela "Music" ima podatke.</div>
-                  )}
                 </div>
               )}
             </div>
