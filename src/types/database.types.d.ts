@@ -1,6 +1,6 @@
-// Generated Supabase types placeholder.
-// Run locally (where Supabase CLI is installed):
-// supabase gen types typescript --project-id ofkfygqrfenctzitigae > src/types/database.types.ts
+// Ambient declaration for Supabase generated types.
+// Overwrite by running locally:
+// supabase gen types typescript --project-id ofkfygqrfenctzitigae > src/types/database.types.d.ts
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
@@ -14,8 +14,7 @@ export interface Database {
           name: string | null;
           cover_url: string | null;
           created_at: string | null;
-          lastUpdated: string | null; // newly added column (camelCase)
-          // If the real column is lastupdated (lowercase) adjust here.
+          lastUpdated: string | null; // newly added / normalized
         };
         Insert: {
           id?: string;
