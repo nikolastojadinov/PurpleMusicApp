@@ -55,12 +55,22 @@ export default function PlaylistDetailScreen() {
     let active = true;
     async function fetchRecommended() {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('Music')
         .select('track_url, cover_url, title, artist')
         .order('random()', { ascending: true })
         .limit(10);
-      if (active) setRecommendedSongs(data || []);
+      if (window?.location?.search?.includes('pmDebug=1')) {
+        console.log('[PlaylistDetail] Recommended fetch error:', error);
+        console.log('[PlaylistDetail] Recommended raw data:', data);
+      }
+      const mapped = (data||[]).map(r => ({
+        track_url: r.track_url || r.url || r.trackUrl || '',
+        cover_url: r.cover_url || r.cover || r.coverUrl || '/fallback-cover.png',
+        title: r.title || 'Untitled',
+        artist: r.artist || 'Unknown'
+      })).filter(r => r.track_url);
+      if (active) setRecommendedSongs(mapped);
       setLoading(false);
     }
     fetchRecommended();
@@ -78,10 +88,19 @@ export default function PlaylistDetailScreen() {
       try {
         const { data, error } = await supabase
           .from('Music')
-            .select('track_url, cover_url, title, artist')
-            .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
-            .limit(50);
-        if (!cancelled) setModalResults(error ? [] : (data || []));
+          .select('track_url, cover_url, title, artist')
+          .or(`title.ilike.%${term}%,artist.ilike.%${term}%`)
+          .limit(50);
+        if (window?.location?.search?.includes('pmDebug=1')) {
+          console.log('[PlaylistDetail] Search term:', term, 'error:', error, 'data:', data);
+        }
+        const mapped = (data||[]).map(r => ({
+          track_url: r.track_url || r.url || r.trackUrl || '',
+          cover_url: r.cover_url || r.cover || r.coverUrl || '/fallback-cover.png',
+          title: r.title || 'Untitled',
+          artist: r.artist || 'Unknown'
+        })).filter(r => r.track_url);
+        if (!cancelled) setModalResults(error ? [] : mapped);
       } catch {
         if (!cancelled) setModalResults([]);
       }
@@ -272,7 +291,12 @@ export default function PlaylistDetailScreen() {
                 );
               })}
               { (modalSearch.trim() && modalResults.length===0) && (
-                <div style={{padding:'1rem 0',textAlign:'center',fontSize:14,color:'#888'}}>No results.</div>
+                <div style={{padding:'1rem 0',textAlign:'center',fontSize:14,color:'#888'}}>
+                  No results.
+                  {window?.location?.search?.includes('pmDebug=1') && (
+                    <div style={{marginTop:6,opacity:.6,fontSize:12}}>Debug: proveri RLS policy ili da li tabela "Music" ima podatke.</div>
+                  )}
+                </div>
               )}
             </div>
           </div>
