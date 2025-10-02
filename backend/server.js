@@ -291,11 +291,44 @@ async function approveHandler(req, res) {
     const approveUrl = `https://api.minepi.com/v2/payments/${paymentId}/approve`;
     await axios.post(approveUrl, {}, { headers: { Authorization: `Key ${piApiKey}` } });
     if (debug) console.log('[approve] OK approve sent for', paymentId);
+
+    // Insert pending payment row in payments table (if not exists) for tracking
+    if (supabase) {
+      try {
+        const plan = payment?.metadata?.plan || 'monthly';
+        // Find user id by pi_user_uid
+        const { data: userRow, error: userErr } = await supabase
+          .from('users')
+          .select('id')
+          .eq('pi_user_uid', pi_user_uid)
+          .maybeSingle();
+        if (!userErr && userRow) {
+          const amount = Number(payment?.amount) || null;
+          // Upsert style: try insert, ignore if conflict on pi_payment_id
+          const { error: insErr } = await supabase.from('payments').insert({
+            user_id: userRow.id,
+            pi_payment_id: paymentId,
+            amount,
+            plan_type: plan,
+            status: 'pending'
+          }).select('id').maybeSingle();
+          if (insErr && !/duplicate|unique/i.test(insErr.message)) {
+            console.warn('[approve][payments.insert] error:', insErr.message);
+          }
+        }
+      } catch (e) {
+        console.warn('[approve][payments.insert] exception:', e.message);
+      }
+    }
     return res.json({ success: true, status: 'approved', paymentId });
   } catch (err) {
     const status = err?.response?.status;
     const data = err?.response?.data;
     console.error('[approve] error', { status, data });
+    // Mark payment rejected if we already created row earlier (best effort)
+    if (supabase && req.body?.paymentId) {
+      await supabase.from('payments').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('pi_payment_id', req.body.paymentId);
+    }
     return res.status(502).json({ success: false, error: 'Approve failed', status, details: data || err.message, code: 'APPROVE_EXCEPTION' });
   }
 }
@@ -350,12 +383,21 @@ async function completeHandler(req, res) {
     if (error) {
       return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message, code: 'SUPABASE_UPDATE' });
     }
+    // Update payments row -> approved
+    try {
+      await supabase.from('payments').update({ status: 'approved', plan_type: plan, amount: payment.amount, updated_at: new Date().toISOString() }).eq('pi_payment_id', paymentId);
+    } catch (e) {
+      console.warn('[complete][payments.update] failed:', e.message);
+    }
     if (debug) console.log('[complete] premium activated for', pi_user_uid, 'plan=', plan, 'until=', premium_until, 'paymentId=', paymentId);
     return res.json({ success: true, status: 'completed', paymentId, txid, plan, premium_until, user: updatedUser });
   } catch (err) {
     const status = err?.response?.status;
     const data = err?.response?.data;
     console.error('[complete] error', { status, data });
+    if (supabase && paymentId) {
+      try { await supabase.from('payments').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('pi_payment_id', paymentId); } catch(_){}
+    }
     return res.status(502).json({ success: false, error: 'Complete failed', status, details: data || err.message, code: 'COMPLETE_EXCEPTION' });
   }
 }
@@ -366,6 +408,71 @@ app.post('/api/payments/complete', completeHandler);
 // Alias routes (Pi demo naming)
 app.post('/api/approve-payment', approveHandler);
 app.post('/api/complete-payment', completeHandler);
+
+// Manual / webhook alike endpoint to update payment status externally
+app.post('/api/payments/update', async (req, res) => {
+  const { pi_payment_id, status, plan_type } = req.body || {};
+  if (!pi_payment_id) return res.status(400).json({ success:false, error:'Missing pi_payment_id' });
+  if (!['approved','rejected','pending'].includes(status||'')) return res.status(400).json({ success:false, error:'Invalid status' });
+  if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
+  try {
+    const { data: payRow, error: payErr } = await supabase.from('payments').select('id, user_id, status, plan_type').eq('pi_payment_id', pi_payment_id).maybeSingle();
+    if (payErr || !payRow) return res.status(404).json({ success:false, error:'Payment not found' });
+    const newPlan = plan_type || payRow.plan_type;
+    const { error: updErr } = await supabase.from('payments').update({ status, plan_type: newPlan, updated_at: new Date().toISOString() }).eq('pi_payment_id', pi_payment_id);
+    if (updErr) return res.status(500).json({ success:false, error:updErr.message });
+    // If approved -> upgrade user
+    if (status === 'approved') {
+      const until = computePremiumUntil(newPlan || 'monthly');
+      const { error: userErr } = await supabase.from('users').update({ is_premium:true, premium_plan:newPlan, premium_until:until }).eq('id', payRow.user_id);
+      if (userErr) return res.status(500).json({ success:false, error:'User upgrade failed: '+userErr.message });
+      return res.json({ success:true, upgraded:true, premium_until: until, plan: newPlan });
+    }
+    return res.json({ success:true, updated:true, status });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Query latest payment state for a user (auto-upgrade if payment manually approved)
+app.get('/api/payments/latest', async (req, res) => {
+  const { pi_user_uid } = req.query;
+  if (!pi_user_uid) return res.status(400).json({ success:false, error:'Missing pi_user_uid' });
+  if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
+  try {
+    const { data: userRow, error: uErr } = await supabase
+      .from('users')
+      .select('id, is_premium, premium_plan, premium_until')
+      .eq('pi_user_uid', pi_user_uid)
+      .maybeSingle();
+    if (uErr || !userRow) return res.status(404).json({ success:false, error:'User not found' });
+    const { data: paymentsRows, error: pErr } = await supabase
+      .from('payments')
+      .select('id, pi_payment_id, amount, currency, plan_type, status, created_at, updated_at')
+      .eq('user_id', userRow.id)
+      .order('created_at', { ascending:false })
+      .limit(1);
+    if (pErr) return res.status(500).json({ success:false, error:pErr.message });
+    const latest = paymentsRows?.[0] || null;
+    let userUpgraded = false;
+    let premiumUntil = null;
+    if (latest && latest.status === 'approved') {
+      const needsUpgrade = !userRow.is_premium || userRow.premium_plan !== latest.plan_type;
+      if (needsUpgrade) {
+        premiumUntil = computePremiumUntil(latest.plan_type || 'monthly');
+        const { error: updErr } = await supabase.from('users').update({
+          is_premium: true,
+          premium_plan: latest.plan_type,
+          premium_until: premiumUntil
+        }).eq('id', userRow.id);
+        if (!updErr) userUpgraded = true;
+      }
+    }
+    return res.json({ success:true, payment: latest, userUpgraded, premium_until: premiumUntil });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
 
 // Inspect endpoint za ručno debugovanje payment objekta
 app.get('/api/payments/inspect/:paymentId', async (req, res) => {

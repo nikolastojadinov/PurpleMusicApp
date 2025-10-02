@@ -19,6 +19,10 @@ export default function ProfileDropdown() {
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
 
+  // New state for latest payment polling
+  const [latestPayment, setLatestPayment] = useState(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -31,6 +35,34 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Polling for latest payment status
+  useEffect(()=>{
+    let pollId;
+    async function pollLatest() {
+      if (!user) return;
+      try {
+        setCheckingPayment(true);
+        const apiAxios = (await import('../apiAxios')).default;
+        const resp = await apiAxios.get('/api/payments/latest', { params: { pi_user_uid: user.pi_user_uid }});
+        if (resp.data?.success) {
+          setLatestPayment(resp.data.payment || null);
+          if (resp.data.userUpgraded) {
+            // refresh user state from local storage fetch or simply mark premium true
+            const refreshed = { ...user, is_premium: true, premium_plan: resp.data.payment?.plan_type, premium_until: resp.data.premium_until };
+            window.localStorage.setItem('pm_user', JSON.stringify(refreshed));
+            updateUser(refreshed);
+          }
+        }
+      } catch(e) {
+        // ignore
+      } finally { setCheckingPayment(false); }
+    }
+    if (user) {
+      pollLatest();
+      pollId = setInterval(()=>{ pollLatest(); }, 15000); // every 15s while dropdown mounted
+    }
+    return ()=>{ if (pollId) clearInterval(pollId); };
+  }, [user]);
 
   const handlePiNetworkLogin = async () => {
     try {
@@ -52,10 +84,10 @@ export default function ProfileDropdown() {
   // Pi Network payment integration (Pi demo flow)
 
   const handleGoPremium = async () => {
-    if (processing) return;
-  setProcessing(true);
-  setPaymentStatus(null);
-  setPaymentError(null);
+    if (processing || hasPendingPayment) return;
+    setProcessing(true);
+    setPaymentStatus(null);
+    setPaymentError(null);
     if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); setProcessing(false); return; }
     if (!user) return;
 
@@ -233,6 +265,9 @@ export default function ProfileDropdown() {
       setIsOpen(false);
   };
 
+  const hasPendingPayment = !!latestPayment && latestPayment.status === 'pending';
+  const hasRejectedPayment = !!latestPayment && latestPayment.status === 'rejected';
+
   return (
     <div className="profile-dropdown" ref={dropdownRef}>
       {/* Profile Icon */}
@@ -309,18 +344,28 @@ export default function ProfileDropdown() {
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button
-                  onClick={()=>{ if(user) { setShowPremiumModal(true);} }}
-                  className={`dropdown-button premium${!user ? ' disabled' : ''}`}
-                  disabled={!user}
-                  title={!user ? 'Login required to upgrade to Premium' : ''}
-                  style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                  onClick={()=>{ if(user && !hasPendingPayment) { setShowPremiumModal(true);} }}
+                  className={`dropdown-button premium${!user || hasPendingPayment ? ' disabled' : ''}`}
+                  disabled={!user || hasPendingPayment}
+                  title={!user ? 'Login required to upgrade to Premium' : hasPendingPayment ? 'Payment pending confirmation' : hasRejectedPayment ? 'Previous payment failed, you can retry.' : ''}
+                  style={!user || hasPendingPayment ? {opacity:0.5, cursor:'not-allowed'} : hasRejectedPayment ? {borderColor:'#a33'} : {}}
                 >
                   <div className="button-icon premium-icon">⭐</div>
                   <div className="button-text">
-                    <div className="button-title">Go Premium</div>
-                    <div className="button-subtitle">Unlock all features</div>
+                    <div className="button-title">{hasPendingPayment ? 'Payment Pending…' : hasRejectedPayment ? 'Retry Premium Payment' : 'Go Premium'}</div>
+                    <div className="button-subtitle">{hasPendingPayment ? 'Awaiting confirmation' : hasRejectedPayment ? 'Previous attempt failed' : 'Unlock all features'}</div>
                   </div>
                 </button>
+                {hasPendingPayment && (
+                  <div style={{fontSize:11, color:'#ffa', textAlign:'center', lineHeight:1.4}}>
+                    Your previous payment is still pending. Please wait or check Pi app.
+                  </div>
+                )}
+                {hasRejectedPayment && (
+                  <div style={{fontSize:11, color:'#f88', textAlign:'center', lineHeight:1.4}}>
+                    Previous payment was rejected. You can try again now.
+                  </div>
+                )}
                 {user && (window.location.search.includes('pmDebug=1')) && (
                   <button
                     onClick={async ()=>{
