@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
@@ -256,64 +257,36 @@ export default function ProfileDropdown() {
 
 // Inline modal component (simplified)
 function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
+  if (!mounted) return null;
+  const root = document.getElementById('root') || document.body;
+  return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position:'fixed', inset:0, background:'rgba(0,0,0,0.55)',
-        backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        zIndex:99999, overflowY:'auto'
-      }}
+      role="dialog" aria-modal="true" onClick={onClose}
+      style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', zIndex:100000}}
     >
       <div
         onClick={e=>e.stopPropagation()}
         style={{
-          position:'absolute',
-          top:'calc(env(safe-area-inset-top, 0px) + 70px)',
-          left:'50%', transform:'translateX(-50%)',
-          width:'min(90vw,400px)', borderRadius:24,
-          background:'linear-gradient(145deg,#141414,#1f1f23)',
-          border:'1px solid #2e2e2e', boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
-          display:'flex', flexDirection:'column',
-          maxHeight:'calc(100vh - (env(safe-area-inset-top,0px) + 90px) - env(safe-area-inset-bottom,0px))',
-          overflow:'hidden'
+          position:'absolute', left:'50%', transform:'translateX(-50%)', top:'calc(env(safe-area-inset-top,0px) + 68px)',
+          width:'min(90vw,400px)', maxWidth:400, display:'flex', flexDirection:'column',
+          background:'linear-gradient(145deg,#141414,#1f1f23)', border:'1px solid #2e2e2e', borderRadius:24,
+          boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
+          maxHeight:'calc(80vh - env(safe-area-inset-bottom,0px))', overflow:'hidden'
         }}
       >
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            position:'absolute', top:10, right:10, width:38, height:38,
-            background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)',
-            color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center'
-          }}
-        >×</button>
+        <button onClick={onClose} aria-label="Close" style={{position:'absolute', top:10, right:10, width:38, height:38, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
         <div style={{padding:'30px 26px 20px', overflowY:'auto', flex:1, minHeight:0}}>
           <h3 style={{margin:0, fontSize:24, fontWeight:700, textAlign:'center', letterSpacing:.5, background:'linear-gradient(90deg,#fff,#d1d1d1)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Choose Your Plan</h3>
           <div style={{marginTop:20, display:'flex', flexDirection:'column', gap:14}}>
             {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
               const active = key === selectedPlan;
               return (
-                <button
-                  key={key}
-                  onClick={()=>setSelectedPlan(key)}
-                  style={{
-                    display:'flex', justifyContent:'space-between', alignItems:'center',
-                    padding:'15px 16px', borderRadius:16,
-                    border:active?'2px solid #1db954':'1px solid #2e2e2e',
-                    background: active ? 'linear-gradient(135deg,#1db95433,#1db95411)' : '#181818',
-                    cursor:'pointer', transition:'all .25s',
-                    boxShadow: active ? '0 0 0 1px #1db95455, 0 4px 18px -6px rgba(0,0,0,0.6)' : '0 2px 10px -4px rgba(0,0,0,0.5)'
-                  }}
-                >
+                <button key={key} onClick={()=>setSelectedPlan(key)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'15px 16px', borderRadius:16, border:active?'2px solid #1db954':'1px solid #2e2e2e', background: active ? 'linear-gradient(135deg,#1db95433,#1db95411)' : '#181818', cursor:'pointer', transition:'all .25s', boxShadow: active ? '0 0 0 1px #1db95455, 0 4px 18px -6px rgba(0,0,0,0.6)' : '0 2px 10px -4px rgba(0,0,0,0.5)'}}>
                   <div style={{textAlign:'left'}}>
                     <div style={{fontWeight:600,fontSize:15,textTransform:'capitalize'}}>{key} Plan</div>
-                    <div style={{fontSize:12,opacity:.7}}>
-                      {key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}
-                    </div>
+                    <div style={{fontSize:12,opacity:.7}}>{key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}</div>
                   </div>
                   <div style={{fontWeight:700,fontSize:15}}>{plan.amount}π</div>
                 </button>
@@ -322,23 +295,13 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
           </div>
         </div>
         <div style={{padding:'16px 24px 24px', borderTop:'1px solid #262626', display:'flex', flexDirection:'column', gap:12, background:'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))'}}>
-          <button
-            disabled={processing}
-            onClick={onConfirm}
-            style={{
-              width:'100%', background: processing ? '#1db95488' : 'linear-gradient(135deg,#1db954,#169943)',
-              color:'#fff', padding:'14px 18px', border:'none', borderRadius:16,
-              fontWeight:700, letterSpacing:.5, fontSize:15, cursor:processing?'wait':'pointer',
-              boxShadow:'0 6px 18px -6px rgba(0,0,0,0.55)'
-            }}
-          >
+          <button disabled={processing} onClick={onConfirm} style={{width:'100%', background: processing ? '#1db95488' : 'linear-gradient(135deg,#1db954,#169943)', color:'#fff', padding:'14px 18px', border:'none', borderRadius:16, fontWeight:700, letterSpacing:.5, fontSize:15, cursor:processing?'wait':'pointer', boxShadow:'0 6px 18px -6px rgba(0,0,0,0.55)'}}>
             {processing ? 'Processing…' : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
           </button>
-          <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>
-            Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.
-          </div>
+          <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.</div>
         </div>
       </div>
-    </div>
+    </div>,
+    root
   );
 }
