@@ -17,30 +17,33 @@ import AuthIntroOverlay from './components/AuthIntroOverlay';
 import AuthModal from './components/AuthModal';
 // ...existing code...
 import './index.css';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 function App() {
   return (
     <AuthProvider>
       <GlobalModalProvider>
-        <div className="app">
-          <Router>
-            <Header />
-            <main className="main-content">
-              <Routes>
-                <Route path="/" element={<HomeScreen />} />
-                <Route path="/search" element={<SearchScreen />} />
-                <Route path="/liked" element={<LikedSongsScreen />} />
-                <Route path="/playlists" element={<PlaylistsScreen />} />
-                <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
-                <Route path="/profile" element={<ViewProfileScreen />} />
-              </Routes>
-            </main>
-            <BottomNavigation />
-            {/* Global overlays */}
-            <AuthIntroOverlay />
-            <AuthModal />
-          </Router>
-        </div>
+        <ErrorBoundary>
+          <div className="app">
+            <Router>
+              <Header />
+              <main className="main-content">
+                <Routes>
+                  <Route path="/" element={<HomeScreen />} />
+                  <Route path="/search" element={<SearchScreen />} />
+                  <Route path="/liked" element={<LikedSongsScreen />} />
+                  <Route path="/playlists" element={<PlaylistsScreen />} />
+                  <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
+                  <Route path="/profile" element={<ViewProfileScreen />} />
+                </Routes>
+              </main>
+              <BottomNavigation />
+              {/* Global overlays */}
+              <AuthIntroOverlay />
+              <AuthModal />
+            </Router>
+          </div>
+        </ErrorBoundary>
       </GlobalModalProvider>
     </AuthProvider>
   );

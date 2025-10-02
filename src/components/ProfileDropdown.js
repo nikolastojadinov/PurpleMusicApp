@@ -278,14 +278,23 @@ export default function ProfileDropdown() {
           setSelectedPlan={setSelectedPlan}
           onConfirm={handleGoPremium}
           processing={processing}
+          paymentStatus={paymentStatus}
         />
+      )}
+      {processing && showPremiumModal && (
+        <div className="pm-payment-overlay" role="alert" aria-live="assertive">
+          <div className="pm-spinner" />
+          <div className="pm-payment-msg">
+            {paymentStatus === 'approving' ? 'Authorizing payment…' : paymentStatus === 'completing' ? 'Finalizing transaction…' : paymentStatus === 'done' ? 'Activated!' : 'Starting payment…'}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 // Inline modal component (simplified)
-function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing }) {
+function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing, paymentStatus }) {
   const [mounted, setMounted] = useState(false);
   useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
   if (!mounted) return null;
