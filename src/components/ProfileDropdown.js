@@ -260,20 +260,22 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
     <div
       role="dialog"
       aria-modal="true"
+      onClick={onClose}
       style={{
-        position:'fixed', inset:0, background:'rgba(0,0,0,0.6)',
+        position:'fixed', inset:0, background:'rgba(0,0,0,0.55)',
         backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        zIndex:99999, padding:'clamp(12px,4vh,40px)'
+        zIndex:99999
       }}
     >
       <div
+        onClick={e=>e.stopPropagation()}
         style={{
-          width:'100%', maxWidth:400, borderRadius:24,
+          position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
+          width:'min(90vw,400px)', borderRadius:24,
           background:'linear-gradient(145deg,#141414,#1f1f23)',
           border:'1px solid #2e2e2e', boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
-          display:'flex', flexDirection:'column', position:'relative',
-          maxHeight:'calc(100vh - 80px)', overflow:'hidden'
+          display:'flex', flexDirection:'column', position:'fixed',
+          maxHeight:'80vh', overflow:'hidden'
         }}
       >
         <button
@@ -286,7 +288,7 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
             display:'flex', alignItems:'center', justifyContent:'center'
           }}
         >×</button>
-        <div style={{padding:'30px 26px 20px', overflowY:'auto', flex:1}}>
+        <div style={{padding:'30px 26px 20px', overflowY:'auto', flex:1, minHeight:0}}>
           <h3 style={{margin:0, fontSize:24, fontWeight:700, textAlign:'center', letterSpacing:.5, background:'linear-gradient(90deg,#fff,#d1d1d1)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Choose Your Plan</h3>
           <div style={{marginTop:20, display:'flex', flexDirection:'column', gap:14}}>
             {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
