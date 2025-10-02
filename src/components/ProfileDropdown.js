@@ -12,6 +12,7 @@ export default function ProfileDropdown() {
   // State for selecting plan
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null); // 'approving' | 'completing' | 'done' | 'error'
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
@@ -49,8 +50,10 @@ export default function ProfileDropdown() {
   // Pi Network payment integration (Pi demo flow)
 
   const handleGoPremium = async () => {
+    if (processing) return;
     setProcessing(true);
-    if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); return; }
+    setPaymentStatus(null);
+    if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); setProcessing(false); return; }
     if (!user) return;
     const plan = PREMIUM_PLANS[selectedPlan];
     if (!plan) { show('Invalid plan selected', { type:'error', autoClose:2500 }); return; }
@@ -62,6 +65,7 @@ export default function ProfileDropdown() {
 
     // Callback: kada je payment spreman za server approval
     const onReadyForServerApproval = async (paymentId) => {
+      setPaymentStatus('approving');
       try {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
@@ -86,43 +90,68 @@ export default function ProfileDropdown() {
 
     // Callback: kada je payment završen (client dobije txid) => server complete
     const onReadyForServerCompletion = async (paymentId, txid) => {
+      setPaymentStatus('completing');
       try {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
-          // DB activation (includes premium_plan & premium_until)
+          // Prefer server-returned user row (already includes plan & until). Fallback to activatePremium if missing.
           try {
-            const activated = await activatePremium({ userId: user.id, planKey: selectedPlan });
+            let activated = response.data.user;
+            if (!activated) {
+              activated = await activatePremium({ userId: user.id, planKey: selectedPlan });
+            }
             window.localStorage.setItem('pm_user', JSON.stringify(activated));
             updateUser(activated);
             show('Premium activated!', { type:'success', autoClose:2200 });
+            setPaymentStatus('done');
+            setTimeout(()=>{ setShowPremiumModal(false); }, 400);
           } catch (e) {
-            console.error('Activation failed:', e);
+            console.error('Activation finalize failed:', e);
+            setPaymentStatus('error');
             show('Activation save failed', { type:'error', autoClose:3200 });
           }
         } else {
           console.warn('[COMPLETE FAIL]', response.data);
+          setPaymentStatus('error');
+          setProcessing(false);
         }
       } catch (err) {
         console.error('[COMPLETE EXCEPTION]', err);
+        setPaymentStatus('error');
+        setProcessing(false);
       }
     };
 
     // Callback: otkazano
-    const onCancel = (paymentId) => {};
+    const onCancel = (paymentId) => {
+      setProcessing(false);
+      setPaymentStatus(null);
+    };
 
     // Callback: greška
-    const onError = (error, payment) => {};
+    const onError = (error, payment) => {
+      console.error('[PAYMENT ERROR]', error, payment);
+      setProcessing(false);
+      setPaymentStatus('error');
+      show('Payment error. Please try again.', { type:'error', autoClose:3000 });
+    };
 
-    window.Pi.createPayment(paymentData, {
-      onReadyForServerApproval,
-      onReadyForServerCompletion,
-      onCancel,
-      onError,
-    });
-    setIsOpen(false);
-    setShowPremiumModal(false);
-    setProcessing(false);
+    try {
+      window.Pi.createPayment(paymentData, {
+        onReadyForServerApproval,
+        onReadyForServerCompletion,
+        onCancel,
+        onError,
+      });
+      // Keep modal open & processing state until callbacks advance.
+      setIsOpen(false);
+    } catch (e) {
+      console.error('createPayment threw synchronously:', e);
+      setProcessing(false);
+      setPaymentStatus('error');
+      show('Failed to start payment', { type:'error', autoClose:3000 });
+    }
   };
 
   const handleViewProfile = () => {
@@ -296,8 +325,15 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
         </div>
         <div style={{padding:'16px 24px 24px', borderTop:'1px solid #262626', display:'flex', flexDirection:'column', gap:12, background:'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))'}}>
           <button disabled={processing} onClick={onConfirm} style={{width:'100%', background: processing ? '#1db95488' : 'linear-gradient(135deg,#1db954,#169943)', color:'#fff', padding:'14px 18px', border:'none', borderRadius:16, fontWeight:700, letterSpacing:.5, fontSize:15, cursor:processing?'wait':'pointer', boxShadow:'0 6px 18px -6px rgba(0,0,0,0.55)'}}>
-            {processing ? 'Processing…' : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
+            {processing ? (
+              paymentStatus === 'approving' ? 'Authorizing…' :
+              paymentStatus === 'completing' ? 'Finalizing…' :
+              paymentStatus === 'done' ? 'Activated!' : 'Processing…'
+            ) : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
           </button>
+          {!processing && paymentStatus==='error' && (
+            <div style={{fontSize:12, color:'#f88', textAlign:'center'}}>Payment failed. You can retry.</div>
+          )}
           <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.</div>
         </div>
       </div>
