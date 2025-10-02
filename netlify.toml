@@ -14,23 +14,26 @@
   SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ma2Z5Z3FyZmVuY3R6aXRpZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2NjgwMjcsImV4cCI6MjA3MzI0NDAyN30.-GFl3-IncJ7hno_LHE5jtCOe_HI07nxwiq3aaISHolo"
   REACT_APP_API_URL = "https://purplemusicapp.onrender.com" # Frissítsd a Render deploy URL-re
 
+# Redirects for static legal documents and friendly short paths
 [[redirects]]
   from = "/validation-key.txt"
   to = "/validation-key.txt"
   status = 200
 
+# Friendly direct HTML filenames (no need for self-redirects, Netlify serves existing files automatically)
+# Add extension-less & alternative paths:
 [[redirects]]
-  from = "/privacy-policy.html"
+  from = "/privacy"
   to = "/privacy-policy.html"
   status = 200
 
 [[redirects]]
-  from = "/terms-of-service.html"
-  to = "/terms-of-service.html"
+  from = "/legal/privacy"
+  to = "/privacy-policy.html"
   status = 200
 
 [[redirects]]
-  from = "/privacy"
+  from = "/policy-privacy"
   to = "/privacy-policy.html"
   status = 200
 
@@ -40,16 +43,22 @@
   status = 200
 
 [[redirects]]
-  from = "/legal/privacy"
-  to = "/privacy-policy.html"
-  status = 200
-
-[[redirects]]
   from = "/legal/terms"
   to = "/terms-of-service.html"
   status = 200
 
 [[redirects]]
+  from = "/terms-of-service"
+  to = "/terms-of-service.html"
+  status = 200
+
+# SPA fallback (must remain last)
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Notes:
+# - Removed redundant self-redirects for /privacy-policy.html and /terms-of-service.html
+# - Added /policy-privacy and extension-less /terms-of-service paths as requested
+# - Existing physical files in public/ are served directly
