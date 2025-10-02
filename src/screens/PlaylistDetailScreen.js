@@ -1,4 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
+// Helper: auto-resize textarea height to fit content (multi-line playlist name)
+function autoResize(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 320) + 'px';
+}
 // Unified: use same loader as global SearchScreen so results are guaranteed even if DB Music table is empty
 import { loadMusicLibrary } from '../services/libraryLoader';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
@@ -20,8 +26,9 @@ export default function PlaylistDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [musicLibrary, setMusicLibrary] = useState([]); // full library loaded from storage / known list
   const [modalOpen, setModalOpen] = useState(false);
-  const [updatingName, setUpdatingName] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const renameRef = useRef(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -142,8 +149,8 @@ export default function PlaylistDetailScreen() {
 
   // Update playlist name
   const handleSaveName = async () => {
-    if (!newName.trim() || !playlist) return setUpdatingName(false);
-    if (newName.trim() === playlist.name) return setUpdatingName(false);
+    if (!newName.trim() || !playlist) return setRenameOpen(false);
+    if (newName.trim() === playlist.name) return setRenameOpen(false);
     if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_RENAME] updating id:', playlistId, 'newName:', newName.trim());
     const { data, error } = await supabase
       .from('playlists')
@@ -163,16 +170,15 @@ export default function PlaylistDetailScreen() {
   setPlaylist(normalizedAfterRename);
       show('Ime playliste sačuvano.', { type: 'success', autoClose: 2000 });
     }
-    setUpdatingName(false);
+    setRenameOpen(false);
   };
 
   const startEditName = () => {
     setNewName(playlist?.name || '');
-    setUpdatingName(true);
-    setTimeout(() => {
-      const input = document.getElementById('playlist-name-input');
-      if (input) input.focus();
-    }, 50);
+    setRenameOpen(true);
+    setTimeout(()=>{
+      if (renameRef.current) renameRef.current.focus();
+    }, 40);
   };
 
   const handleCoverClick = () => fileInputRef.current?.click();
@@ -248,22 +254,14 @@ export default function PlaylistDetailScreen() {
         <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleCoverChange} />
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-            {updatingName ? (
-              <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:220}}>
-                <input id="playlist-name-input" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') handleSaveName(); if(e.key==='Escape') setUpdatingName(false); }} style={{fontSize:'1.9rem',fontWeight:'bold',padding:'4px 10px',borderRadius:8,border:'1px solid #555',flex:1,background:'#111',color:'#fff'}} />
-                <button onClick={handleSaveName} style={{padding:'8px 14px',background:'#1db954',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600}}>Save</button>
-                <button onClick={()=>setUpdatingName(false)} style={{padding:'8px 14px',background:'transparent',color:'#bbb',border:'1px solid #444',borderRadius:8,cursor:'pointer',fontWeight:500}}>Cancel</button>
-              </div>
-            ) : (
-              <div>
-                <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
-                {playlist.lastUpdated && (
-                  <div style={{fontSize:12,color:'#888'}}>Updated: {new Date(playlist.lastUpdated).toLocaleString()}</div>
-                )}
-              </div>
-            )}
+            <div>
+              <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
+              {playlist.lastUpdated && (
+                <div style={{fontSize:12,color:'#888'}}>Updated: {new Date(playlist.lastUpdated).toLocaleString()}</div>
+              )}
+            </div>
           </div>
-          {!updatingName && (
+          {(
             <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:10}}>
               <button onClick={startEditName} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Rename</button>
               <button onClick={handleCoverClick} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Change Cover</button>
@@ -321,6 +319,25 @@ export default function PlaylistDetailScreen() {
                   No results.
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {renameOpen && (
+        <div style={{position:'fixed',inset:0,zIndex:10050,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)'}} role="dialog" aria-modal="true" onClick={()=>setRenameOpen(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'min(92vw,560px)',maxWidth:560,background:'#161616',border:'1px solid #2a2a2a',borderRadius:26,padding:'2rem 1.75rem 1.9rem',boxShadow:'0 20px 55px -18px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.05)'}}>
+            <h3 style={{margin:0,fontSize:22,fontWeight:600,textAlign:'center',letterSpacing:.4}}>Rename Playlist</h3>
+            <p style={{margin:'0.75rem 0 1.25rem',fontSize:13,lineHeight:1.5,color:'#999',textAlign:'center'}}>Enter a descriptive name. It can wrap to multiple lines and will be truncated gracefully elsewhere.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              <textarea ref={renameRef} value={newName} onChange={e=>{ setNewName(e.target.value.slice(0,160)); autoResize(renameRef.current); }} onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) { handleSaveName(); } if(e.key==='Escape'){ setRenameOpen(false);} }} style={{resize:'none',overflow:'hidden',width:'100%',background:'#0f0f0f',color:'#fff',border:'1px solid #333',borderRadius:18,padding:'14px 16px',fontSize:20,fontWeight:600,lineHeight:1.2,letterSpacing:.3,boxShadow:'0 4px 18px -6px rgba(0,0,0,0.6)'}} placeholder="Playlist name" rows={1} />
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'0 4px'}}>
+                <span>{newName.length}/160</span>
+                <span>Press Cmd/Ctrl+Enter to save</span>
+              </div>
+              <div style={{display:'flex',gap:14,marginTop:4}}>
+                <button onClick={()=>setRenameOpen(false)} style={{flex:1,background:'linear-gradient(135deg,#2a2a2a,#202020)',color:'#bbb',border:'1px solid #333',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:600,cursor:'pointer'}}>Cancel</button>
+                <button disabled={!newName.trim() || newName.trim()===playlist.name} onClick={handleSaveName} style={{flex:1,background: (!newName.trim()|| newName.trim()===playlist.name)?'linear-gradient(135deg,#1db95455,#16994344)':'linear-gradient(135deg,#1db954,#169943)',color:'#fff',border:'none',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:700,cursor:(!newName.trim()|| newName.trim()===playlist.name)?'not-allowed':'pointer',boxShadow:'0 8px 24px -10px rgba(0,0,0,0.6)'}}>Save</button>
+              </div>
             </div>
           </div>
         </div>
