@@ -23,6 +23,34 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Helper: safe update for users table that attempts to set updated_at if column exists
+async function safeUserUpdate(filter, patch, selectCols = 'id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at, updated_at') {
+  if (!supabase) return { data: null, error: new Error('Supabase not initialized') };
+  const nowIso = new Date().toISOString();
+  // Attempt with updated_at
+  try {
+    let query = supabase.from('users').update({ ...patch, updated_at: nowIso });
+    Object.entries(filter).forEach(([k, v]) => { query = query.eq(k, v); });
+    const { data, error } = await query.select(selectCols).maybeSingle();
+    if (error) throw error;
+    return { data, error: null };
+  } catch (e) {
+    // If column missing, retry without it
+    if (/updated_at/gi.test(e.message || '')) {
+      try {
+        let query2 = supabase.from('users').update(patch);
+        Object.entries(filter).forEach(([k, v]) => { query2 = query2.eq(k, v); });
+        const { data, error: e2 } = await query2.select(selectCols.replace(/,?\s*updated_at\b/g,'')).maybeSingle();
+        if (e2) throw e2;
+        return { data, error: null };
+      } catch (inner) {
+        return { data: null, error: inner };
+      }
+    }
+    return { data: null, error: e };
+  }
+}
+
 
 app.post('/api/verify-login', verifyLogin);
 
@@ -47,12 +75,7 @@ app.post('/api/premium/reset', async (req, res) => {
   if (!user_id) return res.status(400).json({ success:false, error:'Missing user_id' });
   if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ is_premium: false, premium_until: null, premium_plan: null })
-      .eq('id', user_id)
-      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
-      .single();
+    const { data, error } = await safeUserUpdate({ id: user_id }, { is_premium: false, premium_until: null, premium_plan: null });
     if (error) return res.status(500).json({ success:false, error:error.message });
     return res.json({ success:true, user:data });
   } catch (e) {
@@ -68,17 +91,12 @@ app.post('/api/premium/refresh', async (req, res) => {
   try {
     const { data: userRow, error: fetchErr } = await supabase
       .from('users')
-      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
+      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at, updated_at')
       .eq('id', user_id)
       .single();
     if (fetchErr) return res.status(500).json({ success:false, error:fetchErr.message });
     if (userRow?.is_premium && userRow?.premium_until && new Date(userRow.premium_until) <= new Date()) {
-      const { data: resetRow, error: updErr } = await supabase
-        .from('users')
-        .update({ is_premium:false, premium_plan:null, premium_until:null })
-        .eq('id', user_id)
-        .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
-        .single();
+      const { data: resetRow, error: updErr } = await safeUserUpdate({ id: user_id }, { is_premium:false, premium_plan:null, premium_until:null });
       if (updErr) return res.status(500).json({ success:false, error:updErr.message });
       return res.json({ success:true, user: resetRow, reset:true });
     }
@@ -151,16 +169,13 @@ app.post('/api/verify-payment', async (req, res) => {
       }
       const plan = payment.metadata?.plan || 'monthly';
       const premium_until = computePremiumUntil(plan);
-      const { error } = await supabase
-        .from('users')
-        .update({ is_premium: true, premium_plan: plan, premium_until })
-        .eq('pi_user_uid', pi_user_uid);
-      if (error) {
-        console.error('[verify-payment] Supabase update error:', error.message);
-        return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message });
+      const { data: updatedUser, error: updErr } = await safeUserUpdate({ pi_user_uid }, { is_premium: true, premium_plan: plan, premium_until });
+      if (updErr) {
+        console.error('[verify-payment] Supabase update error:', updErr.message);
+        return res.status(500).json({ success: false, error: 'Supabase update error: ' + updErr.message });
       }
       console.log('[verify-payment] PREMIUM ACTIVATED for', pi_user_uid, 'plan=', plan, 'until=', premium_until, 'in', Date.now() - startedAt, 'ms');
-      return res.json({ success: true, paymentStatus: payment.status, plan, premium_until });
+      return res.json({ success: true, paymentStatus: payment.status, plan, premium_until, user: updatedUser });
     }
 
     console.warn('[verify-payment] Payment not completed or invalid metadata', {
@@ -307,12 +322,7 @@ async function completeHandler(req, res) {
     }
     const plan = payment.metadata?.plan || 'monthly';
     const premium_until = computePremiumUntil(plan);
-    const { data: updatedUser, error } = await supabase
-      .from('users')
-      .update({ is_premium: true, premium_plan: plan, premium_until })
-      .eq('pi_user_uid', pi_user_uid)
-      .select('id, pi_user_uid, username, is_premium, premium_plan, premium_until')
-      .single();
+    const { data: updatedUser, error } = await safeUserUpdate({ pi_user_uid }, { is_premium: true, premium_plan: plan, premium_until }, 'id, pi_user_uid, username, wallet_address, is_premium, premium_plan, premium_until, created_at, updated_at');
     if (error) {
       return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message, code: 'SUPABASE_UPDATE' });
     }
