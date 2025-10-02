@@ -264,18 +264,21 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
       style={{
         position:'fixed', inset:0, background:'rgba(0,0,0,0.55)',
         backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        zIndex:99999
+        zIndex:99999, overflowY:'auto'
       }}
     >
       <div
         onClick={e=>e.stopPropagation()}
         style={{
-          position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
+          position:'absolute',
+          top:'calc(env(safe-area-inset-top, 0px) + 70px)',
+          left:'50%', transform:'translateX(-50%)',
           width:'min(90vw,400px)', borderRadius:24,
           background:'linear-gradient(145deg,#141414,#1f1f23)',
           border:'1px solid #2e2e2e', boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
-          display:'flex', flexDirection:'column', position:'fixed',
-          maxHeight:'80vh', overflow:'hidden'
+          display:'flex', flexDirection:'column',
+          maxHeight:'calc(100vh - (env(safe-area-inset-top,0px) + 90px) - env(safe-area-inset-bottom,0px))',
+          overflow:'hidden'
         }}
       >
         <button
