@@ -21,27 +21,25 @@
   status = 200
 
 # Friendly direct HTML filenames (no need for self-redirects, Netlify serves existing files automatically)
-# Add extension-less & alternative paths:
 [[redirects]]
   from = "/privacy"
-  to = "/privacy-policy.html"
+  to = "/policy-privacy.html"
   status = 200
 
 [[redirects]]
   from = "/legal/privacy"
-  to = "/privacy-policy.html"
+  to = "/policy-privacy.html"
   status = 200
 
 [[redirects]]
   from = "/policy-privacy"
-  to = "/privacy-policy.html"
+  to = "/policy-privacy.html"
   status = 200
 
-# NEW alias with .html requested by user
 [[redirects]]
-  from = "/policy-privacy.html"
-  to = "/privacy-policy.html"
-  status = 200
+  from = "/privacy-policy.html"
+  to = "/policy-privacy.html"
+  status = 301
 
 [[redirects]]
   from = "/terms"
@@ -65,6 +63,7 @@
   status = 200
 
 # Notes:
-# - Added /policy-privacy.html redirect so that URL works
-# - Existing physical files in public/ are served directly
-# - You can switch status=301 later if you prefer a visible redirect
+# - Created physical file policy-privacy.html with original content
+# - Redirect old /privacy-policy.html to new canonical /policy-privacy.html (301)
+# - Extension-less + legacy aliases now point to policy-privacy.html
+# - Terms unchanged
