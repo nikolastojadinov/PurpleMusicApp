@@ -9,6 +9,8 @@ export default function ProfileDropdown() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   // State for selecting plan
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
@@ -46,6 +48,7 @@ export default function ProfileDropdown() {
   // Pi Network payment integration (Pi demo flow)
 
   const handleGoPremium = async () => {
+    setProcessing(true);
     if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); return; }
     if (!user) return;
     const plan = PREMIUM_PLANS[selectedPlan];
@@ -117,6 +120,8 @@ export default function ProfileDropdown() {
       onError,
     });
     setIsOpen(false);
+    setShowPremiumModal(false);
+    setProcessing(false);
   };
 
   const handleViewProfile = () => {
@@ -205,16 +210,8 @@ export default function ProfileDropdown() {
               </button>
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <div style={{display:'flex',gap:6,justifyContent:'space-between'}}>
-                  {Object.entries(PREMIUM_PLANS).map(([key, plan]) => (
-                    <button key={key} onClick={()=>setSelectedPlan(key)} style={{flex:1,padding:'10px 8px',borderRadius:10,border:key===selectedPlan?'2px solid #fff':'1px solid #444',background:key===selectedPlan?'#1db954':'transparent',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',flexDirection:'column',gap:4}}>
-                      <span style={{textTransform:'capitalize'}}>{key}</span>
-                      <span style={{fontSize:11,opacity:.8}}>{plan.amount}π</span>
-                    </button>
-                  ))}
-                </div>
                 <button
-                  onClick={user ? handleGoPremium : undefined}
+                  onClick={()=>{ if(user) { setShowPremiumModal(true);} }}
                   className={`dropdown-button premium${!user ? ' disabled' : ''}`}
                   disabled={!user}
                   title={!user ? 'Login required to upgrade to Premium' : ''}
@@ -222,11 +219,10 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon premium-icon">⭐</div>
                   <div className="button-text">
-                    <div className="button-title">Activate {selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} – {PREMIUM_PLANS[selectedPlan].amount}π</div>
-                    <div className="button-subtitle">Full access • Auto-expire</div>
+                    <div className="button-title">Go Premium</div>
+                    <div className="button-subtitle">Unlock all features</div>
                   </div>
                 </button>
-                {/* Admin/Debug Reset (visible if ?pmDebug=1 or localStorage flag) */}
                 {user && (window.location.search.includes('pmDebug=1')) && (
                   <button
                     onClick={async ()=>{
@@ -236,7 +232,7 @@ export default function ProfileDropdown() {
                         updateUser(updated);
                       } catch(e) { console.error('Reset failed', e); }
                     }}
-                    style={{marginTop:4, background:'transparent', border:'1px solid #933', color:'#f88', padding:'8px 12px', borderRadius:10, fontSize:12, cursor:'pointer'}}
+                    style={{background:'transparent', border:'1px solid #933', color:'#f88', padding:'8px 12px', borderRadius:10, fontSize:12, cursor:'pointer'}}
                     title="Force reset premium status"
                   >Force Premium Reset</button>
                 )}
@@ -245,6 +241,45 @@ export default function ProfileDropdown() {
           </div>
         </div>
       )}
+      {showPremiumModal && user && (
+        <PremiumPlansModal
+          onClose={()=>setShowPremiumModal(false)}
+          selectedPlan={selectedPlan}
+          setSelectedPlan={setSelectedPlan}
+          onConfirm={handleGoPremium}
+          processing={processing}
+        />
+      )}
+    </div>
+  );
+}
+
+// Inline modal component (simplified)
+function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing }) {
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:99999,padding:'20px'}}>
+      <div style={{background:'#111',border:'1px solid #333',borderRadius:20,padding:'28px 24px',width:'100%',maxWidth:420,position:'relative'}}>
+        <button onClick={onClose} style={{position:'absolute',top:10,right:12,background:'transparent',border:'none',color:'#aaa',fontSize:24,cursor:'pointer'}}>×</button>
+        <h3 style={{margin:'0 0 18px',fontSize:22,fontWeight:600,textAlign:'center'}}>Choose Your Plan</h3>
+        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
+          {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
+            const active = key === selectedPlan;
+            return (
+              <button key={key} onClick={()=>setSelectedPlan(key)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 16px',borderRadius:14,border:active?'2px solid #1db954':'1px solid #333',background:active?'#1db95422':'#1a1a1a',cursor:'pointer'}}>
+                <div style={{textAlign:'left'}}>
+                  <div style={{fontWeight:600,fontSize:15,textTransform:'capitalize'}}>{key} Plan</div>
+                  <div style={{fontSize:12,opacity:.7}}>{key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}</div>
+                </div>
+                <div style={{fontWeight:700,fontSize:15}}>{plan.amount}π</div>
+              </button>
+            );
+          })}
+        </div>
+        <button disabled={processing} onClick={onConfirm} style={{width:'100%',background:'#1db954',color:'#fff',padding:'14px 18px',border:'none',borderRadius:14,fontWeight:700,letterSpacing:.5,fontSize:15,cursor:processing?'wait':'pointer'}}>
+          {processing ? 'Processing…' : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
+        </button>
+        <div style={{marginTop:14,fontSize:11,opacity:.55,textAlign:'center'}}>Your Pi wallet will be used for this one-time premium activation. Auto-expire applies.</div>
+      </div>
     </div>
   );
 }

@@ -26,6 +26,21 @@ app.use(bodyParser.json());
 
 app.post('/api/verify-login', verifyLogin);
 
+// Helper to compute premium expiration based on plan key
+function computePremiumUntil(plan) {
+  const now = new Date();
+  switch (plan) {
+    case 'weekly':
+      now.setDate(now.getDate() + 7); break;
+    case 'yearly':
+      now.setFullYear(now.getFullYear() + 1); break;
+    case 'monthly':
+    default:
+      now.setMonth(now.getMonth() + 1); break;
+  }
+  return now.toISOString();
+}
+
 // Premium reset endpoint (admin/debug)
 app.post('/api/premium/reset', async (req, res) => {
   const { user_id } = req.body || {};
@@ -45,7 +60,35 @@ app.post('/api/premium/reset', async (req, res) => {
   }
 });
 
-// Pi Network payment verification endpoint
+// Premium refresh endpoint: resets expired premium server-side (idempotent)
+app.post('/api/premium/refresh', async (req, res) => {
+  const { user_id } = req.body || {};
+  if (!user_id) return res.status(400).json({ success:false, error:'Missing user_id' });
+  if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
+  try {
+    const { data: userRow, error: fetchErr } = await supabase
+      .from('users')
+      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
+      .eq('id', user_id)
+      .single();
+    if (fetchErr) return res.status(500).json({ success:false, error:fetchErr.message });
+    if (userRow?.is_premium && userRow?.premium_until && new Date(userRow.premium_until) <= new Date()) {
+      const { data: resetRow, error: updErr } = await supabase
+        .from('users')
+        .update({ is_premium:false, premium_plan:null, premium_until:null })
+        .eq('id', user_id)
+        .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
+        .single();
+      if (updErr) return res.status(500).json({ success:false, error:updErr.message });
+      return res.json({ success:true, user: resetRow, reset:true });
+    }
+    return res.json({ success:true, user: userRow, reset:false });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Pi Network payment verification endpoint (legacy single-shot flow)
 app.post('/api/verify-payment', async (req, res) => {
   const startedAt = Date.now();
   // Debug: ulazni payload (sanitized)
@@ -106,16 +149,18 @@ app.post('/api/verify-payment', async (req, res) => {
       if (!supabase) {
         return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)' });
       }
+      const plan = payment.metadata?.plan || 'monthly';
+      const premium_until = computePremiumUntil(plan);
       const { error } = await supabase
         .from('users')
-        .update({ is_premium: true })
+        .update({ is_premium: true, premium_plan: plan, premium_until })
         .eq('pi_user_uid', pi_user_uid);
       if (error) {
         console.error('[verify-payment] Supabase update error:', error.message);
         return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message });
       }
-      console.log('[verify-payment] PREMIUM ACTIVATED for', pi_user_uid, 'in', Date.now() - startedAt, 'ms');
-      return res.json({ success: true, paymentStatus: payment.status });
+      console.log('[verify-payment] PREMIUM ACTIVATED for', pi_user_uid, 'plan=', plan, 'until=', premium_until, 'in', Date.now() - startedAt, 'ms');
+      return res.json({ success: true, paymentStatus: payment.status, plan, premium_until });
     }
 
     console.warn('[verify-payment] Payment not completed or invalid metadata', {
@@ -260,15 +305,19 @@ async function completeHandler(req, res) {
     if (!supabase) {
       return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)', code: 'NO_SUPABASE' });
     }
-    const { error } = await supabase
+    const plan = payment.metadata?.plan || 'monthly';
+    const premium_until = computePremiumUntil(plan);
+    const { data: updatedUser, error } = await supabase
       .from('users')
-      .update({ is_premium: true })
-      .eq('pi_user_uid', pi_user_uid);
+      .update({ is_premium: true, premium_plan: plan, premium_until })
+      .eq('pi_user_uid', pi_user_uid)
+      .select('id, pi_user_uid, username, is_premium, premium_plan, premium_until')
+      .single();
     if (error) {
       return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message, code: 'SUPABASE_UPDATE' });
     }
-    if (debug) console.log('[complete] premium activated for', pi_user_uid, 'paymentId=', paymentId);
-    return res.json({ success: true, status: 'completed', paymentId, txid });
+    if (debug) console.log('[complete] premium activated for', pi_user_uid, 'plan=', plan, 'until=', premium_until, 'paymentId=', paymentId);
+    return res.json({ success: true, status: 'completed', paymentId, txid, plan, premium_until, user: updatedUser });
   } catch (err) {
     const status = err?.response?.status;
     const data = err?.response?.data;
