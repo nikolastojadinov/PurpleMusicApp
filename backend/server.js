@@ -383,9 +383,9 @@ async function completeHandler(req, res) {
     if (error) {
       return res.status(500).json({ success: false, error: 'Supabase update error: ' + error.message, code: 'SUPABASE_UPDATE' });
     }
-    // Update payments row -> approved
+    // Update payments row -> approved + store txid
     try {
-      await supabase.from('payments').update({ status: 'approved', plan_type: plan, amount: payment.amount, updated_at: new Date().toISOString() }).eq('pi_payment_id', paymentId);
+      await supabase.from('payments').update({ status: 'approved', plan_type: plan, amount: payment.amount, txid, updated_at: new Date().toISOString() }).eq('pi_payment_id', paymentId);
     } catch (e) {
       console.warn('[complete][payments.update] failed:', e.message);
     }
@@ -419,7 +419,7 @@ app.post('/api/payments/update', async (req, res) => {
     const { data: payRow, error: payErr } = await supabase.from('payments').select('id, user_id, status, plan_type').eq('pi_payment_id', pi_payment_id).maybeSingle();
     if (payErr || !payRow) return res.status(404).json({ success:false, error:'Payment not found' });
     const newPlan = plan_type || payRow.plan_type;
-    const { error: updErr } = await supabase.from('payments').update({ status, plan_type: newPlan, updated_at: new Date().toISOString() }).eq('pi_payment_id', pi_payment_id);
+  const { error: updErr } = await supabase.from('payments').update({ status, plan_type: newPlan, updated_at: new Date().toISOString() }).eq('pi_payment_id', pi_payment_id);
     if (updErr) return res.status(500).json({ success:false, error:updErr.message });
     // If approved -> upgrade user
     if (status === 'approved') {
@@ -469,6 +469,32 @@ app.get('/api/payments/latest', async (req, res) => {
       }
     }
     return res.json({ success:true, payment: latest, userUpgraded, premium_until: premiumUntil });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// History endpoint: recent payments for a user (default limit=5)
+app.get('/api/payments/history', async (req, res) => {
+  const { pi_user_uid, limit } = req.query;
+  if (!pi_user_uid) return res.status(400).json({ success:false, error:'Missing pi_user_uid' });
+  if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
+  const lim = Math.min(Math.max(parseInt(limit,10)||5,1),25); // clamp 1..25
+  try {
+    const { data: userRow, error: uErr } = await supabase
+      .from('users')
+      .select('id')
+      .eq('pi_user_uid', pi_user_uid)
+      .maybeSingle();
+    if (uErr || !userRow) return res.status(404).json({ success:false, error:'User not found' });
+    const { data: rows, error: pErr } = await supabase
+      .from('payments')
+      .select('id, plan_type, status, txid, created_at')
+      .eq('user_id', userRow.id)
+      .order('created_at', { ascending:false })
+      .limit(lim);
+    if (pErr) return res.status(500).json({ success:false, error:pErr.message });
+    return res.json({ success:true, payments: rows || [] });
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
   }

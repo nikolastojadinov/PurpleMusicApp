@@ -23,6 +23,12 @@ export default function ProfileDropdown() {
   const [latestPayment, setLatestPayment] = useState(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
+  // Payment history modal states
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [historyError, setHistoryError] = useState(null);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -268,6 +274,22 @@ export default function ProfileDropdown() {
   const hasPendingPayment = !!latestPayment && latestPayment.status === 'pending';
   const hasRejectedPayment = !!latestPayment && latestPayment.status === 'rejected';
 
+  // Payment history fetch function
+  async function openHistory() {
+    if (!user) return;
+    setShowHistory(true);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const apiAxios = (await import('../apiAxios')).default;
+      const resp = await apiAxios.get('/api/payments/history', { params: { pi_user_uid: user.pi_user_uid, limit: 10 }});
+      if (resp.data?.success) setHistoryRows(resp.data.payments || []);
+      else setHistoryError(resp.data.error || 'Failed to load history');
+    } catch(e) {
+      setHistoryError(e.message || 'Failed to load history');
+    } finally { setHistoryLoading(false); }
+  }
+
   return (
     <div className="profile-dropdown" ref={dropdownRef}>
       {/* Profile Icon */}
@@ -366,6 +388,12 @@ export default function ProfileDropdown() {
                     Previous payment was rejected. You can try again now.
                   </div>
                 )}
+                {/* Payment History link */}
+                {user && (
+                  <button onClick={openHistory} style={{background:'transparent', border:'none', color:'#888', fontSize:11, textDecoration:'underline', cursor:'pointer', alignSelf:'center'}}>
+                    Payment History
+                  </button>
+                )}
                 {user && (window.location.search.includes('pmDebug=1')) && (
                   <button
                     onClick={async ()=>{
@@ -393,6 +421,14 @@ export default function ProfileDropdown() {
           processing={processing}
           paymentStatus={paymentStatus}
           paymentError={paymentError}
+        />
+      )}
+      {showHistory && (
+        <PaymentHistoryModal
+          onClose={()=>setShowHistory(false)}
+          rows={historyRows}
+          loading={historyLoading}
+          error={historyError}
         />
       )}
       {processing && showPremiumModal && (
@@ -463,6 +499,58 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
             </div>
           )}
           <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.</div>
+        </div>
+      </div>
+    </div>,
+    root
+  );
+}
+
+// Payment history modal component
+function PaymentHistoryModal({ onClose, rows, loading, error }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
+  if (!mounted) return null;
+  const root = document.getElementById('root') || document.body;
+  return createPortal(
+    <div role="dialog" aria-modal="true" onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(5px)', zIndex:100001}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'min(90vw,520px)', maxHeight:'80vh', display:'flex', flexDirection:'column', background:'#161616', border:'1px solid #2a2a2a', borderRadius:22, boxShadow:'0 18px 40px -10px rgba(0,0,0,.6)', overflow:'hidden'}}>
+        <button onClick={onClose} aria-label="Close" style={{position:'absolute', top:10, right:10, width:38, height:38, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
+        <div style={{padding:'26px 26px 14px'}}>
+          <h3 style={{margin:0, fontSize:22, fontWeight:700, letterSpacing:.4, background:'linear-gradient(90deg,#fff,#ddd)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Payment History</h3>
+          <p style={{margin:'10px 0 0', fontSize:12, opacity:.65}}>Recent premium payments (latest first).</p>
+        </div>
+        <div style={{flex:1, overflowY:'auto', padding:'0 20px 20px'}}>
+          {loading && <div style={{padding:20, fontSize:13, opacity:.7}}>Loading…</div>}
+          {error && !loading && <div style={{padding:20, fontSize:13, color:'#f77'}}>Error: {error}</div>}
+          {!loading && !error && rows.length === 0 && (
+            <div style={{padding:20, fontSize:13, opacity:.7}}>No payments yet.</div>
+          )}
+          {!loading && !error && rows.length > 0 && (
+            <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
+              <thead>
+                <tr style={{textAlign:'left', borderBottom:'1px solid #2a2a2a'}}>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>Plan</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>Status</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>TxID</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(r => (
+                  <tr key={r.id} style={{borderBottom:'1px solid #242424'}}>
+                    <td style={{padding:'8px 6px', textTransform:'capitalize'}}>{r.plan_type || '-'}</td>
+                    <td style={{padding:'8px 6px'}}>{r.status}</td>
+                    <td style={{padding:'8px 6px', maxWidth:140, overflow:'hidden', textOverflow:'ellipsis'}}>{r.txid || 'N/A'}</td>
+                    <td style={{padding:'8px 6px'}}>{r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div style={{padding:'12px 20px', borderTop:'1px solid #242424', display:'flex', justifyContent:'flex-end'}}>
+          <button onClick={onClose} style={{background:'#262626', color:'#eee', border:'1px solid #333', padding:'8px 16px', borderRadius:10, cursor:'pointer', fontSize:13}}>Close</button>
         </div>
       </div>
     </div>,
