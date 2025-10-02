@@ -2,11 +2,12 @@
 // Like/unlike functionality for premium users with Supabase persistence
 import { supabase } from '../supabaseClient';
 import { getCurrentUser } from './userService';
+import { isPremiumActive } from './premiumService';
 
 // Check if current user is premium
 export function isPremiumUser() {
   const user = getCurrentUser();
-  return user?.is_premium === true;
+  return isPremiumActive(user);
 }
 
 // Like a song

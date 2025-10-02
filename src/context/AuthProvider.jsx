@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { ensurePremiumFresh } from '../services/premiumService';
 import { supabase } from '../supabaseClient';
 
 // Keys for localStorage persistence
@@ -37,7 +38,14 @@ export function AuthProvider({ children }) {
       const rawUser = localStorage.getItem(LS_USER_KEY);
       const rawToken = localStorage.getItem(LS_PI_TOKEN);
       if (rawUser) {
-        setUser(JSON.parse(rawUser));
+        const parsed = JSON.parse(rawUser);
+        // On restore, verify not expired (and reset if needed)
+        ensurePremiumFresh(parsed).then(fresh => {
+          setUser(fresh);
+          if (fresh !== parsed) {
+            localStorage.setItem(LS_USER_KEY, JSON.stringify(fresh));
+          }
+        }).catch(()=>{ setUser(parsed); });
       }
       if (rawToken) setPiAccessToken(rawToken);
     } catch (e) {

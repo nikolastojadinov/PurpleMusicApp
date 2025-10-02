@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
+import { PREMIUM_PLANS, activatePremium, computePremiumUntil } from '../services/premiumService';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  // Konstans za premium cenu
-  const PREMIUM_AMOUNT = 3.14; // Pi
+  // State for selecting plan
+  const [selectedPlan, setSelectedPlan] = useState('monthly');
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
 
@@ -45,14 +46,14 @@ export default function ProfileDropdown() {
   // Pi Network payment integration (Pi demo flow)
 
   const handleGoPremium = async () => {
-    if (!window.Pi) return; // Could trigger a modal in future
-    // Dohvati korisnika iz Supabase (pretpostavljamo da je login već urađen)
-    // Use current user from state
+    if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); return; }
     if (!user) return;
+    const plan = PREMIUM_PLANS[selectedPlan];
+    if (!plan) { show('Invalid plan selected', { type:'error', autoClose:2500 }); return; }
     const paymentData = {
-      amount: PREMIUM_AMOUNT, // Pi iznos
-      memo: `PurpleMusic Premium ${PREMIUM_AMOUNT} Pi`,
-      metadata: { type: "premium", user: user.username, pi_user_uid: user.pi_user_uid },
+      amount: plan.amount,
+      memo: `PurpleMusic Premium ${selectedPlan} ${plan.amount} Pi`,
+      metadata: { type: 'premium', plan: selectedPlan, user: user.username, pi_user_uid: user.pi_user_uid },
     };
 
     // Callback: kada je payment spreman za server approval
@@ -83,26 +84,17 @@ export default function ProfileDropdown() {
     const onReadyForServerCompletion = async (paymentId, txid) => {
       try {
         const apiAxios = (await import('../apiAxios')).default;
-        const { supabase } = await import('../supabaseClient');
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
         if (response.data.success) {
-          // Calculate premium_until (30 days from now)
-          const now = new Date();
-          const premiumUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-          const premiumUntilStr = premiumUntil.toISOString();
-          // Update Supabase users table
-          const { data, error } = await supabase
-            .from('users')
-            .update({ is_premium: true, premium_until: premiumUntilStr })
-            .eq('pi_user_uid', user.pi_user_uid)
-            .select()
-            .single();
-          if (!error) {
-            // Save premium status in localStorage
-            const updatedUser = { ...user, is_premium: true, premium_until: premiumUntilStr };
-            window.localStorage.setItem('pm_user', JSON.stringify(updatedUser));
-            // updateUser for context consistency
-            updateUser({ is_premium: true, premium_until: premiumUntilStr });
+          // DB activation (includes premium_plan & premium_until)
+          try {
+            const activated = await activatePremium({ userId: user.id, planKey: selectedPlan });
+            window.localStorage.setItem('pm_user', JSON.stringify(activated));
+            updateUser(activated);
+            show('Premium activated!', { type:'success', autoClose:2200 });
+          } catch (e) {
+            console.error('Activation failed:', e);
+            show('Activation save failed', { type:'error', autoClose:3200 });
           }
         } else {
           console.warn('[COMPLETE FAIL]', response.data);
@@ -212,22 +204,29 @@ export default function ProfileDropdown() {
                 </div>
               </button>
             ) : (
-              <button
-                onClick={user ? handleGoPremium : undefined}
-                className={`dropdown-button premium${!user ? ' disabled' : ''}`}
-                disabled={!user}
-                title={!user ? 'Login required to upgrade to Premium' : ''}
-                style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
-              >
-                <div className="button-icon premium-icon">⭐</div>
-                <div className="button-text">
-                  <div className="button-title">Go Premium – {PREMIUM_AMOUNT}π</div>
-                  <div className="button-subtitle">Full access for {PREMIUM_AMOUNT} Pi</div>
-                  {!user && (
-                    <div style={{color:'#ffb',fontSize:'12px',marginTop:'4px'}}>Login required to upgrade to Premium</div>
-                  )}
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <div style={{display:'flex',gap:6,justifyContent:'space-between'}}>
+                  {Object.entries(PREMIUM_PLANS).map(([key, plan]) => (
+                    <button key={key} onClick={()=>setSelectedPlan(key)} style={{flex:1,padding:'10px 8px',borderRadius:10,border:key===selectedPlan?'2px solid #fff':'1px solid #444',background:key===selectedPlan?'#1db954':'transparent',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',flexDirection:'column',gap:4}}>
+                      <span style={{textTransform:'capitalize'}}>{key}</span>
+                      <span style={{fontSize:11,opacity:.8}}>{plan.amount}π</span>
+                    </button>
+                  ))}
                 </div>
-              </button>
+                <button
+                  onClick={user ? handleGoPremium : undefined}
+                  className={`dropdown-button premium${!user ? ' disabled' : ''}`}
+                  disabled={!user}
+                  title={!user ? 'Login required to upgrade to Premium' : ''}
+                  style={!user ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                >
+                  <div className="button-icon premium-icon">⭐</div>
+                  <div className="button-text">
+                    <div className="button-title">Activate {selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} – {PREMIUM_PLANS[selectedPlan].amount}π</div>
+                    <div className="button-subtitle">Full access • Auto-expire</div>
+                  </div>
+                </button>
+              </div>
             )}
           </div>
         </div>
