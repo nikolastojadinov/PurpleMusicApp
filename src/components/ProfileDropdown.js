@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
-import { PREMIUM_PLANS, activatePremium, computePremiumUntil } from '../services/premiumService';
+import { PREMIUM_PLANS, activatePremium, resetPremium } from '../services/premiumService';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -226,6 +226,20 @@ export default function ProfileDropdown() {
                     <div className="button-subtitle">Full access • Auto-expire</div>
                   </div>
                 </button>
+                {/* Admin/Debug Reset (visible if ?pmDebug=1 or localStorage flag) */}
+                {user && (window.location.search.includes('pmDebug=1')) && (
+                  <button
+                    onClick={async ()=>{
+                      try {
+                        const updated = await resetPremium(user.id);
+                        window.localStorage.setItem('pm_user', JSON.stringify(updated));
+                        updateUser(updated);
+                      } catch(e) { console.error('Reset failed', e); }
+                    }}
+                    style={{marginTop:4, background:'transparent', border:'1px solid #933', color:'#f88', padding:'8px 12px', borderRadius:10, fontSize:12, cursor:'pointer'}}
+                    title="Force reset premium status"
+                  >Force Premium Reset</button>
+                )}
               </div>
             )}
           </div>

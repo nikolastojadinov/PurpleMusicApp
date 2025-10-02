@@ -101,7 +101,7 @@ export function AuthProvider({ children }) {
       // Fetch or insert user in Supabase
       let { data: dbUser, error: fetchErr } = await supabase
         .from('users')
-        .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, created_at')
+  .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
         .eq('pi_user_uid', piUser.uid)
         .single();
       if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr; // real error
@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
             username: piUser.username,
             wallet_address: piUser.wallet_address,
           })
-          .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, created_at')
+          .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
           .single();
         if (insErr) throw insErr;
         dbUser = inserted;

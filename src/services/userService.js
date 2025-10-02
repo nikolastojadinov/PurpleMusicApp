@@ -9,7 +9,7 @@ export async function loginOrRegisterUser({ pi_user_uid, username, wallet_addres
     // Proveri da li korisnik postoji po pi_user_uid
     const { data: userData, error: fetchError } = await supabase
       .from('users')
-      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, created_at')
+  .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
       .eq('pi_user_uid', pi_user_uid)
       .single();
     if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
@@ -24,7 +24,7 @@ export async function loginOrRegisterUser({ pi_user_uid, username, wallet_addres
           wallet_address,
           is_premium: false
         })
-        .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, created_at')
+  .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
         .single();
       if (insertError) throw insertError;
       user = insertData;

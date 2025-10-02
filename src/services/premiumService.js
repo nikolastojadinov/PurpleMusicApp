@@ -56,6 +56,14 @@ export async function activatePremium({ userId, planKey }) {
   return data;
 }
 
+// Force reset premium (client calls backend endpoint to avoid exposing service key)
+export async function resetPremium(userId) {
+  const apiAxios = (await import('../apiAxios')).default;
+  const resp = await apiAxios.post('/api/premium/reset', { user_id: userId });
+  if (!resp.data.success) throw new Error(resp.data.error || 'Reset failed');
+  return resp.data.user;
+}
+
 // Server authoritative check (fallback) – simple select
 export async function fetchUserById(id) {
   const { data, error } = await supabase

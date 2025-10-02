@@ -26,6 +26,25 @@ app.use(bodyParser.json());
 
 app.post('/api/verify-login', verifyLogin);
 
+// Premium reset endpoint (admin/debug)
+app.post('/api/premium/reset', async (req, res) => {
+  const { user_id } = req.body || {};
+  if (!user_id) return res.status(400).json({ success:false, error:'Missing user_id' });
+  if (!supabase) return res.status(500).json({ success:false, error:'Supabase not initialized' });
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ is_premium: false, premium_until: null, premium_plan: null })
+      .eq('id', user_id)
+      .select('id, pi_user_uid, username, wallet_address, is_premium, premium_until, premium_plan, created_at')
+      .single();
+    if (error) return res.status(500).json({ success:false, error:error.message });
+    return res.json({ success:true, user:data });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 // Pi Network payment verification endpoint
 app.post('/api/verify-payment', async (req, res) => {
   const startedAt = Date.now();
