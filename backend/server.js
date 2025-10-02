@@ -69,6 +69,21 @@ function computePremiumUntil(plan) {
   return now.toISOString();
 }
 
+// Validate payment metadata/memo/amount against expected plan pricing
+const PLAN_AMOUNTS = { weekly: 1, monthly: 3.14, yearly: 31.4 };
+function validatePaymentShape(payment) {
+  if (!payment) return { ok:false, reason:'no payment object' };
+  const plan = payment?.metadata?.plan || 'monthly';
+  const amount = Number(payment.amount);
+  if (!PLAN_AMOUNTS[plan]) return { ok:false, reason:'invalid plan metadata' };
+  const expected = PLAN_AMOUNTS[plan];
+  // allow tiny float variance
+  if (Math.abs(amount - expected) > 0.0001) return { ok:false, reason:`amount mismatch expected ${expected} got ${amount}` };
+  const memo = payment.memo || '';
+  if (!/premium/i.test(memo)) return { ok:false, reason:'memo missing premium keyword' };
+  return { ok:true, plan };
+}
+
 // Premium reset endpoint (admin/debug)
 app.post('/api/premium/reset', async (req, res) => {
   const { user_id } = req.body || {};
@@ -164,10 +179,15 @@ app.post('/api/verify-payment', async (req, res) => {
     }
 
     if (payment.status === 'completed' && payment.metadata?.type === 'premium') {
+      const shape = validatePaymentShape(payment);
+      if (!shape.ok) {
+        console.warn('[verify-payment] validation failed', shape.reason);
+        return res.status(400).json({ success:false, error:'Validation failed: '+shape.reason });
+      }
       if (!supabase) {
         return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)' });
       }
-      const plan = payment.metadata?.plan || 'monthly';
+      const plan = shape.plan;
       const premium_until = computePremiumUntil(plan);
       const { data: updatedUser, error: updErr } = await safeUserUpdate({ pi_user_uid }, { is_premium: true, premium_plan: plan, premium_until });
       if (updErr) {
@@ -320,7 +340,11 @@ async function completeHandler(req, res) {
     if (!supabase) {
       return res.status(500).json({ success: false, error: 'Supabase client not initialized (missing SUPABASE_SERVICE_KEY)', code: 'NO_SUPABASE' });
     }
-    const plan = payment.metadata?.plan || 'monthly';
+    const shape = validatePaymentShape(payment);
+    if (!shape.ok) {
+      return res.status(400).json({ success:false, error:'Validation failed: '+shape.reason, code:'BAD_PAYMENT_SHAPE' });
+    }
+    const plan = shape.plan;
     const premium_until = computePremiumUntil(plan);
     const { data: updatedUser, error } = await safeUserUpdate({ pi_user_uid }, { is_premium: true, premium_plan: plan, premium_until }, 'id, pi_user_uid, username, wallet_address, is_premium, premium_plan, premium_until, created_at, updated_at');
     if (error) {

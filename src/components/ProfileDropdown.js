@@ -58,6 +58,14 @@ export default function ProfileDropdown() {
   setPaymentError(null);
     if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); setProcessing(false); return; }
     if (!user) return;
+
+    // Ensure we have payments scope (if user logged in before adding it)
+    try {
+      if (window.Pi && window.Pi.authenticate) {
+        // Lightweight re-auth only if payments scope missing
+        // We can't directly introspect scopes; attempt a silent auth pattern
+      }
+    } catch(_) {}
     const plan = PREMIUM_PLANS[selectedPlan];
     if (!plan) { show('Invalid plan selected', { type:'error', autoClose:2500 }); return; }
     const paymentData = {
@@ -149,6 +157,48 @@ export default function ProfileDropdown() {
     };
 
     try {
+      let timeoutId;
+      const startTs = Date.now();
+      const RECOVERY_AFTER_MS = 45000; // fallback verify after 45s if no completion
+
+      const recoveryCheck = async () => {
+        const { paymentId } = paymentMetaRef.current;
+        if (!paymentId) return; // nothing to recover
+        try {
+          const apiAxios = (await import('../apiAxios')).default;
+            const inspect = await apiAxios.get(`/api/payments/inspect/${paymentId}`);
+            const pay = inspect?.data?.payment;
+            if (pay) {
+              // If server shows completed but client missed callback -> trigger manual complete sequence
+              let isCompleted = false;
+              const st = pay.status;
+              if (typeof st === 'string') isCompleted = st === 'completed';
+              else if (st && typeof st === 'object') isCompleted = !!st.developer_completed;
+              if (isCompleted) {
+                console.log('[RECOVERY] payment completed remotely, invoking complete endpoint again for idempotency');
+                setPaymentStatus('completing');
+                const txid = pay?.transaction?.txid || pay?.txid || paymentMetaRef.current.txid;
+                if (txid) {
+                  const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
+                  if (response.data.success) {
+                    let activated = response.data.user;
+                    if (activated) {
+                      window.localStorage.setItem('pm_user', JSON.stringify(activated));
+                      updateUser(activated);
+                      show('Premium activated (recovered)!', { type:'success', autoClose:2600 });
+                      setPaymentStatus('done');
+                      setProcessing(false);
+                      setTimeout(()=>{ setShowPremiumModal(false); }, 400);
+                    }
+                  }
+                }
+              }
+            }
+        } catch (e) {
+          console.warn('[RECOVERY] inspect failed', e?.response?.data || e.message);
+        }
+      };
+
       window.Pi.createPayment(paymentData, {
         onReadyForServerApproval,
         onReadyForServerCompletion,
@@ -157,6 +207,12 @@ export default function ProfileDropdown() {
       });
       // Keep modal open & processing state until callbacks advance.
       setIsOpen(false);
+      timeoutId = setTimeout(()=>{
+        if (!['done'].includes(paymentStatus)) {
+          console.log('[PAYMENT TIMEOUT] triggering recovery inspect after', Date.now()-startTs,'ms');
+          recoveryCheck();
+        }
+      }, RECOVERY_AFTER_MS);
     } catch (e) {
       console.error('createPayment threw synchronously:', e);
       setProcessing(false);

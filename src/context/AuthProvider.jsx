@@ -91,7 +91,8 @@ export function AuthProvider({ children }) {
     try {
       initPiSdk();
       if (!window.Pi) throw new Error('Pi SDK not loaded');
-      const scopes = ['username', 'wallet_address'];
+  // Include 'payments' scope so later Pi.createPayment has permission.
+  const scopes = ['username', 'wallet_address', 'payments'];
       const authResult = await window.Pi.authenticate(scopes, (incomplete) => {
         console.log('Incomplete Pi payment found (ignored for auth):', incomplete);
       });
