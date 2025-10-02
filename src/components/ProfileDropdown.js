@@ -13,6 +13,8 @@ export default function ProfileDropdown() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // 'approving' | 'completing' | 'done' | 'error'
+  const [paymentError, setPaymentError] = useState(null);
+  const paymentMetaRef = useRef({ paymentId: null, txid: null, plan: null });
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
@@ -51,8 +53,9 @@ export default function ProfileDropdown() {
 
   const handleGoPremium = async () => {
     if (processing) return;
-    setProcessing(true);
-    setPaymentStatus(null);
+  setProcessing(true);
+  setPaymentStatus(null);
+  setPaymentError(null);
     if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); setProcessing(false); return; }
     if (!user) return;
     const plan = PREMIUM_PLANS[selectedPlan];
@@ -66,6 +69,8 @@ export default function ProfileDropdown() {
     // Callback: kada je payment spreman za server approval
     const onReadyForServerApproval = async (paymentId) => {
       setPaymentStatus('approving');
+      paymentMetaRef.current.paymentId = paymentId;
+      paymentMetaRef.current.plan = selectedPlan;
       try {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
@@ -84,13 +89,14 @@ export default function ProfileDropdown() {
         }
       } catch (err) {
         console.error('[APPROVE EXCEPTION]', err);
-  // TODO modal approve exception
+        setPaymentError('Approval step failed');
       }
     };
 
     // Callback: kada je payment završen (client dobije txid) => server complete
     const onReadyForServerCompletion = async (paymentId, txid) => {
       setPaymentStatus('completing');
+      paymentMetaRef.current.txid = txid;
       try {
         const apiAxios = (await import('../apiAxios')).default;
         const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
@@ -105,20 +111,23 @@ export default function ProfileDropdown() {
             updateUser(activated);
             show('Premium activated!', { type:'success', autoClose:2200 });
             setPaymentStatus('done');
-            setTimeout(()=>{ setShowPremiumModal(false); }, 400);
+            setTimeout(()=>{ setShowPremiumModal(false); setProcessing(false); }, 400);
           } catch (e) {
             console.error('Activation finalize failed:', e);
             setPaymentStatus('error');
+            setPaymentError('Activation save failed');
             show('Activation save failed', { type:'error', autoClose:3200 });
           }
         } else {
           console.warn('[COMPLETE FAIL]', response.data);
           setPaymentStatus('error');
+          setPaymentError(response.data.error || 'Completion failed');
           setProcessing(false);
         }
       } catch (err) {
         console.error('[COMPLETE EXCEPTION]', err);
         setPaymentStatus('error');
+        setPaymentError('Completion exception');
         setProcessing(false);
       }
     };
@@ -127,6 +136,7 @@ export default function ProfileDropdown() {
     const onCancel = (paymentId) => {
       setProcessing(false);
       setPaymentStatus(null);
+      setPaymentError(null);
     };
 
     // Callback: greška
@@ -134,6 +144,7 @@ export default function ProfileDropdown() {
       console.error('[PAYMENT ERROR]', error, payment);
       setProcessing(false);
       setPaymentStatus('error');
+      setPaymentError(error?.message || 'Unknown payment error');
       show('Payment error. Please try again.', { type:'error', autoClose:3000 });
     };
 
@@ -150,6 +161,7 @@ export default function ProfileDropdown() {
       console.error('createPayment threw synchronously:', e);
       setProcessing(false);
       setPaymentStatus('error');
+      setPaymentError('Failed to start payment');
       show('Failed to start payment', { type:'error', autoClose:3000 });
     }
   };
@@ -279,6 +291,7 @@ export default function ProfileDropdown() {
           onConfirm={handleGoPremium}
           processing={processing}
           paymentStatus={paymentStatus}
+          paymentError={paymentError}
         />
       )}
       {processing && showPremiumModal && (
@@ -294,7 +307,7 @@ export default function ProfileDropdown() {
 }
 
 // Inline modal component (simplified)
-function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing, paymentStatus }) {
+function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing, paymentStatus, paymentError }) {
   const [mounted, setMounted] = useState(false);
   useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
   if (!mounted) return null;
@@ -341,7 +354,12 @@ function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, 
             ) : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
           </button>
           {!processing && paymentStatus==='error' && (
-            <div style={{fontSize:12, color:'#f88', textAlign:'center'}}>Payment failed. You can retry.</div>
+            <div style={{fontSize:12, color:'#f88', textAlign:'center', lineHeight:1.4}}>
+              {(paymentError || 'Payment failed.') + ' You can retry.'}
+              {paymentError && /approval/i.test(paymentError) && (
+                <><br/><span style={{opacity:.7}}>Tip: confirm the payment in the Pi app, then try again.</span></>
+              )}
+            </div>
           )}
           <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.</div>
         </div>
