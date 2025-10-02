@@ -257,28 +257,82 @@ export default function ProfileDropdown() {
 // Inline modal component (simplified)
 function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing }) {
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:99999,padding:'20px'}}>
-      <div style={{background:'#111',border:'1px solid #333',borderRadius:20,padding:'28px 24px',width:'100%',maxWidth:420,position:'relative'}}>
-        <button onClick={onClose} style={{position:'absolute',top:10,right:12,background:'transparent',border:'none',color:'#aaa',fontSize:24,cursor:'pointer'}}>×</button>
-        <h3 style={{margin:'0 0 18px',fontSize:22,fontWeight:600,textAlign:'center'}}>Choose Your Plan</h3>
-        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
-          {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
-            const active = key === selectedPlan;
-            return (
-              <button key={key} onClick={()=>setSelectedPlan(key)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 16px',borderRadius:14,border:active?'2px solid #1db954':'1px solid #333',background:active?'#1db95422':'#1a1a1a',cursor:'pointer'}}>
-                <div style={{textAlign:'left'}}>
-                  <div style={{fontWeight:600,fontSize:15,textTransform:'capitalize'}}>{key} Plan</div>
-                  <div style={{fontSize:12,opacity:.7}}>{key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}</div>
-                </div>
-                <div style={{fontWeight:700,fontSize:15}}>{plan.amount}π</div>
-              </button>
-            );
-          })}
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position:'fixed', inset:0, background:'rgba(0,0,0,0.6)',
+        backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        zIndex:99999, padding:'clamp(12px,4vh,40px)'
+      }}
+    >
+      <div
+        style={{
+          width:'100%', maxWidth:400, borderRadius:24,
+          background:'linear-gradient(145deg,#141414,#1f1f23)',
+          border:'1px solid #2e2e2e', boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
+          display:'flex', flexDirection:'column', position:'relative',
+          maxHeight:'calc(100vh - 80px)', overflow:'hidden'
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position:'absolute', top:10, right:10, width:38, height:38,
+            background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)',
+            color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center'
+          }}
+        >×</button>
+        <div style={{padding:'30px 26px 20px', overflowY:'auto', flex:1}}>
+          <h3 style={{margin:0, fontSize:24, fontWeight:700, textAlign:'center', letterSpacing:.5, background:'linear-gradient(90deg,#fff,#d1d1d1)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Choose Your Plan</h3>
+          <div style={{marginTop:20, display:'flex', flexDirection:'column', gap:14}}>
+            {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
+              const active = key === selectedPlan;
+              return (
+                <button
+                  key={key}
+                  onClick={()=>setSelectedPlan(key)}
+                  style={{
+                    display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'15px 16px', borderRadius:16,
+                    border:active?'2px solid #1db954':'1px solid #2e2e2e',
+                    background: active ? 'linear-gradient(135deg,#1db95433,#1db95411)' : '#181818',
+                    cursor:'pointer', transition:'all .25s',
+                    boxShadow: active ? '0 0 0 1px #1db95455, 0 4px 18px -6px rgba(0,0,0,0.6)' : '0 2px 10px -4px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  <div style={{textAlign:'left'}}>
+                    <div style={{fontWeight:600,fontSize:15,textTransform:'capitalize'}}>{key} Plan</div>
+                    <div style={{fontSize:12,opacity:.7}}>
+                      {key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}
+                    </div>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:15}}>{plan.amount}π</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <button disabled={processing} onClick={onConfirm} style={{width:'100%',background:'#1db954',color:'#fff',padding:'14px 18px',border:'none',borderRadius:14,fontWeight:700,letterSpacing:.5,fontSize:15,cursor:processing?'wait':'pointer'}}>
-          {processing ? 'Processing…' : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
-        </button>
-        <div style={{marginTop:14,fontSize:11,opacity:.55,textAlign:'center'}}>Your Pi wallet will be used for this one-time premium activation. Auto-expire applies.</div>
+        <div style={{padding:'16px 24px 24px', borderTop:'1px solid #262626', display:'flex', flexDirection:'column', gap:12, background:'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))'}}>
+          <button
+            disabled={processing}
+            onClick={onConfirm}
+            style={{
+              width:'100%', background: processing ? '#1db95488' : 'linear-gradient(135deg,#1db954,#169943)',
+              color:'#fff', padding:'14px 18px', border:'none', borderRadius:16,
+              fontWeight:700, letterSpacing:.5, fontSize:15, cursor:processing?'wait':'pointer',
+              boxShadow:'0 6px 18px -6px rgba(0,0,0,0.55)'
+            }}
+          >
+            {processing ? 'Processing…' : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
+          </button>
+          <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>
+            Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.
+          </div>
+        </div>
       </div>
     </div>
   );
