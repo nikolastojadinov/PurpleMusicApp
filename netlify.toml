@@ -37,6 +37,12 @@
   to = "/privacy-policy.html"
   status = 200
 
+# NEW alias with .html requested by user
+[[redirects]]
+  from = "/policy-privacy.html"
+  to = "/privacy-policy.html"
+  status = 200
+
 [[redirects]]
   from = "/terms"
   to = "/terms-of-service.html"
@@ -59,6 +65,6 @@
   status = 200
 
 # Notes:
-# - Removed redundant self-redirects for /privacy-policy.html and /terms-of-service.html
-# - Added /policy-privacy and extension-less /terms-of-service paths as requested
+# - Added /policy-privacy.html redirect so that URL works
 # - Existing physical files in public/ are served directly
+# - You can switch status=301 later if you prefer a visible redirect
