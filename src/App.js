@@ -38,6 +38,14 @@ function App() {
                 </Routes>
               </main>
               <BottomNavigation />
+              <footer style={{marginTop:'auto',padding:'14px 18px 90px',textAlign:'center',fontSize:12,opacity:.55}}>
+                <span style={{display:'inline-flex',gap:14,flexWrap:'wrap'}}>
+                  <a href="/privacy-policy.html" style={{color:'inherit',textDecoration:'none'}}>Privacy Policy</a>
+                  <a href="/terms-of-service.html" style={{color:'inherit',textDecoration:'none'}}>Terms of Service</a>
+                  <a href="/privacy" style={{color:'inherit',textDecoration:'none'}}>Privacy (short)</a>
+                  <a href="/terms" style={{color:'inherit',textDecoration:'none'}}>Terms (short)</a>
+                </span>
+              </footer>
               {/* Global overlays */}
               <AuthIntroOverlay />
               <AuthModal />

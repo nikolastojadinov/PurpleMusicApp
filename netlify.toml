@@ -30,6 +30,26 @@
   status = 200
 
 [[redirects]]
+  from = "/privacy"
+  to = "/privacy-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms-of-service.html"
+  status = 200
+
+[[redirects]]
+  from = "/legal/privacy"
+  to = "/privacy-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/legal/terms"
+  to = "/terms-of-service.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
