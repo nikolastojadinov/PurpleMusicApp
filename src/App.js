@@ -15,6 +15,7 @@ import { AuthProvider } from './context/AuthProvider.jsx';
 import { GlobalModalProvider } from './context/GlobalModalContext.jsx';
 import AuthIntroOverlay from './components/AuthIntroOverlay';
 import AuthModal from './components/AuthModal';
+import PremiumFeatureModalContainer from './components/PremiumFeatureModalContainer.jsx';
 // ...existing code...
 import './index.css';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
@@ -49,6 +50,7 @@ function App() {
               {/* Global overlays */}
               <AuthIntroOverlay />
               <AuthModal />
+              <PremiumFeatureModalContainer />
             </Router>
           </div>
         </ErrorBoundary>

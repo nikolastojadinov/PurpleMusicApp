@@ -9,13 +9,7 @@ export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  // State for selecting plan
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState(null); // 'approving' | 'completing' | 'done' | 'error'
-  const [paymentError, setPaymentError] = useState(null);
-  const paymentMetaRef = useRef({ paymentId: null, txid: null, plan: null });
-  const [selectedPlan, setSelectedPlan] = useState('monthly');
+  // Premium modal logic moved to PremiumFeatureModalContainer (global)
   const { user, loginWithPi, logout, updateUser } = useAuth();
   const { show } = useGlobalModal();
 
@@ -70,16 +64,7 @@ export default function ProfileDropdown() {
     return ()=>{ if (pollId) clearInterval(pollId); };
   }, [user]);
 
-  // Global event listener to open premium modal from anywhere (guests OR non-premium users)
-  useEffect(()=>{
-    const handler = () => {
-      const isPremium = !!user?.is_premium; // unify naming
-      if (isPremium) return; // premium users never see modal
-      setShowPremiumModal(true);
-    };
-    window.addEventListener('pm:openPremiumModal', handler);
-    return ()=> window.removeEventListener('pm:openPremiumModal', handler);
-  }, [user?.is_premium]);
+  // Premium modal open listener removed (handled globally)
 
   const handlePiNetworkLogin = async () => {
     try {
@@ -97,184 +82,7 @@ export default function ProfileDropdown() {
     show('Pi Network login failed: ' + error, { type: 'error', autoClose: 4000 });
   };
 
-
-  // Pi Network payment integration (Pi demo flow)
-
-  const handleGoPremium = async () => {
-    if (processing || hasPendingPayment) return;
-    setProcessing(true);
-    setPaymentStatus(null);
-    setPaymentError(null);
-    if (!window.Pi) { show('Pi SDK not loaded', { type:'error', autoClose:2500 }); setProcessing(false); return; }
-    if (!user) return;
-
-    // Ensure we have payments scope (if user logged in before adding it)
-    try {
-      if (window.Pi && window.Pi.authenticate) {
-        // Lightweight re-auth only if payments scope missing
-        // We can't directly introspect scopes; attempt a silent auth pattern
-      }
-    } catch(_) {}
-    const plan = PREMIUM_PLANS[selectedPlan];
-    if (!plan) { show('Invalid plan selected', { type:'error', autoClose:2500 }); return; }
-    const paymentData = {
-      amount: plan.amount,
-      memo: `PurpleMusic Premium ${selectedPlan} ${plan.amount} Pi`,
-      metadata: { type: 'premium', plan: selectedPlan, user: user.username, pi_user_uid: user.pi_user_uid },
-    };
-
-    // Callback: kada je payment spreman za server approval
-    const onReadyForServerApproval = async (paymentId) => {
-      setPaymentStatus('approving');
-      paymentMetaRef.current.paymentId = paymentId;
-      paymentMetaRef.current.plan = selectedPlan;
-      try {
-        const apiAxios = (await import('../apiAxios')).default;
-        const response = await apiAxios.post('/api/payments/approve', { paymentId, pi_user_uid: user.pi_user_uid });
-        if (!response.data.success) {
-          console.warn('[APPROVE FAIL]', response.data);
-          // Pokušaj inspect da prikupiš više podataka
-            try {
-              const inspect = await apiAxios.get(`/api/payments/inspect/${paymentId}`);
-              console.warn('[INSPECT]', inspect.data);
-            } catch (ie) {
-              console.warn('[INSPECT ERROR]', ie?.response?.data || ie.message);
-            }
-          // TODO integrate modal feedback for payment approve failure
-        } else {
-          console.log('Payment approved na serveru');
-        }
-      } catch (err) {
-        console.error('[APPROVE EXCEPTION]', err);
-        setPaymentError('Approval step failed');
-      }
-    };
-
-    // Callback: kada je payment završen (client dobije txid) => server complete
-    const onReadyForServerCompletion = async (paymentId, txid) => {
-      setPaymentStatus('completing');
-      paymentMetaRef.current.txid = txid;
-      try {
-        const apiAxios = (await import('../apiAxios')).default;
-        const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
-        if (response.data.success) {
-          // Prefer server-returned user row (already includes plan & until). Fallback to activatePremium if missing.
-          try {
-            let activated = response.data.user;
-            if (!activated) {
-              activated = await activatePremium({ userId: user.id, planKey: selectedPlan });
-            }
-            window.localStorage.setItem('pm_user', JSON.stringify(activated));
-            updateUser(activated);
-            show('Premium activated!', { type:'success', autoClose:2200 });
-            setPaymentStatus('done');
-            setTimeout(()=>{ setShowPremiumModal(false); setProcessing(false); }, 400);
-          } catch (e) {
-            console.error('Activation finalize failed:', e);
-            setPaymentStatus('error');
-            setPaymentError('Activation save failed');
-            show('Activation save failed', { type:'error', autoClose:3200 });
-          }
-        } else {
-          console.warn('[COMPLETE FAIL]', response.data);
-          setPaymentStatus('error');
-          setPaymentError(response.data.error || 'Completion failed');
-          setProcessing(false);
-        }
-      } catch (err) {
-        console.error('[COMPLETE EXCEPTION]', err);
-        setPaymentStatus('error');
-        setPaymentError('Completion exception');
-        setProcessing(false);
-      }
-    };
-
-    // Callback: otkazano
-    const onCancel = (paymentId) => {
-      setProcessing(false);
-      setPaymentStatus(null);
-      setPaymentError(null);
-    };
-
-    // Callback: greška
-    const onError = (error, payment) => {
-      console.error('[PAYMENT ERROR]', error, payment);
-      setProcessing(false);
-      setPaymentStatus('error');
-      setPaymentError(error?.message || 'Unknown payment error');
-      show('Payment error. Please try again.', { type:'error', autoClose:3000 });
-    };
-
-    try {
-      let timeoutId;
-      const startTs = Date.now();
-      const RECOVERY_AFTER_MS = 45000; // fallback verify after 45s if no completion
-
-      const recoveryCheck = async () => {
-        const { paymentId } = paymentMetaRef.current;
-        if (!paymentId) return; // nothing to recover
-        try {
-          const apiAxios = (await import('../apiAxios')).default;
-            const inspect = await apiAxios.get(`/api/payments/inspect/${paymentId}`);
-            const pay = inspect?.data?.payment;
-            if (pay) {
-              // If server shows completed but client missed callback -> trigger manual complete sequence
-              let isCompleted = false;
-              const st = pay.status;
-              if (typeof st === 'string') isCompleted = st === 'completed';
-              else if (st && typeof st === 'object') isCompleted = !!st.developer_completed;
-              if (isCompleted) {
-                console.log('[RECOVERY] payment completed remotely, invoking complete endpoint again for idempotency');
-                setPaymentStatus('completing');
-                const txid = pay?.transaction?.txid || pay?.txid || paymentMetaRef.current.txid;
-                if (txid) {
-                  const response = await apiAxios.post('/api/payments/complete', { paymentId, txid, pi_user_uid: user.pi_user_uid });
-                  if (response.data.success) {
-                    let activated = response.data.user;
-                    if (activated) {
-                      window.localStorage.setItem('pm_user', JSON.stringify(activated));
-                      updateUser(activated);
-                      show('Premium activated (recovered)!', { type:'success', autoClose:2600 });
-                      setPaymentStatus('done');
-                      setProcessing(false);
-                      setTimeout(()=>{ setShowPremiumModal(false); }, 400);
-                    }
-                  }
-                }
-              }
-            }
-        } catch (e) {
-          console.warn('[RECOVERY] inspect failed', e?.response?.data || e.message);
-        }
-      };
-
-      window.Pi.createPayment(paymentData, {
-        onReadyForServerApproval,
-        onReadyForServerCompletion,
-        onCancel,
-        onError,
-      });
-      // Keep modal open & processing state until callbacks advance.
-      setIsOpen(false);
-      timeoutId = setTimeout(()=>{
-        if (!['done'].includes(paymentStatus)) {
-          console.log('[PAYMENT TIMEOUT] triggering recovery inspect after', Date.now()-startTs,'ms');
-          recoveryCheck();
-        }
-      }, RECOVERY_AFTER_MS);
-    } catch (e) {
-      console.error('createPayment threw synchronously:', e);
-      setProcessing(false);
-      setPaymentStatus('error');
-      setPaymentError('Failed to start payment');
-      show('Failed to start payment', { type:'error', autoClose:3000 });
-    }
-  };
-
-  const handleViewProfile = () => {
-    navigate('/profile');
-    setIsOpen(false);
-    };
+  // (Premium payment flow moved to global container; placeholder retained to avoid broken references)
 
     // Logout function
     const handleLogout = () => {
@@ -377,7 +185,7 @@ export default function ProfileDropdown() {
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button
-                  onClick={()=>{ if(!hasPendingPayment) { setShowPremiumModal(true);} }}
+                  onClick={()=>{ if(!hasPendingPayment) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail:{ source:'profileDropdownButton' } })); } }}
                   className={`dropdown-button premium${hasPendingPayment ? ' disabled' : ''}`}
                   disabled={hasPendingPayment}
                   title={hasPendingPayment ? 'Payment pending confirmation' : hasRejectedPayment ? 'Previous payment failed, you can retry.' : ''}
@@ -423,17 +231,7 @@ export default function ProfileDropdown() {
           </div>
         </div>
       )}
-      {showPremiumModal && user && (
-        <PremiumPlansModal
-          onClose={()=>setShowPremiumModal(false)}
-          selectedPlan={selectedPlan}
-          setSelectedPlan={setSelectedPlan}
-          onConfirm={handleGoPremium}
-          processing={processing}
-          paymentStatus={paymentStatus}
-          paymentError={paymentError}
-        />
-      )}
+      {/* PremiumPlansModal removed (now global) */}
       {showHistory && (
         <PaymentHistoryModal
           onClose={()=>setShowHistory(false)}
@@ -442,80 +240,13 @@ export default function ProfileDropdown() {
           error={historyError}
         />
       )}
-      {processing && showPremiumModal && (
-        <div className="pm-payment-overlay" role="alert" aria-live="assertive">
-          <div className="pm-spinner" />
-          <div className="pm-payment-msg">
-            {paymentStatus === 'approving' ? 'Authorizing payment…' : paymentStatus === 'completing' ? 'Finalizing transaction…' : paymentStatus === 'done' ? 'Activated!' : 'Starting payment…'}
-          </div>
-        </div>
-      )}
+      {/* Payment overlay removed (handled in global component if needed) */}
     </div>
   );
 }
 
 // Inline modal component (simplified)
-function PremiumPlansModal({ onClose, selectedPlan, setSelectedPlan, onConfirm, processing, paymentStatus, paymentError }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
-  if (!mounted) return null;
-  const root = document.getElementById('root') || document.body;
-  return createPortal(
-    <div
-      role="dialog" aria-modal="true" onClick={onClose}
-      style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', zIndex:100000}}
-    >
-      <div
-        onClick={e=>e.stopPropagation()}
-        style={{
-          position:'absolute', left:'50%', transform:'translateX(-50%)', top:'calc(env(safe-area-inset-top,0px) + 68px)',
-          width:'min(90vw,400px)', maxWidth:400, display:'flex', flexDirection:'column',
-          background:'linear-gradient(145deg,#141414,#1f1f23)', border:'1px solid #2e2e2e', borderRadius:24,
-          boxShadow:'0 20px 50px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
-          maxHeight:'calc(80vh - env(safe-area-inset-bottom,0px))', overflow:'hidden'
-        }}
-      >
-        <button onClick={onClose} aria-label="Close" style={{position:'absolute', top:10, right:10, width:38, height:38, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
-        <div style={{padding:'30px 26px 20px', overflowY:'auto', flex:1, minHeight:0}}>
-          <h3 style={{margin:0, fontSize:24, fontWeight:700, textAlign:'center', letterSpacing:.5, background:'linear-gradient(90deg,#fff,#d1d1d1)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Choose Your Plan</h3>
-          <div style={{marginTop:20, display:'flex', flexDirection:'column', gap:14}}>
-            {Object.entries(PREMIUM_PLANS).map(([key, plan]) => {
-              const active = key === selectedPlan;
-              return (
-                <button key={key} onClick={()=>setSelectedPlan(key)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'15px 16px', borderRadius:16, border:active?'2px solid #1db954':'1px solid #2e2e2e', background: active ? 'linear-gradient(135deg,#1db95433,#1db95411)' : '#181818', cursor:'pointer', transition:'all .25s', boxShadow: active ? '0 0 0 1px #1db95455, 0 4px 18px -6px rgba(0,0,0,0.6)' : '0 2px 10px -4px rgba(0,0,0,0.5)'}}>
-                  <div style={{textAlign:'left'}}>
-                    <div style={{fontWeight:600,fontSize:15,textTransform:'capitalize'}}>{key} Plan</div>
-                    <div style={{fontSize:12,opacity:.7}}>{key==='weekly'?'7 days access': key==='monthly'?'30 days access':'1 year access'}</div>
-                  </div>
-                  <div style={{fontWeight:700,fontSize:15}}>{plan.amount}π</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{padding:'16px 24px 24px', borderTop:'1px solid #262626', display:'flex', flexDirection:'column', gap:12, background:'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))'}}>
-          <button disabled={processing} onClick={onConfirm} style={{width:'100%', background: processing ? '#1db95488' : 'linear-gradient(135deg,#1db954,#169943)', color:'#fff', padding:'14px 18px', border:'none', borderRadius:16, fontWeight:700, letterSpacing:.5, fontSize:15, cursor:processing?'wait':'pointer', boxShadow:'0 6px 18px -6px rgba(0,0,0,0.55)'}}>
-            {processing ? (
-              paymentStatus === 'approving' ? 'Authorizing…' :
-              paymentStatus === 'completing' ? 'Finalizing…' :
-              paymentStatus === 'done' ? 'Activated!' : 'Processing…'
-            ) : `Activate ${selectedPlan.charAt(0).toUpperCase()+selectedPlan.slice(1)} Plan`}
-          </button>
-          {!processing && paymentStatus==='error' && (
-            <div style={{fontSize:12, color:'#f88', textAlign:'center', lineHeight:1.4}}>
-              {(paymentError || 'Payment failed.') + ' You can retry.'}
-              {paymentError && /approval/i.test(paymentError) && (
-                <><br/><span style={{opacity:.7}}>Tip: confirm the payment in the Pi app, then try again.</span></>
-              )}
-            </div>
-          )}
-          <div style={{fontSize:11, opacity:.55, textAlign:'center', lineHeight:1.4}}>Your Pi wallet will process a one-time payment. Premium auto-expires after the selected period.</div>
-        </div>
-      </div>
-    </div>,
-    root
-  );
-}
+// PremiumPlansModal removed from this file
 
 // Payment history modal component
 function PaymentHistoryModal({ onClose, rows, loading, error }) {
@@ -568,3 +299,5 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
     root
   );
 }
+
+// End of ProfileDropdown.js
