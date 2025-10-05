@@ -76,6 +76,17 @@ export default function ProfileDropdown() {
     }
   };
 
+  // Restore missing handler (was removed during premium refactor) to prevent runtime ReferenceError
+  const handleViewProfile = () => {
+    try {
+      navigate('/profile');
+    } catch (err) {
+      console.error('ProfileDropdown crash (navigate profile):', err);
+    } finally {
+      setIsOpen(false);
+    }
+  };
+
   // Premium payment flow moved to global container
 
     // Logout function
@@ -114,7 +125,9 @@ export default function ProfileDropdown() {
       </div>
 
       {/* Dropdown Menu */}
-      {isOpen && (
+      {isOpen && (() => {
+        try {
+          return (
         <div className="profile-dropdown-menu">
           <div className="dropdown-arrow"></div>
           
@@ -224,7 +237,12 @@ export default function ProfileDropdown() {
             )}
           </div>
         </div>
-      )}
+          );
+        } catch (err) {
+          console.error('ProfileDropdown crash (render menu):', err);
+          return null;
+        }
+      })()}
       {/* PremiumPlansModal removed (now global) */}
       {showHistory && (
         <PaymentHistoryModal
