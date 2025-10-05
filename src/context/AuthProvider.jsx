@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { logSessionState } from '../utils/debugSession';
 import { ensurePremiumFresh } from '../services/premiumService';
 import { supabase } from '../supabaseClient';
 
@@ -82,6 +83,13 @@ export function AuthProvider({ children }) {
     }, 300);
     return () => clearInterval(interval);
   }, [initPiSdk, restoreFromStorage]);
+
+  // Dev-only one-time passive session log (no mutations)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      try { logSessionState(); } catch (e) { console.warn('[AuthProvider] logSessionState failed:', e); }
+    }
+  }, []);
 
   // Login with Pi Network & upsert Supabase user
   const loginWithPi = useCallback(async () => {

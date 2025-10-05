@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { PREMIUM_PLANS } from '../services/premiumService';
 import { activatePremium, resetPremium } from '../services/premiumService';
+// Passive pending-session checker (no Pi payment API calls)
+import { logPendingPaymentSession } from '../services/paymentSessionWrapper';
 
 // This container globalizes the Premium plans modal and payment flow.
 // It reuses the previous logic that lived in ProfileDropdown.
@@ -15,6 +17,16 @@ export default function PremiumFeatureModalContainer() {
   const [paymentStatus, setPaymentStatus] = useState(null); // 'approving' | 'completing' | 'done' | 'error'
   const [paymentError, setPaymentError] = useState(null);
   const paymentMetaRef = useRef({ paymentId: null, txid: null, plan: null });
+
+  // Passive (one-time) check for any heuristic pending payment session.
+  // Requirements: no Pi.createPayment / P.Payment.* calls; console logging only.
+  useEffect(() => {
+    try {
+      logPendingPaymentSession();
+    } catch (e) {
+      console.warn('[PremiumFeatureModalContainer] Pending payment check failed (passive):', e);
+    }
+  }, []);
 
   // Listener for global openPremiumModal events.
   useEffect(() => {
