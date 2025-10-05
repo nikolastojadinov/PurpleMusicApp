@@ -308,20 +308,26 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
         </div>
             {/* Legal Links */}
             <div className="dropdown-divider"></div>
-            <a href="/privacy-policy.html" className="dropdown-button" style={{textDecoration:'none'}}>
-              <div className="button-icon" role="img" aria-label="privacy">🔒</div>
+            <button
+              onClick={() => { try { navigate('/privacy-policy'); } catch(e){ console.error('Navigate privacy failed', e);} finally { setIsOpen(false);} }}
+              className="dropdown-button"
+            >
+              <div className="button-icon" role="img" aria-label="privacy">�️</div>
               <div className="button-text">
                 <div className="button-title">Privacy Policy</div>
                 <div className="button-subtitle">How we handle data</div>
               </div>
-            </a>
-            <a href="/terms-of-service.html" className="dropdown-button" style={{textDecoration:'none'}}>
+            </button>
+            <button
+              onClick={() => { try { navigate('/terms-of-service'); } catch(e){ console.error('Navigate terms failed', e);} finally { setIsOpen(false);} }}
+              className="dropdown-button"
+            >
               <div className="button-icon" role="img" aria-label="terms">📄</div>
               <div className="button-text">
                 <div className="button-title">Terms of Service</div>
                 <div className="button-subtitle">Your usage agreement</div>
               </div>
-            </a>
+            </button>
         </div>
     </div>,
     root
