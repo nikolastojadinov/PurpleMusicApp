@@ -75,3 +75,8 @@ export async function fetchUserById(id) {
   return data;
 }
 
+// Backward-compatible alias used elsewhere
+export function isCurrentlyPremium(user) {
+  return isPremiumActive(user);
+}
+
