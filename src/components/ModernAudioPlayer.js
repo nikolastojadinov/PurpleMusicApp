@@ -149,7 +149,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   // Like/Unlike functionality (Supabase)
   const toggleLike = async () => {
     if (!isPremium()) {
-      show('Only premium users can like songs', { type: 'warning', autoClose: 2500 });
+      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'like' } }));
       return;
     }
     try {
@@ -178,19 +178,13 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
 
   // Skip functionality with premium check
   const handlePrev = () => {
-    if (!isPremium()) {
-      setShowPremiumPopup(true);
-      return;
-    }
+    if (!isPremium()) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'prev' } })); return; }
     // Premium functionality: actual skip to previous track
     audioRef.current.currentTime = 0;
     setProgress(0);
   };
   const handleNext = () => {
-    if (!isPremium()) {
-      setShowPremiumPopup(true);
-      return;
-    }
+    if (!isPremium()) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'next' } })); return; }
     // Premium functionality: actual skip to next track
     audioRef.current.currentTime = duration;
     setProgress(duration);
@@ -320,7 +314,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
           <button 
             onClick={e => { e.stopPropagation(); toggleLike(); }} 
             className="absolute bottom-2 left-2 z-10 p-1 group"
-            title={!isPremium() ? 'Only premium users can like songs' : isLiked ? 'Unlike song' : 'Like song'}
+            title={isLiked ? 'Unlike song' : 'Like song'}
           >
             <svg width="20" height="20" fill={isLiked ? "#e53e3e" : "none"} stroke="currentColor" strokeWidth="2" className={`${isLiked ? 'text-red-500' : 'text-white/80'} group-hover:text-red-400 transition`}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>

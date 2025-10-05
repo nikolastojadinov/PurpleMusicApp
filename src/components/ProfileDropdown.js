@@ -70,6 +70,18 @@ export default function ProfileDropdown() {
     return ()=>{ if (pollId) clearInterval(pollId); };
   }, [user]);
 
+  // Global event listener to open premium modal from anywhere
+  useEffect(()=>{
+    const handler = (e) => {
+      // Ignore if already premium
+      if (user?.is_premium) return;
+      setShowPremiumModal(true);
+      // Optionally pre-select plan from detail source later
+    };
+    window.addEventListener('pm:openPremiumModal', handler);
+    return ()=> window.removeEventListener('pm:openPremiumModal', handler);
+  }, [user?.is_premium]);
+
   const handlePiNetworkLogin = async () => {
     try {
       await loginWithPi();

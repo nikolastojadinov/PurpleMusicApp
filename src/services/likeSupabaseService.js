@@ -14,7 +14,12 @@ export function isPremiumUser() {
 export async function likeSongSupabase(song) {
   const user = getCurrentUser();
   if (!user || !user.id) throw new Error('User not logged in');
-  if (!isPremiumUser()) throw new Error('Only premium users can like songs');
+  if (!isPremiumUser()) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'likeService' } }));
+    }
+    return false;
+  }
   try {
     const { error } = await supabase
       .from('likes')

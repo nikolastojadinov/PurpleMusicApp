@@ -12,6 +12,10 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
       show('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.', { type: 'warning', autoClose: 3500 });
       return;
     }
+    if (!currentUser.is_premium) {
+      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'createPlaylistModal' } }));
+      return;
+    }
     setLoading(true);
     try {
       const { supabase } = await import('../supabaseClient');

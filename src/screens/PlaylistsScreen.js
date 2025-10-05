@@ -54,6 +54,11 @@ export default function PlaylistsScreen() {
       show('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.', { type: 'warning', autoClose: 3500 });
       return;
     }
+    // If feature should be premium-gated, open premium modal instead of showing toast (assuming playlist creation is premium per earlier UI copy)
+    if (!isCurrentlyPremium(user)) {
+      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'createPlaylist' } }));
+      return;
+    }
     setShowCreateModal(true);
   };
 
