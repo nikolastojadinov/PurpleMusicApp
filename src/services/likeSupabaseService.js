@@ -1,6 +1,7 @@
 // src/services/likeSupabaseService.js
 // Like/unlike functionality for premium users with Supabase persistence
 import { supabase } from '../supabaseClient';
+import { openPremiumModal } from '../utils/openPremiumModal';
 import { getCurrentUser } from './userService';
 import { isPremiumActive } from './premiumService';
 
@@ -16,7 +17,7 @@ export async function likeSongSupabase(song) {
   if (!user || !user.id) throw new Error('User not logged in');
   if (!isPremiumUser()) {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'likeService' } }));
+  openPremiumModal('likeService');
     }
     return false;
   }

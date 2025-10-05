@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { getCurrentUser } from '../services/userService';
 import { isCurrentlyPremium } from '../services/premiumService';
+import { openPremiumModal } from '../utils/openPremiumModal';
 import CreatePlaylistModal from '../components/CreatePlaylistModal';
 import { useNavigate } from 'react-router-dom';
 // ...existing code...
@@ -11,7 +12,6 @@ export default function PlaylistsScreen() {
   
   const [playlists, setPlaylists] = useState([]);
   const { show } = useGlobalModal();
-  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
@@ -51,10 +51,7 @@ export default function PlaylistsScreen() {
 
   const handleCreatePlaylist = () => {
     // Show premium modal for guests or non-premium users
-    if (!user || !isCurrentlyPremium(user)) {
-      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'createPlaylist' } }));
-      return;
-    }
+    if (!user || !isCurrentlyPremium(user)) { openPremiumModal('createPlaylist'); return; }
     setShowCreateModal(true);
   };
 
@@ -67,9 +64,7 @@ export default function PlaylistsScreen() {
     navigate(`/playlist/${playlist.id}`);
   };
 
-  const closePremiumPopup = () => {
-    setShowPremiumPopup(false);
-  };
+  // legacy premium popup removed; unified global premium modal handles gating
 
   return (
     <div className="playlists-screen">
@@ -93,25 +88,7 @@ export default function PlaylistsScreen() {
         ))}
       </div>
 
-      {/* Premium Popup */}
-      {showPremiumPopup && (
-        <div className="premium-popup-overlay" onClick={closePremiumPopup}>
-          <div className="premium-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="premium-header">
-              <h2>🎵 Premium Feature</h2>
-              <button className="close-btn" onClick={closePremiumPopup}>×</button>
-            </div>
-            <div className="premium-content">
-              <h3>Create Custom Playlists</h3>
-              <p>Creating custom playlists is a premium feature.</p>
-              <div className="premium-buttons">
-                <button className="upgrade-btn">Upgrade to Premium</button>
-                <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Legacy premium popup removed */}
 
       {/* Create Playlist Modal */}
       {showCreateModal && (

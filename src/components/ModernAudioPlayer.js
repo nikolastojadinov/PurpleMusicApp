@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { isPremiumUser, likeSongSupabase, unlikeSongSupabase, isSongLikedSupabase } from '../services/likeSupabaseService';
+import { openPremiumModal } from '../utils/openPremiumModal';
 
 const demoSong = {
   id: 'demo_night_owl',
@@ -26,7 +27,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [touchStartY, setTouchStartY] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+  // legacy local premium popup state removed; unified global premium modal via custom event
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adPlayedForTrack, setAdPlayedForTrack] = useState(false);
   const { show } = useGlobalModal();
@@ -148,10 +149,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
 
   // Like/Unlike functionality (Supabase)
   const toggleLike = async () => {
-    if (!isPremium()) {
-      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'like' } }));
-      return;
-    }
+    if (!isPremium()) { openPremiumModal('like'); return; }
     try {
       if (isLiked) {
         await unlikeSongSupabase(song);
@@ -178,21 +176,19 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
 
   // Skip functionality with premium check
   const handlePrev = () => {
-    if (!isPremium()) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'prev' } })); return; }
+  if (!isPremium()) { openPremiumModal('prev'); return; }
     // Premium functionality: actual skip to previous track
     audioRef.current.currentTime = 0;
     setProgress(0);
   };
   const handleNext = () => {
-    if (!isPremium()) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'next' } })); return; }
+  if (!isPremium()) { openPremiumModal('next'); return; }
     // Premium functionality: actual skip to next track
     audioRef.current.currentTime = duration;
     setProgress(duration);
   };
 
-  const closePremiumPopup = () => {
-    setShowPremiumPopup(false);
-  };
+  // closePremiumPopup no longer needed (handled by global modal)
 
   // Attach drag listeners
   React.useEffect(() => {
@@ -405,39 +401,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         </div>
       </div>
 
-      {/* Premium Popup */}
-      {showPremiumPopup && (
-        <div className="premium-popup-overlay" onClick={closePremiumPopup}>
-          <div className="premium-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="premium-header">
-              <h2>🎵 Premium Feature</h2>
-              <button className="close-btn" onClick={closePremiumPopup}>×</button>
-            </div>
-            <div className="premium-content">
-              <div className="premium-icon">⭐</div>
-              <h3>Enhanced Music Controls</h3>
-              <p>Like songs and skip tracks with premium controls that give you full control over your music experience.</p>
-              
-              <div className="premium-price">
-                <span className="price">3.14π</span>
-                <span className="period">Premium Membership</span>
-              </div>
-              
-              <div className="premium-features">
-                <div className="feature">✓ Like and save favorite songs</div>
-                <div className="feature">✓ Skip to next/previous tracks</div>
-                <div className="feature">✓ Advanced audio controls</div>
-                <div className="feature">✓ Create custom playlists</div>
-              </div>
-              
-              <div className="premium-buttons">
-                <button className="upgrade-btn">Upgrade to Premium</button>
-                <button className="cancel-btn" onClick={closePremiumPopup}>Maybe Later</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Unified premium modal handled globally; legacy inline popup removed */}
     </div>
   );
 }

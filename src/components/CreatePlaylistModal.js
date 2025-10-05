@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
+import { openPremiumModal } from '../utils/openPremiumModal';
 
 export default function CreatePlaylistModal({ onClose, onCreate, currentUser, isPremium }) {
   const [playlistName, setPlaylistName] = useState('');
@@ -10,8 +11,8 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
     if (!playlistName.trim()) return;
     if (!currentUser || !currentUser.id || !currentUser.is_premium) {
       // Unified gating: guests OR non-premium -> open premium modal
-      window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'createPlaylistModal' } }));
-      return;
+      openPremiumModal('createPlaylistModal');
+      return; 
     }
     setLoading(true);
     try {
