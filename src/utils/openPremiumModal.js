@@ -2,6 +2,7 @@
 // Pass an optional source string for light analytics / debugging.
 export function openPremiumModal(source = 'unknown') {
   try {
+    console.log('Dispatching pm:openPremiumModal', source);
     window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source } }));
   } catch (e) {
     // In non-browser environments (SSR/tests) just noop.

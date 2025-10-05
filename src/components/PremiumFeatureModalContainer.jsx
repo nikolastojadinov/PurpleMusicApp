@@ -18,7 +18,9 @@ export default function PremiumFeatureModalContainer() {
 
   // Listener for global openPremiumModal events.
   useEffect(() => {
-    const handler = () => {
+    console.log('[PremiumFeatureModalContainer] Modal listener active');
+    const handler = (e) => {
+      console.log('[PremiumFeatureModalContainer] Event received', e?.detail);
       if (user?.is_premium) return; // premium users shouldn't see it
       setShowPremiumModal(true);
     };
@@ -112,7 +114,8 @@ export default function PremiumFeatureModalContainer() {
     }
   };
 
-  if (!showPremiumModal || !user) return null;
+  // Allow guests (no user) to see modal. Only block for already premium.
+  if (!showPremiumModal || user?.is_premium) return null;
   return (
     <PremiumPlansModal
       onClose={() => setShowPremiumModal(false)}
