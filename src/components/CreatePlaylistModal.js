@@ -8,11 +8,8 @@ export default function CreatePlaylistModal({ onClose, onCreate, currentUser, is
 
   const handleCreate = async () => {
     if (!playlistName.trim()) return;
-    if (!currentUser || !currentUser.id) {
-      show('Greška: korisnik nije validan. Pokušajte ponovo nakon logina.', { type: 'warning', autoClose: 3500 });
-      return;
-    }
-    if (!currentUser.is_premium) {
+    if (!currentUser || !currentUser.id || !currentUser.is_premium) {
+      // Unified gating: guests OR non-premium -> open premium modal
       window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail: { source: 'createPlaylistModal' } }));
       return;
     }

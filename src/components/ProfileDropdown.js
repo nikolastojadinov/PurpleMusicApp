@@ -70,13 +70,12 @@ export default function ProfileDropdown() {
     return ()=>{ if (pollId) clearInterval(pollId); };
   }, [user]);
 
-  // Global event listener to open premium modal from anywhere
+  // Global event listener to open premium modal from anywhere (guests OR non-premium users)
   useEffect(()=>{
-    const handler = (e) => {
-      // Ignore if already premium
-      if (user?.is_premium) return;
+    const handler = () => {
+      const isPremium = !!user?.is_premium; // unify naming
+      if (isPremium) return; // premium users never see modal
       setShowPremiumModal(true);
-      // Optionally pre-select plan from detail source later
     };
     window.addEventListener('pm:openPremiumModal', handler);
     return ()=> window.removeEventListener('pm:openPremiumModal', handler);
@@ -378,11 +377,11 @@ export default function ProfileDropdown() {
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button
-                  onClick={()=>{ if(user && !hasPendingPayment) { setShowPremiumModal(true);} }}
-                  className={`dropdown-button premium${!user || hasPendingPayment ? ' disabled' : ''}`}
-                  disabled={!user || hasPendingPayment}
-                  title={!user ? 'Login required to upgrade to Premium' : hasPendingPayment ? 'Payment pending confirmation' : hasRejectedPayment ? 'Previous payment failed, you can retry.' : ''}
-                  style={!user || hasPendingPayment ? {opacity:0.5, cursor:'not-allowed'} : hasRejectedPayment ? {borderColor:'#a33'} : {}}
+                  onClick={()=>{ if(!hasPendingPayment) { setShowPremiumModal(true);} }}
+                  className={`dropdown-button premium${hasPendingPayment ? ' disabled' : ''}`}
+                  disabled={hasPendingPayment}
+                  title={hasPendingPayment ? 'Payment pending confirmation' : hasRejectedPayment ? 'Previous payment failed, you can retry.' : ''}
+                  style={hasPendingPayment ? {opacity:0.5, cursor:'not-allowed'} : hasRejectedPayment ? {borderColor:'#a33'} : {}}
                 >
                   <div className="button-icon premium-icon">⭐</div>
                   <div className="button-text">
