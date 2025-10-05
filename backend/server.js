@@ -375,6 +375,8 @@ async function completeHandler(req, res) {
     }
     const shape = validatePaymentShape(payment);
     if (!shape.ok) {
+      // Mark as rejected so it doesn't stay pending forever
+      try { await supabase.from('payments').update({ status:'rejected', updated_at: new Date().toISOString() }).eq('pi_payment_id', paymentId); } catch(_){}
       return res.status(400).json({ success:false, error:'Validation failed: '+shape.reason, code:'BAD_PAYMENT_SHAPE' });
     }
     const plan = shape.plan;
@@ -466,6 +468,46 @@ app.get('/api/payments/latest', async (req, res) => {
           premium_until: premiumUntil
         }).eq('id', userRow.id);
         if (!updErr) userUpgraded = true;
+      }
+    }
+    // Auto-recovery: if latest is pending, check Pi API; if actually completed -> approve & upgrade
+    if (latest && latest.status === 'pending' && latest.pi_payment_id) {
+      try {
+        const piApiKey = process.env.PI_API_KEY;
+        if (piApiKey) {
+          const url = `https://api.minepi.com/v2/payments/${latest.pi_payment_id}`;
+          const r = await axios.get(url, { headers: { Authorization: `Key ${piApiKey}` } });
+          const pay = r.data;
+          let isCompleted = false;
+          if (typeof pay.status === 'string') isCompleted = pay.status === 'completed';
+          else if (pay.status && typeof pay.status === 'object') isCompleted = !!pay.status.developer_completed;
+          if (isCompleted) {
+            // Validate shape before upgrading
+            const shape = validatePaymentShape(pay);
+            if (shape.ok) {
+              const plan = shape.plan || latest.plan_type || 'monthly';
+              premiumUntil = computePremiumUntil(plan);
+              const { error: upErr } = await supabase.from('users').update({
+                is_premium: true,
+                premium_plan: plan,
+                premium_until: premiumUntil
+              }).eq('id', userRow.id);
+              if (!upErr) {
+                userUpgraded = true;
+                await supabase.from('payments').update({ status:'approved', plan_type: plan, txid: pay?.transaction?.txid || pay?.txid || null, updated_at: new Date().toISOString() }).eq('id', latest.id);
+                // reflect approved status in response object
+                latest.status = 'approved';
+                latest.plan_type = plan;
+              }
+            } else {
+              // Invalid shape -> mark rejected
+              await supabase.from('payments').update({ status:'rejected', updated_at: new Date().toISOString() }).eq('id', latest.id);
+              latest.status = 'rejected';
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('[latest][auto-recover] failed', e.message);
       }
     }
     return res.json({ success:true, payment: latest, userUpgraded, premium_until: premiumUntil });
