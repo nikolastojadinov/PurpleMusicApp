@@ -3,14 +3,14 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
-import { PREMIUM_PLANS, activatePremium, resetPremium } from '../services/premiumService';
+import { resetPremium } from '../services/premiumService';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   // Premium modal logic moved to PremiumFeatureModalContainer (global)
-  const { user, loginWithPi, logout, updateUser } = useAuth();
+  const { user, loginWithPi, logout, updateUser } = useAuth(); // updateUser still used for resetPremium force reset
   const { show } = useGlobalModal();
 
   // New state for latest payment polling
@@ -76,13 +76,7 @@ export default function ProfileDropdown() {
     }
   };
 
-  // Pi Network login callbacks
-    // Nem szükséges, helyette loginOrRegisterUser-t használunk
-  const onLoginFailure = (error) => {
-    show('Pi Network login failed: ' + error, { type: 'error', autoClose: 4000 });
-  };
-
-  // (Premium payment flow moved to global container; placeholder retained to avoid broken references)
+  // Premium payment flow moved to global container
 
     // Logout function
     const handleLogout = () => {
