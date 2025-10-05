@@ -306,7 +306,23 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
         <div style={{padding:'12px 20px', borderTop:'1px solid #242424', display:'flex', justifyContent:'flex-end'}}>
           <button onClick={onClose} style={{background:'#262626', color:'#eee', border:'1px solid #333', padding:'8px 16px', borderRadius:10, cursor:'pointer', fontSize:13}}>Close</button>
         </div>
-      </div>
+            {/* Legal Links */}
+            <div className="dropdown-divider"></div>
+            <a href="/privacy-policy.html" className="dropdown-button" style={{textDecoration:'none'}}>
+              <div className="button-icon" role="img" aria-label="privacy">🔒</div>
+              <div className="button-text">
+                <div className="button-title">Privacy Policy</div>
+                <div className="button-subtitle">How we handle data</div>
+              </div>
+            </a>
+            <a href="/terms-of-service.html" className="dropdown-button" style={{textDecoration:'none'}}>
+              <div className="button-icon" role="img" aria-label="terms">📄</div>
+              <div className="button-text">
+                <div className="button-title">Terms of Service</div>
+                <div className="button-subtitle">Your usage agreement</div>
+              </div>
+            </a>
+        </div>
     </div>,
     root
   );
