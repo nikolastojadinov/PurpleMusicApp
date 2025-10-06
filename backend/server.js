@@ -556,8 +556,9 @@ app.get('/api/payments/inspect/:paymentId', async (req, res) => {
   }
 });
 
+// Root route (Render expects a simple 200 OK text response) - updated per deployment requirements
 app.get('/', (req, res) => {
-  res.send('PurpleMusic Pi Network backend is running!');
+  res.send('PurpleMusic API is running ✅');
 });
 
 // Health check endpoint (Render / monitoring eszközök számára)
@@ -571,7 +572,8 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+// Use Render-provided PORT or fallback to 10000 as specified
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
