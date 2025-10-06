@@ -201,24 +201,32 @@ export default function ProfileDropdown() {
 
             {showLang && (
               <div style={{position:'fixed', inset:0, zIndex:100002, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <div onClick={()=>setShowLang(false)} style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)'}} />
-                <div style={{position:'relative', width:'min(400px,80vw)', maxWidth:400, maxHeight:'78vh', background:'#191919', border:'1px solid #272727', borderRadius:16, padding:'22px 22px 20px', display:'flex', flexDirection:'column', boxShadow:'0 14px 34px -10px rgba(0,0,0,0.55), 0 4px 14px -6px rgba(0,0,0,0.45)'}}>
+                <div
+                  onClick={()=>setShowLang(false)}
+                  style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation:'pm-fade-bg .25s ease'}}
+                />
+                <div style={{position:'relative', width:'80%', maxWidth:400, maxHeight:500, background:'rgba(17,17,17,0.95)', border:'1px solid #262626', borderRadius:16, padding:'24px 16px', display:'flex', flexDirection:'column', boxShadow:'0 4px 20px rgba(0,0,0,0.6)', animation:'pm-pop-in .25s ease'}}>
                   <style>{`
-                    .pm-lang-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-                    .pm-lang-list { flex:1; overflow-y:auto; padding:4px 4px 2px; scrollbar-width: thin; scroll-behavior:smooth; display:flex; flex-direction:column; align-items:center; }
+                    @keyframes pm-fade-bg { from { opacity:0; } to { opacity:1; } }
+                    @keyframes pm-pop-in { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+                    .pm-lang-header { display:flex; justify-content:center; align-items:center; margin:0 0 14px; position:relative; }
+                    .pm-close-btn { position:absolute; top:-4px; right:-4px; background:rgba(255,255,255,0.06); border:1px solid #303030; color:#aaa; font-size:20px; cursor:pointer; width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; transition:background .25s,color .25s; }
+                    .pm-close-btn:hover { background:rgba(255,255,255,0.15); color:#fff; }
+                    .pm-lang-list { flex:1; overflow-y:auto; scrollbar-width: thin; scroll-behavior:smooth; display:flex; flex-direction:column; align-items:center; padding:0 4px 0; }
                     .pm-lang-list::-webkit-scrollbar { width:10px; }
                     .pm-lang-list::-webkit-scrollbar-track { background:transparent; }
-                    .pm-lang-list::-webkit-scrollbar-thumb { background:#2e2e2e; border-radius:6px; }
-                    .pm-lang-item { width:100%; background:#232323; color:#ddd; border:1px solid #303030; padding:14px 16px; border-radius:12px; font-size:15px; cursor:pointer; text-align:center; line-height:1.25; display:flex; flex-direction:column; gap:4px; transition:background .25s,border-color .25s,color .25s, transform .25s; margin-bottom:12px; }
+                    .pm-lang-list::-webkit-scrollbar-thumb { background:#272727; border-radius:6px; }
+                    .pm-lang-item { width:100%; background:#1e1e1e; color:#ddd; border:1px solid #2b2b2b; padding:14px 14px; border-radius:12px; font-size:15px; cursor:pointer; text-align:center; line-height:1.25; display:flex; flex-direction:column; gap:4px; transition:background .25s,border-color .25s,color .25s, transform .25s; margin-bottom:12px; }
                     .pm-lang-item:last-of-type { margin-bottom:0; }
                     .pm-lang-item.active { background:linear-gradient(135deg,#6d28d9,#8b5cf6); color:#fff; border-color:#8b5cf6; box-shadow:0 0 0 1px #6d28d9aa,0 4px 18px -6px #6d28d980; }
-                    .pm-lang-item:not(.active):hover { background:#2d2d2d; }
+                    .pm-lang-item:not(.active):hover { background:#272727; }
                     .pm-lang-item:focus-visible { outline:2px solid #8b5cf6; outline-offset:3px; }
-                    @media (max-width:600px){ .pm-lang-item { font-size:16px; padding:14px 18px; } }
+                    @media (max-width:640px){ .pm-lang-item { font-size:16px; } }
+                    @media (max-width:640px){ .pm-lang-container { width:80%; max-height:70vh; } }
                   `}</style>
                   <div className="pm-lang-header">
-                    <h3 style={{margin:0, fontSize:21, fontWeight:600, letterSpacing:.4, textAlign:'center', flex:1}}>Select Language</h3>
-                    <button onClick={()=>setShowLang(false)} style={{position:'absolute', top:10, right:10, background:'rgba(255,255,255,0.05)', border:'1px solid #323232', color:'#bbb', fontSize:20, cursor:'pointer', width:40, height:40, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', transition:'background .25s, color .25s'}} aria-label="Close" onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.14)'; e.currentTarget.style.color='#fff';}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color='#bbb';}}>×</button>
+                    <h3 style={{margin:0, fontSize:21, fontWeight:600, letterSpacing:.3, textAlign:'center'}}>Select Language</h3>
+                    <button onClick={()=>setShowLang(false)} className="pm-close-btn" aria-label="Close">×</button>
                   </div>
                   <div className="pm-lang-list" role="listbox" aria-label="Languages">
                     {sortedLanguages.map(({code,label}) => {
@@ -236,7 +244,7 @@ export default function ProfileDropdown() {
                       );
                     })}
                   </div>
-                  <div style={{marginTop:12, fontSize:11, opacity:.55, textAlign:'center'}}>Your selection is saved locally.</div>
+                  <div style={{marginTop:14, fontSize:11, opacity:.55, textAlign:'center'}}>Your selection is saved locally.</div>
                 </div>
               </div>
             )}
