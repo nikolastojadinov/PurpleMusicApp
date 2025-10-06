@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import i18n from 'i18next';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
@@ -26,8 +26,26 @@ export default function ProfileDropdown() {
   const [showLang, setShowLang] = useState(false);
 
   const languageCodes = [
-    'en','es','fr','de','ru','zh','ja','ko','hi','ar','pt','it','tr','pl','vi','th','nl','sv','sr','el','cs','ro','id','fa','uk'
+    'ar','cs','de','el','en','es','fa','fr','hi','id','it','ja','ko','nl','pl','pt','ro','ru','sr','sv','th','tr','uk','vi','zh'
   ];
+
+  // Build sorted language list by localized name
+  const sortedLanguages = useMemo(() => {
+    let dn;
+    try {
+      dn = new Intl.DisplayNames([i18n.language], { type: 'language' });
+    } catch {
+      // Fallback to English names for sorting if current locale unsupported
+      try { dn = new Intl.DisplayNames(['en'], { type: 'language' }); } catch {}
+    }
+    return languageCodes
+      .map(code => {
+        let label = code;
+        try { label = (dn && dn.of(code)) || code; } catch { /* ignore */ }
+        return { code, label };
+      })
+      .sort((a,b) => a.label.localeCompare(b.label, i18n.language || 'en', { sensitivity:'base' }));
+  }, [i18n.language]);
 
   function handleChangeLanguage(code){
     i18n.changeLanguage(code);
@@ -175,35 +193,41 @@ export default function ProfileDropdown() {
             {showLang && (
               <div style={{position:'fixed', inset:0, zIndex:100002}}>
                 <div onClick={()=>setShowLang(false)} style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)'}} />
-                <div style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'min(500px,90vw)', maxHeight:'70vh', overflow:'auto', background:'#181818', border:'1px solid #333', borderRadius:20, padding:24, display:'flex', flexDirection:'column', gap:14}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                    <h3 style={{margin:0, fontSize:20}}>Select Language</h3>
-                    <button onClick={()=>setShowLang(false)} style={{background:'transparent', border:'none', color:'#bbb', fontSize:24, cursor:'pointer'}} aria-label="Close">×</button>
+                <div style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'min(420px,92vw)', maxHeight:'min(80vh,640px)', background:'#181818', border:'1px solid #2c2c2c', borderRadius:22, padding:'18px 20px 20px', display:'flex', flexDirection:'column', boxShadow:'0 18px 42px -12px rgba(0,0,0,.7)'}}>
+                  <style>{`
+                    .pm-lang-list { flex:1; overflow-y:auto; padding:4px 2px 6px; scrollbar-width: thin; }
+                    .pm-lang-list::-webkit-scrollbar { width:10px; }
+                    .pm-lang-list::-webkit-scrollbar-track { background:transparent; }
+                    .pm-lang-list::-webkit-scrollbar-thumb { background:#2d2d2d; border-radius:6px; }
+                    .pm-lang-item { width:100%; background:#222; color:#ddd; border:1px solid #2e2e2e; padding:12px 14px; border-radius:14px; font-size:14px; cursor:pointer; text-align:left; line-height:1.25; display:flex; align-items:center; gap:10px; transition:background .25s,border-color .25s,color .25s,transform .25s; }
+                    .pm-lang-item.active { background:linear-gradient(135deg,#6d28d9,#8b5cf6); color:#fff; border-color:#8b5cf6; box-shadow:0 0 0 1px #6d28d9aa,0 4px 18px -6px #6d28d980; }
+                    .pm-lang-item:not(.active):hover { background:#2c2c2c; }
+                    .pm-lang-item:focus-visible { outline:2px solid #8b5cf6; outline-offset:2px; }
+                    .pm-lang-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+                    @media (max-width:520px){ .pm-lang-item { font-size:15px; padding:14px 16px; } }
+                  `}</style>
+                  <div className="pm-lang-header" style={{marginBottom:12}}>
+                    <h3 style={{margin:0, fontSize:20, fontWeight:600, letterSpacing:.3}}>Select Language</h3>
+                    <button onClick={()=>setShowLang(false)} style={{background:'rgba(255,255,255,0.05)', border:'1px solid #333', color:'#bbb', fontSize:20, cursor:'pointer', width:40, height:40, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', transition:'background .25s, color .25s'}} aria-label="Close" onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)'; e.currentTarget.style.color='#fff';}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color='#bbb';}}>×</button>
                   </div>
-                  <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10}}>
-                    {languageCodes.map(code => {
-                      let label = code;
-                      try {
-                        const dn = new Intl.DisplayNames([i18n.language], { type: 'language' });
-                        label = dn.of(code) || code;
-                      } catch {}
+                  <div className="pm-lang-list" role="listbox" aria-label="Languages">
+                    {sortedLanguages.map(({code,label}) => {
                       const active = i18n.language === code;
                       return (
-                        <button key={code} onClick={()=>handleChangeLanguage(code)} style={{
-                          background: active ? 'linear-gradient(135deg,#6d28d9,#8b5cf6)' : '#242424',
-                          color: active ? '#fff' : '#ddd',
-                          border: active ? '1px solid #8b5cf6' : '1px solid #333',
-                          padding:'10px 12px',
-                          borderRadius:12,
-                          fontSize:13,
-                          cursor:'pointer',
-                          textAlign:'center',
-                          lineHeight:1.3
-                        }}>{label}</button>
+                        <button
+                          key={code}
+                          className={`pm-lang-item${active ? ' active' : ''}`}
+                          aria-selected={active}
+                          onClick={()=>handleChangeLanguage(code)}
+                          style={{marginBottom:8}}
+                        >
+                          <span style={{flex:1}}>{label}</span>
+                          {active && <span style={{fontSize:12, background:'rgba(255,255,255,0.18)', padding:'3px 8px', borderRadius:20, letterSpacing:.5}}>Active</span>}
+                        </button>
                       );
                     })}
                   </div>
-                  <div style={{marginTop:8, fontSize:11, opacity:.55}}>Your selection is saved locally.</div>
+                  <div style={{marginTop:10, fontSize:11, opacity:.55, textAlign:'center'}}>Your selection is saved locally.</div>
                 </div>
               </div>
             )}
