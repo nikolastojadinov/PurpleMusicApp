@@ -7,6 +7,8 @@ import LikedSongsScreen from './screens/LikedSongsScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
 import PlaylistDetailScreen from './screens/PlaylistDetailScreen';
 import ViewProfileScreen from './screens/ViewProfileScreen';
+import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from './screens/TermsOfServiceScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
 import ModernAudioPlayer from './components/ModernAudioPlayer';
@@ -36,6 +38,8 @@ function App() {
                   <Route path="/playlists" element={<PlaylistsScreen />} />
                   <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
                   <Route path="/profile" element={<ViewProfileScreen />} />
+                  <Route path="/privacy" element={<PrivacyPolicyScreen />} />
+                  <Route path="/terms" element={<TermsOfServiceScreen />} />
                 </Routes>
               </main>
               <BottomNavigation />

@@ -233,6 +233,27 @@ export default function ProfileDropdown() {
                     title="Force reset premium status"
                   >Force Premium Reset</button>
                 )}
+                <div className="dropdown-divider" />
+                <button
+                  onClick={() => { try { navigate('/privacy'); } catch(e){ console.error('Navigate privacy failed', e);} finally { setIsOpen(false);} }}
+                  className="dropdown-button"
+                >
+                  <div className="button-icon" role="img" aria-label="privacy">🔒</div>
+                  <div className="button-text">
+                    <div className="button-title">Privacy Policy</div>
+                    <div className="button-subtitle">How we handle data</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { try { navigate('/terms'); } catch(e){ console.error('Navigate terms failed', e);} finally { setIsOpen(false);} }}
+                  className="dropdown-button"
+                >
+                  <div className="button-icon" role="img" aria-label="terms">📄</div>
+                  <div className="button-text">
+                    <div className="button-title">Terms of Service</div>
+                    <div className="button-subtitle">Usage agreement</div>
+                  </div>
+                </button>
               </div>
             )}
           </div>
@@ -306,28 +327,6 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
         <div style={{padding:'12px 20px', borderTop:'1px solid #242424', display:'flex', justifyContent:'flex-end'}}>
           <button onClick={onClose} style={{background:'#262626', color:'#eee', border:'1px solid #333', padding:'8px 16px', borderRadius:10, cursor:'pointer', fontSize:13}}>Close</button>
         </div>
-            {/* Legal Links */}
-            <div className="dropdown-divider"></div>
-            <button
-              onClick={() => { try { navigate('/privacy-policy'); } catch(e){ console.error('Navigate privacy failed', e);} finally { setIsOpen(false);} }}
-              className="dropdown-button"
-            >
-              <div className="button-icon" role="img" aria-label="privacy">�️</div>
-              <div className="button-text">
-                <div className="button-title">Privacy Policy</div>
-                <div className="button-subtitle">How we handle data</div>
-              </div>
-            </button>
-            <button
-              onClick={() => { try { navigate('/terms-of-service'); } catch(e){ console.error('Navigate terms failed', e);} finally { setIsOpen(false);} }}
-              className="dropdown-button"
-            >
-              <div className="button-icon" role="img" aria-label="terms">📄</div>
-              <div className="button-text">
-                <div className="button-title">Terms of Service</div>
-                <div className="button-subtitle">Your usage agreement</div>
-              </div>
-            </button>
         </div>
     </div>,
     root
