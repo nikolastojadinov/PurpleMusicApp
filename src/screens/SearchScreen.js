@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { loadMusicLibrary } from '../services/libraryLoader';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 import { fetchMusic } from '../services/musicService';
@@ -31,7 +31,7 @@ export default function SearchScreen() {
   }, []);
 
   // Handle dynamic API search on submit
-  async function executeSearch(q) {
+  const executeSearch = useCallback(async function(q) {
     if (!q || q.trim().length < 2) {
       setResults([]);
       setSearchPerformed(false);
@@ -82,7 +82,7 @@ export default function SearchScreen() {
     } finally {
       setSearching(false);
     }
-  }
+  }, [songs]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -101,8 +101,7 @@ export default function SearchScreen() {
       executeSearch(searchQuery);
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, executeSearch]);
 
   const handlePlaySong = (song) => {
     setSelectedSong(song);
