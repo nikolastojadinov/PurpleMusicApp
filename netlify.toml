@@ -1,7 +1,6 @@
 [build]
-  # Force a clean, reproducible install each deploy to avoid stale cached node_modules
-  # (Fixes Netlify "Module not found" when dependency exists locally.)
-  command = "npm ci && npm run build"
+  # Clean install + ignore peer dependency version conflicts (TS peer mismatch between CRA toolchain & i18next optional peers)
+  command = "npm ci --legacy-peer-deps && npm run build"
   publish = "build"
 
 [build.environment]
