@@ -1,5 +1,7 @@
 [build]
-  command = "npm run build"
+  # Force a clean, reproducible install each deploy to avoid stale cached node_modules
+  # (Fixes Netlify "Module not found" when dependency exists locally.)
+  command = "npm ci && npm run build"
   publish = "build"
 
 [build.environment]
