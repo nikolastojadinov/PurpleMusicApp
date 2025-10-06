@@ -1,5 +1,4 @@
 import React from 'react';
-import AppVisualPreview from '../components/AppVisualPreview';
 import { useNavigate } from 'react-router-dom';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 import { loadMusicLibrary } from '../services/libraryLoader';
@@ -52,13 +51,6 @@ export default function HomeScreen() {
     setSelectedSong(null);
   };
 
-  const [showPreview, setShowPreview] = React.useState(()=>{
-    try { return !localStorage.getItem('pm_hide_preview'); } catch { return true; }
-  });
-  const closePreview = () => {
-    setShowPreview(false);
-    try { localStorage.setItem('pm_hide_preview','1'); } catch {}
-  };
 
   return (
     <div className="home-screen" style={{position:'relative'}}>
@@ -138,9 +130,6 @@ export default function HomeScreen() {
             src: selectedSong.url
           }} 
         />
-      )}
-      {showPreview && !loading && !error && (
-        <AppVisualPreview onClose={closePreview} />
       )}
     </div>
   );
