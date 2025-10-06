@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import i18n from 'i18next';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +23,18 @@ export default function ProfileDropdown() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRows, setHistoryRows] = useState([]);
   const [historyError, setHistoryError] = useState(null);
+  const [showLang, setShowLang] = useState(false);
+
+  const languageCodes = [
+    'en','es','fr','de','ru','zh','ja','ko','hi','ar','pt','it','tr','pl','vi','th','nl','sv','sr','el','cs','ro','id','fa','uk'
+  ];
+
+  function handleChangeLanguage(code){
+    i18n.changeLanguage(code);
+    try { localStorage.setItem('appLanguage', code); } catch {}
+    setShowLang(false);
+    setIsOpen(false);
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -146,6 +159,54 @@ export default function ProfileDropdown() {
 
             {/* Divider */}
             <div className="dropdown-divider"></div>
+
+            {/* Language Selector Button */}
+            <button
+              onClick={() => setShowLang(true)}
+              className="dropdown-button"
+            >
+              <div className="button-icon" role="img" aria-label="language">🌐</div>
+              <div className="button-text">
+                <div className="button-title">Language</div>
+                <div className="button-subtitle">{i18n.language}</div>
+              </div>
+            </button>
+
+            {showLang && (
+              <div style={{position:'fixed', inset:0, zIndex:100002}}>
+                <div onClick={()=>setShowLang(false)} style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)'}} />
+                <div style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'min(500px,90vw)', maxHeight:'70vh', overflow:'auto', background:'#181818', border:'1px solid #333', borderRadius:20, padding:24, display:'flex', flexDirection:'column', gap:14}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                    <h3 style={{margin:0, fontSize:20}}>Select Language</h3>
+                    <button onClick={()=>setShowLang(false)} style={{background:'transparent', border:'none', color:'#bbb', fontSize:24, cursor:'pointer'}} aria-label="Close">×</button>
+                  </div>
+                  <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10}}>
+                    {languageCodes.map(code => {
+                      let label = code;
+                      try {
+                        const dn = new Intl.DisplayNames([i18n.language], { type: 'language' });
+                        label = dn.of(code) || code;
+                      } catch {}
+                      const active = i18n.language === code;
+                      return (
+                        <button key={code} onClick={()=>handleChangeLanguage(code)} style={{
+                          background: active ? 'linear-gradient(135deg,#6d28d9,#8b5cf6)' : '#242424',
+                          color: active ? '#fff' : '#ddd',
+                          border: active ? '1px solid #8b5cf6' : '1px solid #333',
+                          padding:'10px 12px',
+                          borderRadius:12,
+                          fontSize:13,
+                          cursor:'pointer',
+                          textAlign:'center',
+                          lineHeight:1.3
+                        }}>{label}</button>
+                      );
+                    })}
+                  </div>
+                  <div style={{marginTop:8, fontSize:11, opacity:.55}}>Your selection is saved locally.</div>
+                </div>
+              </div>
+            )}
 
               {/* Pi Network Login/Logout Button */}
               {!user ? (

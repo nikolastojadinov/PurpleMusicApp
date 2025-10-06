@@ -1,0 +1,16 @@
+{
+  "view_profile": "View Profile",
+  "login_with_pi": "Login with Pi Network",
+  "logout": "Logout",
+  "premium_member": "Premium Member",
+  "go_premium": "Go Premium",
+  "payment_pending": "Payment Pending…",
+  "retry_premium": "Retry Premium Payment",
+  "unlock_all": "Unlock all features",
+  "privacy_policy": "Privacy Policy",
+  "terms_of_service": "Terms of Service",
+  "language": "Language",
+  "select_language": "Select Language",
+  "saved_locally": "Your selection is saved locally.",
+  "search_placeholder": "Artists, songs, or podcasts"
+}

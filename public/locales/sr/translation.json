@@ -1,0 +1,16 @@
+{
+  "view_profile": "Profil",
+  "login_with_pi": "Prijava Pi Network",
+  "logout": "Odjava",
+  "premium_member": "Premium član",
+  "go_premium": "Premium",
+  "payment_pending": "Uplata u toku…",
+  "retry_premium": "Pokušaj ponovo Premium",
+  "unlock_all": "Otključaj sve funkcije",
+  "privacy_policy": "Politika privatnosti",
+  "terms_of_service": "Uslovi korišćenja",
+  "language": "Jezik",
+  "select_language": "Izaberi jezik",
+  "saved_locally": "Izbor je sačuvan lokalno.",
+  "search_placeholder": "Izvođači, pesme ili podcasti"
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // ...existing code...
 import HomeScreen from './screens/HomeScreen';
@@ -20,9 +20,26 @@ import AuthModal from './components/AuthModal';
 import PremiumFeatureModalContainer from './components/PremiumFeatureModalContainer.jsx';
 // ...existing code...
 import './index.css';
+import './i18n';
+import i18n from './i18n';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 function App() {
+  // Auto-detect language once on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('appLanguage');
+      if (stored) {
+        i18n.changeLanguage(stored);
+        return;
+      }
+      const detected = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+      const lang = detected.split('-')[0];
+      i18n.changeLanguage(lang);
+    } catch {
+      i18n.changeLanguage('en');
+    }
+  }, []);
   return (
     <AuthProvider>
       <GlobalModalProvider>
