@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { loadMusicLibrary } from '../services/libraryLoader';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
+import { fetchMusic } from '../services/musicService';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [songs, setSongs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [songs, setSongs] = useState([]); // local library for trending suggestions
+  const [loading, setLoading] = useState(true); // initial library load
+  const [searching, setSearching] = useState(false); // dynamic search loading
+  const [results, setResults] = useState([]); // search results from APIs
+  const [searchPerformed, setSearchPerformed] = useState(false); // track if a search was executed
+  const activeQueryRef = useRef('');
   const [selectedSong, setSelectedSong] = useState(null);
   const [playerOpen, setPlayerOpen] = useState(false);
 
@@ -24,12 +29,45 @@ export default function SearchScreen() {
     loadSongs();
   }, []);
 
-  // Filter songs based on search query (show results after 2+ characters)
-  const filteredSongs = searchQuery.length >= 2 
-    ? songs.filter(song => 
-        song.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // Handle dynamic API search on submit
+  async function executeSearch(q) {
+    if (!q || q.trim().length < 2) {
+      setResults([]);
+      setSearchPerformed(false);
+      return;
+    }
+    const query = q.trim();
+    activeQueryRef.current = query;
+    setSearching(true);
+    setSearchPerformed(true);
+    try {
+      const tracks = await fetchMusic(query);
+      // Ensure latest query still matches (avoid race conditions)
+      if (activeQueryRef.current !== query) return;
+      setResults(tracks.map(t => ({
+        id: t.id,
+        title: t.title || 'Untitled',
+        artist: t.author || 'Unknown',
+        url: t.preview || t.url || '',
+        cover: '/fallback-cover.png',
+        source: t.source
+      })));
+      if (tracks && tracks.length > 0) {
+        console.log('[MusicAPI] Results source:', tracks[0].source === 'pixabay' ? 'Pixabay' : tracks[0].source === 'freesound' ? 'FreeSound' : tracks[0].source);
+      } else {
+        console.log('[MusicAPI] No tracks found for', query);
+      }
+    } catch (e) {
+      console.error('Search failed:', e);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    executeSearch(searchQuery);
+  };
 
   const handlePlaySong = (song) => {
     setSelectedSong(song);
@@ -53,21 +91,23 @@ export default function SearchScreen() {
 
   return (
     <div className="search-screen">
-      <div className="search-input-container">
+      <form onSubmit={handleSubmit} className="search-input-container" role="search">
         <input
           type="text"
           className="search-input"
-          placeholder="Artists, songs, or podcasts"
+            placeholder="Search music (Pixabay / FreeSound)"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search for tracks"
         />
+        <button type="submit" aria-label="Search" style={{display:'none'}}>Search</button>
         <span className="search-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.35-4.35"/>
           </svg>
         </span>
-      </div>
+      </form>
 
       {!searchQuery && (
         <>
@@ -97,21 +137,22 @@ export default function SearchScreen() {
         </>
       )}
 
-      {searchQuery.length >= 2 && (
+      {searchPerformed && searchQuery.trim().length >= 2 && (
         <div className="search-results">
           <p className="search-results-text">Search results for "{searchQuery}"</p>
-          {loading ? (
-            <div style={{color:'#888', fontSize:12, marginTop:20}}>Loading songs...</div>
-          ) : filteredSongs.length > 0 ? (
+          {searching ? (
+            <div style={{color:'#888', fontSize:12, marginTop:20}}>Searching…</div>
+          ) : results.length > 0 ? (
             <div className="songs-list-vertical" style={{marginTop: 20}}>
-              {filteredSongs.map((song, idx) => (
-                <div key={idx} className="song-item-search" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
+              {results.map((song) => (
+                <div key={song.id} className="song-item-search" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
                   <div className="song-thumbnail">
                     <img src={song.cover || '/fallback-cover.png'} alt={song.title} loading="lazy" />
                   </div>
                   <div className="song-info">
                     <div className="song-title">{song.title}</div>
                     <div className="song-artist">{song.artist}</div>
+                    {song.source && <div style={{fontSize:10, opacity:.5, marginTop:2}}>Source: {song.source}</div>}
                   </div>
                 </div>
               ))}
@@ -124,7 +165,7 @@ export default function SearchScreen() {
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
               </span>
-              <p>No results found</p>
+              <p>No tracks found</p>
             </div>
           )}
         </div>
