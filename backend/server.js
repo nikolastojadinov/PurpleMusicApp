@@ -572,31 +572,33 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-// ---- Static React build serving & SPA fallback ----
-// Attempt to resolve build directory (supporting both ../frontend/build and ../build)
-const buildCandidates = [
-  path.join(__dirname, '..', 'frontend', 'build'),
-  path.join(__dirname, '..', 'build')
-];
-let reactBuildPath = buildCandidates.find(p => fs.existsSync(path.join(p, 'index.html')));
-if (!reactBuildPath) {
-  console.warn('[BOOT] No React build found in expected paths. Expected one of:', buildCandidates);
+// ---- Static React build serving (explicit path per deployment instructions) ----
+// Serve static assets from frontend build (if it exists). If the folder is missing, log a warning.
+const explicitFrontendBuild = path.join(__dirname, '../frontend/build');
+if (fs.existsSync(explicitFrontendBuild)) {
+  console.log('[BOOT] Serving React build from explicit path:', explicitFrontendBuild);
+  app.use(express.static(explicitFrontendBuild));
 } else {
-  console.log('[BOOT] Serving React build from:', reactBuildPath);
-  app.use(express.static(reactBuildPath));
+  console.warn('[BOOT] Expected React build at', explicitFrontendBuild, 'but it was not found.');
+  // Fallback: attempt legacy root build folder so deployment still works if build resides there.
+  const fallbackRootBuild = path.join(__dirname, '..', 'build');
+  if (fs.existsSync(path.join(fallbackRootBuild, 'index.html'))) {
+    console.log('[BOOT] Fallback: serving React build from', fallbackRootBuild);
+    app.use(express.static(fallbackRootBuild));
+  } else {
+    console.warn('[BOOT] No fallback build found at', fallbackRootBuild);
+  }
 }
 
-// IMPORTANT: Place AFTER API routes so /api/* is not captured by SPA fallback.
-app.get('*', (req, res, next) => {
-  // Only attempt SPA fallback if build exists and request is NOT an API call
-  if (reactBuildPath && !req.path.startsWith('/api/')) {
-    return res.sendFile(path.join(reactBuildPath, 'index.html'));
-  }
-  return next();
+// Catch-all route (must be after all API routes) - serve index.html from explicit path
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+  return res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
 // Use Render-provided PORT or fallback to 10000 as specified
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`PurpleMusic full app is running ✅ (port ${PORT})`);
+  // Required startup log per instructions
+  console.log('PurpleMusic full app is running ✅');
 });
