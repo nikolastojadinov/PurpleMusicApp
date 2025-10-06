@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { loadMusicLibrary } from '../services/libraryLoader';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function SearchScreen() {
         <input
           type="text"
           className="search-input"
-          placeholder="Artists, songs, or podcasts"
+          placeholder={t('search_placeholder', 'Artists, songs, or podcasts')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -72,7 +74,7 @@ export default function SearchScreen() {
       {!searchQuery && (
         <>
           <section className="search-section">
-            <h2 className="section-title">Recent searches</h2>
+            <h2 className="section-title">{t('recent_searches', 'Recent searches')}</h2>
             <div className="search-list">
               {recentSearches.map((search, index) => (
                 <div key={index} className="search-item">
@@ -84,7 +86,7 @@ export default function SearchScreen() {
           </section>
 
           <section className="search-section">
-            <h2 className="section-title">Trending searches</h2>
+            <h2 className="section-title">{t('trending_searches', 'Trending searches')}</h2>
             <div className="search-list">
               {trendingSearches.map((search, index) => (
                 <div key={index} className="search-item">
@@ -99,9 +101,9 @@ export default function SearchScreen() {
 
       {searchQuery.length >= 2 && (
         <div className="search-results">
-          <p className="search-results-text">Search results for "{searchQuery}"</p>
+          <p className="search-results-text">{t('search_results_for', 'Search results for')} "{searchQuery}"</p>
           {loading ? (
-            <div style={{color:'#888', fontSize:12, marginTop:20}}>Loading songs...</div>
+            <div style={{color:'#888', fontSize:12, marginTop:20}}>{t('loading_songs','Loading songs...')}</div>
           ) : filteredSongs.length > 0 ? (
             <div className="songs-list-vertical" style={{marginTop: 20}}>
               {filteredSongs.map((song, idx) => (
@@ -124,7 +126,7 @@ export default function SearchScreen() {
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
               </span>
-              <p>No results found</p>
+              <p>{t('no_results_found','No results found')}</p>
             </div>
           )}
         </div>

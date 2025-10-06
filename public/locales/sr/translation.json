@@ -12,5 +12,10 @@
   "language": "Jezik",
   "select_language": "Izaberi jezik",
   "saved_locally": "Izbor je sačuvan lokalno.",
-  "search_placeholder": "Izvođači, pesme ili podcasti"
+  "search_placeholder": "Izvođači, pesme ili podcasti",
+  "recent_searches": "Skorašnje pretrage",
+  "trending_searches": "Popularno sada",
+  "search_results_for": "Rezultati za",
+  "loading_songs": "Učitavanje pesama...",
+  "no_results_found": "Nema rezultata"
 }

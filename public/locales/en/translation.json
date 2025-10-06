@@ -12,5 +12,10 @@
   "language": "Language",
   "select_language": "Select Language",
   "saved_locally": "Your selection is saved locally.",
-  "search_placeholder": "Artists, songs, or podcasts"
+  "search_placeholder": "Artists, songs, or podcasts",
+  "recent_searches": "Recent searches",
+  "trending_searches": "Trending searches",
+  "search_results_for": "Search results for",
+  "loading_songs": "Loading songs...",
+  "no_results_found": "No results found"
 }
