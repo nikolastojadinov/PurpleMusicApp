@@ -234,26 +234,34 @@ export default function ProfileDropdown() {
                   >Force Premium Reset</button>
                 )}
                 <div className="dropdown-divider" />
-                <button
-                  onClick={() => { try { navigate('/privacy'); } catch(e){ console.error('Navigate privacy failed', e);} finally { setIsOpen(false);} }}
+                <a
+                  href="/privacy.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="dropdown-button"
+                  onClick={()=>setIsOpen(false)}
+                  style={{textDecoration:'none'}}
                 >
                   <div className="button-icon" role="img" aria-label="privacy">🔒</div>
                   <div className="button-text">
                     <div className="button-title">Privacy Policy</div>
                     <div className="button-subtitle">How we handle data</div>
                   </div>
-                </button>
-                <button
-                  onClick={() => { try { navigate('/terms'); } catch(e){ console.error('Navigate terms failed', e);} finally { setIsOpen(false);} }}
+                </a>
+                <a
+                  href="/terms.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="dropdown-button"
+                  onClick={()=>setIsOpen(false)}
+                  style={{textDecoration:'none'}}
                 >
                   <div className="button-icon" role="img" aria-label="terms">📄</div>
                   <div className="button-text">
                     <div className="button-title">Terms of Service</div>
                     <div className="button-subtitle">Usage agreement</div>
                   </div>
-                </button>
+                </a>
               </div>
             )}
           </div>
