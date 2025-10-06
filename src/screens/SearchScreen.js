@@ -8,9 +8,10 @@ export default function SearchScreen() {
   const [songs, setSongs] = useState([]); // local library for trending suggestions
   const [loading, setLoading] = useState(true); // initial library load
   const [searching, setSearching] = useState(false); // dynamic search loading
-  const [results, setResults] = useState([]); // search results from APIs
-  const [searchPerformed, setSearchPerformed] = useState(false); // track if a search was executed
+  const [results, setResults] = useState([]); // unified search results (remote or local fallback)
+  const [searchPerformed, setSearchPerformed] = useState(false); // track if search attempted
   const activeQueryRef = useRef('');
+  const debounceRef = useRef(null);
   const [selectedSong, setSelectedSong] = useState(null);
   const [playerOpen, setPlayerOpen] = useState(false);
 
@@ -42,23 +43,42 @@ export default function SearchScreen() {
     setSearchPerformed(true);
     try {
       const tracks = await fetchMusic(query);
-      // Ensure latest query still matches (avoid race conditions)
-      if (activeQueryRef.current !== query) return;
-      setResults(tracks.map(t => ({
+      if (activeQueryRef.current !== query) return; // stale
+      let mapped = (tracks || []).map(t => ({
         id: t.id,
         title: t.title || 'Untitled',
         artist: t.author || 'Unknown',
         url: t.preview || t.url || '',
         cover: '/fallback-cover.png',
         source: t.source
-      })));
-      if (tracks && tracks.length > 0) {
-        console.log('[MusicAPI] Results source:', tracks[0].source === 'pixabay' ? 'Pixabay' : tracks[0].source === 'freesound' ? 'FreeSound' : tracks[0].source);
+      }));
+      if (mapped.length > 0) {
+        console.log('[MusicAPI] Results source:', mapped[0].source === 'pixabay' ? 'Pixabay' : mapped[0].source === 'freesound' ? 'FreeSound' : mapped[0].source);
+        setResults(mapped);
       } else {
-        console.log('[MusicAPI] No tracks found for', query);
+        // Local fallback (filter existing library)
+        const localMatches = songs.filter(s => s.title.toLowerCase().includes(query.toLowerCase()) || s.artist.toLowerCase().includes(query.toLowerCase()))
+          .map(s => ({ ...s, source: 'local' }));
+        if (localMatches.length > 0) {
+          console.log('[MusicAPI] Using local library fallback');
+          setResults(localMatches);
+        } else {
+          console.log('[MusicAPI] No tracks found for', query);
+          setResults([]);
+        }
       }
     } catch (e) {
       console.error('Search failed:', e);
+      // Last resort local fallback if error
+      const query = q.trim();
+      const localMatches = songs.filter(s => s.title.toLowerCase().includes(query.toLowerCase()) || s.artist.toLowerCase().includes(query.toLowerCase()))
+        .map(s => ({ ...s, source: 'local' }));
+      if (localMatches.length > 0) {
+        console.log('[MusicAPI] Remote error, using local library fallback');
+        setResults(localMatches);
+      } else {
+        setResults([]);
+      }
     } finally {
       setSearching(false);
     }
@@ -68,6 +88,21 @@ export default function SearchScreen() {
     e.preventDefault();
     executeSearch(searchQuery);
   };
+
+  // Debounced auto-search on input change (user does not have to press Enter)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (searchQuery.trim().length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      executeSearch(searchQuery);
+    }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const handlePlaySong = (song) => {
     setSelectedSong(song);
@@ -137,7 +172,7 @@ export default function SearchScreen() {
         </>
       )}
 
-      {searchPerformed && searchQuery.trim().length >= 2 && (
+      {searchQuery.trim().length >= 2 && (
         <div className="search-results">
           <p className="search-results-text">Search results for "{searchQuery}"</p>
           {searching ? (
