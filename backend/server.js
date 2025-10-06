@@ -572,28 +572,32 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-// ---- Static React build serving (explicit path per deployment instructions) ----
-// Serve static assets from frontend build (if it exists). If the folder is missing, log a warning.
-const explicitFrontendBuild = path.join(__dirname, '../frontend/build');
-if (fs.existsSync(explicitFrontendBuild)) {
-  console.log('[BOOT] Serving React build from explicit path:', explicitFrontendBuild);
-  app.use(express.static(explicitFrontendBuild));
+// ---- Static React build serving (robust detection) ----
+// Preferred path (if a separate frontend dir existed)
+const primaryBuildPath = path.join(__dirname, '../frontend/build');
+// Actual path for current repo structure (build folder at root)
+const secondaryBuildPath = path.join(__dirname, '..', 'build');
+let activeBuildPath = null;
+if (fs.existsSync(path.join(primaryBuildPath, 'index.html'))) {
+  activeBuildPath = primaryBuildPath;
+  console.log('[BOOT] Serving React build (primary):', activeBuildPath);
+} else if (fs.existsSync(path.join(secondaryBuildPath, 'index.html'))) {
+  activeBuildPath = secondaryBuildPath;
+  console.log('[BOOT] Serving React build (secondary):', activeBuildPath);
 } else {
-  console.warn('[BOOT] Expected React build at', explicitFrontendBuild, 'but it was not found.');
-  // Fallback: attempt legacy root build folder so deployment still works if build resides there.
-  const fallbackRootBuild = path.join(__dirname, '..', 'build');
-  if (fs.existsSync(path.join(fallbackRootBuild, 'index.html'))) {
-    console.log('[BOOT] Fallback: serving React build from', fallbackRootBuild);
-    app.use(express.static(fallbackRootBuild));
-  } else {
-    console.warn('[BOOT] No fallback build found at', fallbackRootBuild);
-  }
+  console.warn('[BOOT] No React build found. Expected one of:', primaryBuildPath, 'or', secondaryBuildPath);
+}
+if (activeBuildPath) {
+  app.use(express.static(activeBuildPath));
 }
 
-// Catch-all route (must be after all API routes) - serve index.html from explicit path
-app.get('*', (req, res) => {
+// Catch-all route (after APIs) -> only if build exists
+app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
-  return res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  if (!activeBuildPath) {
+    return res.status(503).json({ error: 'Frontend build not available' });
+  }
+  return res.sendFile(path.join(activeBuildPath, 'index.html'));
 });
 
 // Use Render-provided PORT or fallback to 10000 as specified
