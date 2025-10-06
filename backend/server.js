@@ -591,6 +591,24 @@ if (activeBuildPath) {
   app.use(express.static(activeBuildPath));
 }
 
+// Debug: log non-API GET requests to help diagnose black screen issues
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api/') && !req.path.startsWith('/static/')) {
+    console.log('[REQ:SPA]', req.path);
+  }
+  next();
+});
+
+// Debug endpoint to inspect build status
+app.get('/debug/build-info', (req, res) => {
+  res.json({
+    activeBuildPath,
+    hasIndex: !!(activeBuildPath && fs.existsSync(path.join(activeBuildPath, 'index.html'))),
+    timestamp: Date.now(),
+    envPort: process.env.PORT,
+  });
+});
+
 // Catch-all route (after APIs) -> only if build exists
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
