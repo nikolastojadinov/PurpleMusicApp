@@ -18,6 +18,8 @@ export function AuthProvider({ children }) {
   const [authIntro, setAuthIntro] = useState({ visible: false, status: 'idle', error: null });
   // Modal feedback state
   const [authModal, setAuthModal] = useState({ visible: false, type: null, message: '', dismissible: true });
+  // Guard to ensure auto-login triggers only once per mount
+  const autoLoginTriggeredRef = useRef(false);
 
   // Helper: persist user & token
   const persistSession = useCallback((usr, token) => {
@@ -90,6 +92,34 @@ export function AuthProvider({ children }) {
       try { logSessionState(); } catch (e) { console.warn('[AuthProvider] logSessionState failed:', e); }
     }
   }, []);
+
+  // Auto-trigger login flow once on app start if no restored user session exists.
+  // Mimics a manual press of the login button (same loginWithPi function).
+  // Does NOT alter payment/session logic; skips if user already present or attempt made.
+  useEffect(() => {
+    if (autoLoginTriggeredRef.current) return; // already attempted
+    if (user) return; // session restored
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 40; // align with SDK polling (~12s)
+
+    const attempt = () => {
+      if (cancelled || autoLoginTriggeredRef.current || user) return;
+      if (typeof window !== 'undefined' && window.Pi) {
+        autoLoginTriggeredRef.current = true;
+        loginWithPi().catch(() => { /* Silent: user can manually retry later */ });
+        return;
+      }
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {
+        autoLoginTriggeredRef.current = true; // give up silently
+        return;
+      }
+      setTimeout(attempt, 300);
+    };
+    attempt();
+    return () => { cancelled = true; };
+  }, [user, loginWithPi]);
 
   // Login with Pi Network & upsert Supabase user
   const loginWithPi = useCallback(async () => {
