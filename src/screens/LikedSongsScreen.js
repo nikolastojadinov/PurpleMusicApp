@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { getLikedSongsSupabase } from '../services/likedSongsSupabase';
 import { getCurrentUser } from '../services/userService';
@@ -7,6 +8,7 @@ export default function LikedSongsScreen() {
   // ...existing code...
   
   const [likedSongs, setLikedSongs] = useState([]);
+  const { t } = useTranslation();
   const { show } = useGlobalModal();
   const [loading, setLoading] = useState(true);
   const user = getCurrentUser();
@@ -32,11 +34,11 @@ export default function LikedSongsScreen() {
 
   const handlePlaySong = (song, index) => {
     // Play liked song
-    show('Play: ' + song.title + ' (player integration coming soon)', { type: 'info', autoClose: 2500 });
+  show(t('liked.play_one_demo', { title: song.title }), { type: 'info', autoClose: 2500 });
   };
 
   const handlePlayAll = () => {
-    show('Playing all liked songs (demo)', { type: 'info', autoClose: 2500 });
+  show(t('liked.play_all_demo'), { type: 'info', autoClose: 2500 });
   };
 
   return (
@@ -46,31 +48,31 @@ export default function LikedSongsScreen() {
           <span className="liked-icon">💚</span>
         </div>
         <div className="liked-info">
-          <p className="liked-type">Playlist</p>
-          <h1 className="liked-title">Liked Songs</h1>
-          <p className="liked-count">{likedSongs.length} songs</p>
+          <p className="liked-type">{t('liked.playlist_type')}</p>
+          <h1 className="liked-title">{t('liked.title')}</h1>
+          <p className="liked-count">{t('liked.count', { count: likedSongs.length })}</p>
         </div>
       </div>
 
       <div className="liked-controls">
         <button className="play-all-btn" onClick={handlePlayAll}>
           <span>▶</span>
-          Play
+          {t('liked.play')}
         </button>
       </div>
 
       <div className="songs-list">
         {loading ? (
           <div className="loading-message">
-            <p>Loading liked songs...</p>
+            <p>{t('liked.loading')}</p>
           </div>
         ) : !user ? (
           <div className="not-logged-in">
-            <p>Please log in to see your liked songs</p>
+            <p>{t('liked.login_required')}</p>
           </div>
         ) : likedSongs.length === 0 ? (
           <div className="no-liked-songs">
-            <p>No liked songs yet. Start liking songs from the player!</p>
+            <p>{t('liked.empty')}</p>
           </div>
         ) : (
           likedSongs.map((song, index) => (

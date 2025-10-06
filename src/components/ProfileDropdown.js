@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { resetPremium } from '../services/premiumService';
 
 export default function ProfileDropdown() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -179,8 +181,8 @@ export default function ProfileDropdown() {
             >
               <div className="button-icon profile-icon">👤</div>
               <div className="button-text">
-                <div className="button-title">View Profile{user && user.username ? ` – ${user.username}` : ''}</div>
-                <div className="button-subtitle">{user && user.username ? user.username : 'Manage your account'}</div>
+                <div className="button-title">{t('profile.view_profile')}{user && user.username ? ` – ${user.username}` : ''}</div>
+                <div className="button-subtitle">{user && user.username ? user.username : t('profile.manage_account')}</div>
               </div>
             </button>
 
@@ -194,7 +196,7 @@ export default function ProfileDropdown() {
             >
               <div className="button-icon" role="img" aria-label="language">🌐</div>
               <div className="button-text">
-                <div className="button-title">Language</div>
+                <div className="button-title">{t('profile.language')}</div>
                 <div className="button-subtitle">{i18n.language}</div>
               </div>
             </button>
@@ -225,10 +227,10 @@ export default function ProfileDropdown() {
                     @media (max-width:640px){ .pm-lang-container { width:80%; max-height:70vh; } }
                   `}</style>
                   <div className="pm-lang-header">
-                    <h3 style={{margin:0, fontSize:21, fontWeight:600, letterSpacing:.3, textAlign:'center'}}>Select Language</h3>
+                    <h3 style={{margin:0, fontSize:21, fontWeight:600, letterSpacing:.3, textAlign:'center'}}>{t('profile.select_language')}</h3>
                     <button onClick={()=>setShowLang(false)} className="pm-close-btn" aria-label="Close">×</button>
                   </div>
-                  <div className="pm-lang-list" role="listbox" aria-label="Languages">
+                  <div className="pm-lang-list" role="listbox" aria-label={t('profile.language')}>
                     {sortedLanguages.map(({code,label}) => {
                       const active = i18n.language === code;
                       return (
@@ -239,12 +241,12 @@ export default function ProfileDropdown() {
                           onClick={()=>handleChangeLanguage(code)}
                         >
                           <span style={{fontWeight:500}}>{label}</span>
-                          {active && <span style={{fontSize:11, background:'rgba(255,255,255,0.18)', padding:'4px 10px', borderRadius:20, letterSpacing:.6, alignSelf:'center'}}>Active</span>}
+                          {active && <span style={{fontSize:11, background:'rgba(255,255,255,0.18)', padding:'4px 10px', borderRadius:20, letterSpacing:.6, alignSelf:'center'}}>{t('profile.active')}</span>}
                         </button>
                       );
                     })}
                   </div>
-                  <div style={{marginTop:14, fontSize:11, opacity:.55, textAlign:'center'}}>Your selection is saved locally.</div>
+                  <div style={{marginTop:14, fontSize:11, opacity:.55, textAlign:'center'}}>{t('profile.language_saved')}</div>
                 </div>
               </div>
             )}
@@ -257,8 +259,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon pi-icon">π</div>
                   <div className="button-text">
-                    <div className="button-title">Login with Pi Network</div>
-                    <div className="button-subtitle">Connect your Pi account</div>
+                    <div className="button-title">{t('profile.login_pi')}</div>
+                    <div className="button-subtitle">{t('profile.login_pi_sub')}</div>
                   </div>
                 </button>
               ) : (
@@ -268,8 +270,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon">🚪</div>
                   <div className="button-text">
-                    <div className="button-title">Logout</div>
-                    <div className="button-subtitle">Sign out of your account</div>
+                    <div className="button-title">{t('profile.logout')}</div>
+                    <div className="button-subtitle">{t('profile.logout_sub')}</div>
                   </div>
                 </button>
               )}
@@ -284,12 +286,12 @@ export default function ProfileDropdown() {
                   className="dropdown-button premium"
                   disabled
                   style={{opacity:0.8, cursor:'default'}}
-                  title={user.premium_until ? `Premium until ${new Date(user.premium_until).toISOString().slice(0,10)}` : 'Premium Member'}
+                  title={user.premium_until ? t('profile.premium_until', { date: new Date(user.premium_until).toISOString().slice(0,10) }) : t('profile.premium_member')}
                 >
                   <div className="button-icon premium-icon">⭐</div>
                   <div className="button-text">
-                    <div className="button-title">Premium Member</div>
-                    <div className="button-subtitle">Until {user.premium_until ? new Date(user.premium_until).toISOString().slice(0,10) : '-'}</div>
+                    <div className="button-title">{t('profile.premium_member')}</div>
+                    <div className="button-subtitle">{user.premium_until ? t('profile.premium_until', { date: new Date(user.premium_until).toISOString().slice(0,10) }) : t('profile.premium_until_dash')}</div>
                   </div>
                 </button>
                 <div className="dropdown-divider" />
@@ -303,8 +305,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon" role="img" aria-label="privacy">🔒</div>
                   <div className="button-text">
-                    <div className="button-title">Privacy Policy</div>
-                    <div className="button-subtitle">How we handle data</div>
+                    <div className="button-title">{t('profile.privacy')}</div>
+                    <div className="button-subtitle">{t('profile.privacy_sub')}</div>
                   </div>
                 </a>
                 <a
@@ -317,8 +319,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon" role="img" aria-label="terms">📄</div>
                   <div className="button-text">
-                    <div className="button-title">Terms of Service</div>
-                    <div className="button-subtitle">Usage agreement</div>
+                    <div className="button-title">{t('profile.terms')}</div>
+                    <div className="button-subtitle">{t('profile.terms_sub')}</div>
                   </div>
                 </a>
               </div>
@@ -328,29 +330,29 @@ export default function ProfileDropdown() {
                   onClick={()=>{ if(!hasPendingPayment) { window.dispatchEvent(new CustomEvent('pm:openPremiumModal', { detail:{ source:'profileDropdownButton' } })); } }}
                   className={`dropdown-button premium${hasPendingPayment ? ' disabled' : ''}`}
                   disabled={hasPendingPayment}
-                  title={hasPendingPayment ? 'Payment pending confirmation' : hasRejectedPayment ? 'Previous payment failed, you can retry.' : ''}
+                  title={hasPendingPayment ? t('profile.payment_pending_sub') : hasRejectedPayment ? t('profile.retry_premium_sub') : ''}
                   style={hasPendingPayment ? {opacity:0.5, cursor:'not-allowed'} : hasRejectedPayment ? {borderColor:'#a33'} : {}}
                 >
                   <div className="button-icon premium-icon">⭐</div>
                   <div className="button-text">
-                    <div className="button-title">{hasPendingPayment ? 'Payment Pending…' : hasRejectedPayment ? 'Retry Premium Payment' : 'Go Premium'}</div>
-                    <div className="button-subtitle">{hasPendingPayment ? 'Awaiting confirmation' : hasRejectedPayment ? 'Previous attempt failed' : 'Unlock all features'}</div>
+                    <div className="button-title">{hasPendingPayment ? t('profile.payment_pending') : hasRejectedPayment ? t('profile.retry_premium') : t('profile.go_premium')}</div>
+                    <div className="button-subtitle">{hasPendingPayment ? t('profile.payment_pending_sub') : hasRejectedPayment ? t('profile.retry_premium_sub') : t('profile.go_premium_sub')}</div>
                   </div>
                 </button>
                 {hasPendingPayment && (
                   <div style={{fontSize:11, color:'#ffa', textAlign:'center', lineHeight:1.4}}>
-                    Your previous payment is still pending. Please wait or check Pi app.
+                    {t('profile.payment_pending_hint')}
                   </div>
                 )}
                 {hasRejectedPayment && (
                   <div style={{fontSize:11, color:'#f88', textAlign:'center', lineHeight:1.4}}>
-                    Previous payment was rejected. You can try again now.
+                    {t('profile.payment_rejected_hint')}
                   </div>
                 )}
                 {/* Payment History link */}
                 {user && (
                   <button onClick={openHistory} style={{background:'transparent', border:'none', color:'#888', fontSize:11, textDecoration:'underline', cursor:'pointer', alignSelf:'center'}}>
-                    Payment History
+                    {t('profile.payment_history')}
                   </button>
                 )}
                 {user && (window.location.search.includes('pmDebug=1')) && (
@@ -377,8 +379,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon" role="img" aria-label="privacy">🔒</div>
                   <div className="button-text">
-                    <div className="button-title">Privacy Policy</div>
-                    <div className="button-subtitle">How we handle data</div>
+                    <div className="button-title">{t('profile.privacy')}</div>
+                    <div className="button-subtitle">{t('profile.privacy_sub')}</div>
                   </div>
                 </a>
                 <a
@@ -391,8 +393,8 @@ export default function ProfileDropdown() {
                 >
                   <div className="button-icon" role="img" aria-label="terms">📄</div>
                   <div className="button-text">
-                    <div className="button-title">Terms of Service</div>
-                    <div className="button-subtitle">Usage agreement</div>
+                    <div className="button-title">{t('profile.terms')}</div>
+                    <div className="button-subtitle">{t('profile.terms_sub')}</div>
                   </div>
                 </a>
               </div>
@@ -424,6 +426,8 @@ export default function ProfileDropdown() {
 
 // Payment history modal component
 function PaymentHistoryModal({ onClose, rows, loading, error }) {
+  const { t } = i18n; // fallback if hook not available outside provider context
+  // Use direct i18n.t to avoid extra import; component rendered within provider so i18n instance has language
   const [mounted, setMounted] = useState(false);
   useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
   if (!mounted) return null;
@@ -431,25 +435,25 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
   return createPortal(
     <div role="dialog" aria-modal="true" onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(5px)', zIndex:100001}}>
       <div onClick={e=>e.stopPropagation()} style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'min(90vw,520px)', maxHeight:'80vh', display:'flex', flexDirection:'column', background:'#161616', border:'1px solid #2a2a2a', borderRadius:22, boxShadow:'0 18px 40px -10px rgba(0,0,0,.6)', overflow:'hidden'}}>
-        <button onClick={onClose} aria-label="Close" style={{position:'absolute', top:10, right:10, width:38, height:38, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
+  <button onClick={onClose} aria-label={i18n.t('payments.close')} style={{position:'absolute', top:10, right:10, width:38, height:38, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', color:'#ddd', fontSize:22, borderRadius:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
         <div style={{padding:'26px 26px 14px'}}>
-          <h3 style={{margin:0, fontSize:22, fontWeight:700, letterSpacing:.4, background:'linear-gradient(90deg,#fff,#ddd)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Payment History</h3>
-          <p style={{margin:'10px 0 0', fontSize:12, opacity:.65}}>Recent premium payments (latest first).</p>
+          <h3 style={{margin:0, fontSize:22, fontWeight:700, letterSpacing:.4, background:'linear-gradient(90deg,#fff,#ddd)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>{i18n.t('payments.history_title')}</h3>
+          <p style={{margin:'10px 0 0', fontSize:12, opacity:.65}}>{i18n.t('payments.history_sub')}</p>
         </div>
         <div style={{flex:1, overflowY:'auto', padding:'0 20px 20px'}}>
-          {loading && <div style={{padding:20, fontSize:13, opacity:.7}}>Loading…</div>}
+          {loading && <div style={{padding:20, fontSize:13, opacity:.7}}>{i18n.t('payments.loading')}</div>}
           {error && !loading && <div style={{padding:20, fontSize:13, color:'#f77'}}>Error: {error}</div>}
           {!loading && !error && rows.length === 0 && (
-            <div style={{padding:20, fontSize:13, opacity:.7}}>No payments yet.</div>
+            <div style={{padding:20, fontSize:13, opacity:.7}}>{i18n.t('payments.none')}</div>
           )}
           {!loading && !error && rows.length > 0 && (
             <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
               <thead>
                 <tr style={{textAlign:'left', borderBottom:'1px solid #2a2a2a'}}>
-                  <th style={{padding:'8px 6px', fontWeight:600}}>Plan</th>
-                  <th style={{padding:'8px 6px', fontWeight:600}}>Status</th>
-                  <th style={{padding:'8px 6px', fontWeight:600}}>TxID</th>
-                  <th style={{padding:'8px 6px', fontWeight:600}}>Date</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>{i18n.t('payments.plan')}</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>{i18n.t('payments.status')}</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>{i18n.t('payments.txid')}</th>
+                  <th style={{padding:'8px 6px', fontWeight:600}}>{i18n.t('payments.date')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -466,7 +470,7 @@ function PaymentHistoryModal({ onClose, rows, loading, error }) {
           )}
         </div>
         <div style={{padding:'12px 20px', borderTop:'1px solid #242424', display:'flex', justifyContent:'flex-end'}}>
-          <button onClick={onClose} style={{background:'#262626', color:'#eee', border:'1px solid #333', padding:'8px 16px', borderRadius:10, cursor:'pointer', fontSize:13}}>Close</button>
+          <button onClick={onClose} style={{background:'#262626', color:'#eee', border:'1px solid #333', padding:'8px 16px', borderRadius:10, cursor:'pointer', fontSize:13}}>{i18n.t('payments.close')}</button>
         </div>
         </div>
     </div>,

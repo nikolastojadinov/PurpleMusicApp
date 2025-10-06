@@ -49,7 +49,7 @@ export default function SearchScreen() {
     'Jazz',
     'Electronic',
     'Classical'
-  ];
+  ]; // genre seeds – could be localized later if we add keys
 
   const trendingSearches = songs.slice(0, 5).map(song => song.title);
 
@@ -101,9 +101,9 @@ export default function SearchScreen() {
 
       {searchQuery.length >= 2 && (
         <div className="search-results">
-          <p className="search-results-text">{t('search_results_for', 'Search results for')} "{searchQuery}"</p>
+          <p className="search-results-text">{t('search_extras.results_for')} "{searchQuery}"</p>
           {loading ? (
-            <div style={{color:'#888', fontSize:12, marginTop:20}}>{t('loading_songs','Loading songs...')}</div>
+            <div style={{color:'#888', fontSize:12, marginTop:20}}>{t('home.loading_songs')}</div>
           ) : filteredSongs.length > 0 ? (
             <div className="songs-list-vertical" style={{marginTop: 20}}>
               {filteredSongs.map((song, idx) => (
@@ -126,7 +126,7 @@ export default function SearchScreen() {
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
               </span>
-              <p>{t('no_results_found','No results found')}</p>
+              <p>{t('search_extras.no_results_found')}</p>
             </div>
           )}
         </div>

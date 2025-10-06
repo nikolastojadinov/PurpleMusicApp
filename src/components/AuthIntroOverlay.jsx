@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthProvider.jsx';
 
 // Fullscreen overlay showing auth intro video during Pi SDK authentication
 export default function AuthIntroOverlay() {
   const { authIntro } = useAuth();
+  const { t } = useTranslation();
   const { visible, status } = authIntro || {};
   const [render, setRender] = useState(visible);
   const videoRef = useRef(null);
@@ -41,7 +43,7 @@ export default function AuthIntroOverlay() {
           src="/purplemusic-auth.mp4"
         />
         {status === 'error' && (
-          <div className="auth-intro-error">Authentication failed…</div>
+          <div className="auth-intro-error">{t('auth.auth_failed')}</div>
         )}
       </div>
     </div>

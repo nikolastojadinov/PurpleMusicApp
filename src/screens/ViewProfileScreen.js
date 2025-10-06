@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 
 export default function ViewProfileScreen() {
+  const { t } = useTranslation();
   const [profilePicture, setProfilePicture] = useState(null);
   const { show } = useGlobalModal();
-  const [username, setUsername] = useState('Music Lover');
+  const [username, setUsername] = useState(t('profile_view.default_username', { defaultValue: 'Music Lover' }));
   const [email, setEmail] = useState('user@example.com');
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef(null);
@@ -27,18 +29,18 @@ export default function ViewProfileScreen() {
   const handleSaveProfile = () => {
     setIsEditing(false);
     // Here you would save to backend/Supabase
-    show('Profile updated successfully!', { type: 'success', autoClose: 2500 });
+  show(t('profile_view.updated_success'), { type: 'success', autoClose: 2500 });
   };
 
   return (
     <div className="view-profile-screen">
       <div className="profile-header">
-        <h1 className="screen-title">Profile</h1>
+  <h1 className="screen-title">{t('profile_view.title')}</h1>
         <button 
           className="edit-profile-btn"
           onClick={() => setIsEditing(!isEditing)}
         >
-          {isEditing ? 'Cancel' : 'Edit Profile'}
+          {isEditing ? t('profile_view.cancel') : t('profile_view.edit')}
         </button>
       </div>
 
@@ -60,7 +62,7 @@ export default function ViewProfileScreen() {
             {isEditing && (
               <div className="profile-picture-overlay">
                 <span className="camera-icon">📷</span>
-                <span className="upload-text">Change Photo</span>
+                <span className="upload-text">{t('profile_view.change_photo')}</span>
               </div>
             )}
           </div>
@@ -76,14 +78,14 @@ export default function ViewProfileScreen() {
         {/* Profile Information */}
         <div className="profile-info-section">
           <div className="profile-field">
-            <label className="field-label">Username</label>
+            <label className="field-label">{t('profile_view.username')}</label>
             {isEditing ? (
               <input 
                 type="text" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="field-input"
-                placeholder="Enter username"
+                placeholder={t('profile_view.enter_username')}
               />
             ) : (
               <div className="field-value">{username}</div>
@@ -91,14 +93,14 @@ export default function ViewProfileScreen() {
           </div>
 
           <div className="profile-field">
-            <label className="field-label">Email</label>
+            <label className="field-label">{t('profile_view.email')}</label>
             {isEditing ? (
               <input 
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="field-input"
-                placeholder="Enter email"
+                placeholder={t('profile_view.enter_email')}
               />
             ) : (
               <div className="field-value">{email}</div>
@@ -106,15 +108,15 @@ export default function ViewProfileScreen() {
           </div>
 
           <div className="profile-field">
-            <label className="field-label">Member Since</label>
+            <label className="field-label">{t('profile_view.member_since')}</label>
             <div className="field-value">September 2024</div>
           </div>
 
           <div className="profile-field">
-            <label className="field-label">Premium Status</label>
+            <label className="field-label">{t('profile_view.premium_status')}</label>
             <div className="field-value premium-status">
-              <span className="status-badge free">Free Plan</span>
-              <button className="upgrade-badge">Upgrade to Premium</button>
+              <span className="status-badge free">{t('profile_view.free_plan')}</span>
+              <button className="upgrade-badge">{t('profile_view.upgrade_premium')}</button>
             </div>
           </div>
         </div>
@@ -123,26 +125,26 @@ export default function ViewProfileScreen() {
         {isEditing && (
           <div className="profile-actions">
             <button className="save-profile-btn" onClick={handleSaveProfile}>
-              Save Changes
+              {t('profile_view.save_changes')}
             </button>
           </div>
         )}
 
         {/* Stats Section */}
         <div className="profile-stats">
-          <h3 className="stats-title">Your Music Stats</h3>
+          <h3 className="stats-title">{t('profile_view.stats_title')}</h3>
           <div className="stats-grid">
             <div className="stat-item">
               <div className="stat-number">42</div>
-              <div className="stat-label">Liked Songs</div>
+              <div className="stat-label">{t('profile_view.stats_liked')}</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">12</div>
-              <div className="stat-label">Playlists</div>
+              <div className="stat-label">{t('profile_view.stats_playlists')}</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">156</div>
-              <div className="stat-label">Hours Listened</div>
+              <div className="stat-label">{t('profile_view.stats_hours')}</div>
             </div>
           </div>
         </div>

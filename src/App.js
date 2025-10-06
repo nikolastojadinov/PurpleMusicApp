@@ -20,8 +20,8 @@ import AuthModal from './components/AuthModal';
 import PremiumFeatureModalContainer from './components/PremiumFeatureModalContainer.jsx';
 // ...existing code...
 import './index.css';
-import './i18n';
-import i18n from './i18n';
+import './i18n/index.js';
+import i18n from './i18n/index.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 function App() {

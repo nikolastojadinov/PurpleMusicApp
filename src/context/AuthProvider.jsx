@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import i18n from '../i18n';
 import { ensurePremiumFresh } from '../services/premiumService';
 import { supabase } from '../supabaseClient';
 
@@ -129,8 +130,9 @@ export function AuthProvider({ children }) {
       // success sequence: hide intro -> show success modal
       setAuthIntro({ visible: true, status: 'success', error: null });
       setTimeout(() => {
-        setAuthIntro({ visible: false, status: 'idle', error: null });
-        setAuthModal({ visible: true, type: 'success', message: `Welcome, ${dbUser.username || 'Pioneer'}!`, dismissible: false });
+  setAuthIntro({ visible: false, status: 'idle', error: null });
+  const uname = dbUser.username || 'Pioneer';
+  setAuthModal({ visible: true, type: 'success', message: i18n.t('auth.welcome', { username: uname, defaultValue: `Welcome, ${uname}!` }), dismissible: false });
       }, 600);
       return dbUser;
     } catch (e) {
@@ -141,8 +143,8 @@ export function AuthProvider({ children }) {
       // show error modal
       setAuthIntro({ visible: true, status: 'error', error: e.message });
       setTimeout(() => {
-        setAuthIntro({ visible: false, status: 'idle', error: null });
-        setAuthModal({ visible: true, type: 'error', message: 'Login failed. Please try again.', dismissible: true });
+  setAuthIntro({ visible: false, status: 'idle', error: null });
+  setAuthModal({ visible: true, type: 'error', message: i18n.t('auth.login_failed', 'Login failed. Please try again.'), dismissible: true });
       }, 400);
       throw e;
     } finally {

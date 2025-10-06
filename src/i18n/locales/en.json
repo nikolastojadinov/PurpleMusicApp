@@ -1,0 +1,142 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "liked": "Liked Songs",
+    "playlists": "My Playlists"
+  },
+  "home": {
+    "search_placeholder": "Artists, songs, or podcasts",
+  "loading_songs": "Loading songs…",
+    "error_loading": "Error: {{msg}}",
+    "made_for_you": "Made for you",
+    "recently_played": "Recently played",
+    "trending_now": "Trending now"
+  },
+  "liked": {
+    "playlist_type": "Playlist",
+    "title": "Liked Songs",
+    "count": "{{count}} songs",
+    "play": "Play",
+    "loading": "Loading liked songs...",
+    "login_required": "Please log in to see your liked songs",
+    "empty": "No liked songs yet. Start liking songs from the player!",
+    "play_all_demo": "Playing all liked songs (demo)",
+    "play_one_demo": "Play: {{title}} (player integration coming soon)"
+  },
+  "profile": {
+    "view_profile": "View Profile",
+    "manage_account": "Manage your account",
+    "language": "Language",
+    "logout": "Logout",
+    "logout_sub": "Sign out of your account",
+    "login_pi": "Login with Pi Network",
+    "login_pi_sub": "Connect your Pi account",
+    "premium_member": "Premium Member",
+    "premium_until": "Until {{date}}",
+    "go_premium": "Go Premium",
+    "go_premium_sub": "Unlock all features",
+    "payment_pending": "Payment Pending…",
+    "payment_pending_sub": "Awaiting confirmation",
+    "retry_premium": "Retry Premium Payment",
+    "retry_premium_sub": "Previous attempt failed",
+    "payment_pending_hint": "Your previous payment is still pending. Please wait or check Pi app.",
+    "payment_rejected_hint": "Previous payment was rejected. You can try again now.",
+    "payment_history": "Payment History",
+    "privacy": "Privacy Policy",
+    "privacy_sub": "How we handle data",
+    "terms": "Terms of Service",
+    "terms_sub": "Usage agreement",
+    "active": "Active",
+    "select_language": "Select Language",
+    "language_saved": "Your selection is saved locally.",
+    "premium_until_dash": "Until -"
+  },
+  "payments": {
+    "history_title": "Payment History",
+    "history_sub": "Recent premium payments (latest first).",
+    "loading": "Loading…",
+    "none": "No payments yet.",
+    "plan": "Plan",
+    "status": "Status",
+    "txid": "TxID",
+    "date": "Date",
+    "close": "Close"
+  },
+  "auth": {
+    "auth_failed": "Authentication failed…",
+    "welcome": "Welcome, {{username}}!",
+    "login_failed": "Login failed. Please try again."
+  },
+  "search": {
+    "title": "Search",
+    "recent_searches": "Recent searches",
+    "trending_searches": "Trending searches",
+    "no_results": "No tracks found"
+  },
+  "errors": {
+    "generic": "Something went wrong",
+    "no_tracks": "No tracks found"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "search": "Search",
+    "loading": "Loading…",
+    "no_results": "No results.",
+    "updated": "Updated:",
+    "rename": "Rename",
+    "change_cover": "Change Cover"
+  },
+  "playlists": {
+    "title": "My Playlists",
+    "create": "Create Playlist",
+    "create_title": "Create Playlist",
+    "made_by_you": "Made by you"
+  },
+  "playlist_detail": {
+  "loading": "Loading…",
+    "rename": "Rename",
+    "change_cover": "Change Cover",
+    "add_songs": "Add Songs",
+    "songs_header": "Playlist Songs",
+    "empty": "No songs yet. Use \"Add Songs\" to populate this playlist.",
+    "add_to_playlist": "Add to this playlist",
+    "search_placeholder": "Search",
+    "no_results": "No results.",
+    "rename_title": "Rename Playlist",
+    "rename_help": "Enter a descriptive name. It can wrap to multiple lines and will be truncated gracefully elsewhere.",
+    "name_placeholder": "Playlist name",
+    "save_hint": "Press Cmd/Ctrl+Enter to save",
+    "updated_prefix": "Updated:",
+  "uploading": "Uploading…",
+    "added_success": "Song added to playlist",
+    "rename_error": "Rename failed:",
+    "rename_success": "Playlist name saved.",
+    "cover_updated": "Cover updated."
+  },
+  "search_extras": {
+    "results_for": "Search results for",
+    "no_results_found": "No results found"
+  },
+  "profile_view": {
+    "title": "Profile",
+    "edit": "Edit Profile",
+    "cancel": "Cancel",
+    "change_photo": "Change Photo",
+    "username": "Username",
+    "enter_username": "Enter username",
+    "email": "Email",
+    "enter_email": "Enter email",
+    "member_since": "Member Since",
+    "premium_status": "Premium Status",
+    "free_plan": "Free Plan",
+    "upgrade_premium": "Upgrade to Premium",
+    "save_changes": "Save Changes",
+    "stats_title": "Your Music Stats",
+    "stats_liked": "Liked Songs",
+    "stats_playlists": "Playlists",
+    "stats_hours": "Hours Listened",
+    "updated_success": "Profile updated successfully!"
+  }
+}

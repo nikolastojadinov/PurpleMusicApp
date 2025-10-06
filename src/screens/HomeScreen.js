@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
 import { loadMusicLibrary } from '../services/libraryLoader';
@@ -6,6 +7,7 @@ import { loadMusicLibrary } from '../services/libraryLoader';
 
 export default function HomeScreen() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [songs, setSongs] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
@@ -59,7 +61,7 @@ export default function HomeScreen() {
           <span className="search-icon">🔍</span>
           <input
             type="text"
-            placeholder="Artists, songs, or podcasts"
+            placeholder={t('home.search_placeholder')}
             className="search-input"
             onClick={() => navigate('/search')}
             style={{cursor: 'pointer'}}
@@ -69,15 +71,15 @@ export default function HomeScreen() {
       </div>
 
       {loading && (
-        <div style={{color:'#888', fontSize:12, marginBottom:20}}>Loading songs...</div>
+  <div style={{color:'#888', fontSize:12, marginBottom:20}}>{t('home.loading_songs')}</div>
       )}
       {error && (
-        <div style={{color:'#ff5555', fontSize:12, marginBottom:20}}>Error: {error}</div>
+  <div style={{color:'#ff5555', fontSize:12, marginBottom:20}}>{t('home.error_loading', { msg: error })}</div>
       )}
 
       {/* Made for you section */}
       <section className="home-section">
-        <h2 className="section-title">Made for you</h2>
+  <h2 className="section-title">{t('home.made_for_you')}</h2>
         <div className="songs-slider">
           {madeForYouSongs.map((song, idx) => (
             <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
@@ -92,7 +94,7 @@ export default function HomeScreen() {
 
       {/* Recently played section */}
       <section className="home-section">
-        <h2 className="section-title">Recently played</h2>
+  <h2 className="section-title">{t('home.recently_played')}</h2>
         <div className="songs-slider">
           {recentlyPlayedSongs.map((song, idx) => (
             <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>
@@ -107,7 +109,7 @@ export default function HomeScreen() {
 
       {/* Trending now section */}
       <section className="home-section">
-        <h2 className="section-title">Trending now</h2>
+  <h2 className="section-title">{t('home.trending_now')}</h2>
         <div className="songs-slider">
           {trendingNowSongs.map((song, idx) => (
             <div key={idx} className="song-card-slider" onClick={() => handlePlaySong(song)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handlePlaySong(song); }}>

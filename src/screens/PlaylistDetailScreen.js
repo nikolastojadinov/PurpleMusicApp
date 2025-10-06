@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 // Helper: auto-resize textarea height to fit content (multi-line playlist name)
 function autoResize(el) {
   if (!el) return;
@@ -12,6 +13,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function PlaylistDetailScreen() {
+  const { t } = useTranslation();
   // Debug flag for verbose Supabase logging (set to false to silence)
   const SUPA_DEBUG = true;
   const PLAYLIST_COVER_BUCKET_CANDIDATES = ['playlist-covers', 'playlist covers'];
@@ -42,7 +44,7 @@ export default function PlaylistDetailScreen() {
         .single();
       if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_FETCH] id:', playlistId, 'error:', error, 'data:', data);
       if (error) {
-        show('Greška pri učitavanju plejliste.', { type: 'error', autoClose: 3000 });
+    show(t('errors.generic'), { type: 'error', autoClose: 3000 });
         navigate('/');
         return;
       }
@@ -126,7 +128,7 @@ export default function PlaylistDetailScreen() {
       });
     if (SUPA_DEBUG) console.log('[SUPA][ADD_SONG_RESULT] error:', error);
     if (error) {
-      show('Greška pri dodavanju pesme: ' + error.message, { type: 'error', autoClose: 3500 });
+  show(t('errors.generic') + ': ' + error.message, { type: 'error', autoClose: 3500 });
       return;
     }
     // Refresh playlist songs
@@ -138,7 +140,7 @@ export default function PlaylistDetailScreen() {
     if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_ITEMS_POST_INSERT_FETCH] newCount:', data?.length, 'first:', data?.[0]);
     setPlaylistSongs(data || []);
     // If added from modal we can optionally show feedback
-    show('Pesma dodata u playlistu', { type: 'success', autoClose: 1800 });
+  show(t('playlist_detail.added_success', { defaultValue: 'Song added to playlist' }), { type: 'success', autoClose: 1800 });
   }
 
   // Play preview
@@ -160,7 +162,7 @@ export default function PlaylistDetailScreen() {
       .single();
     if (SUPA_DEBUG) console.log('[SUPA][PLAYLIST_RENAME_RESULT] error:', error, 'data:', data);
     if (error) {
-      let msg = 'Neuspešno ažuriranje imena: ' + error.message;
+  let msg = t('playlist_detail.rename_error', { defaultValue: 'Rename failed:' }) + ' ' + error.message;
       if (/lastUpdated/i.test(error.message)) {
         msg += '\nTip: U Supabase postoji trigger ili funkcija koja koristi kolonu "lastUpdated" ali ona ne postoji. Rešenja: (1) Dodaj kolonu "lastUpdated" (timestamptz) ili (2) izmeni/droppuj trigger da koristi postojeću kolonu (npr. lastupdated) ili (3) kreiraj novu funkciju sa ispravnim nazivom kolone.';
       }
@@ -168,7 +170,7 @@ export default function PlaylistDetailScreen() {
     } else {
   const normalizedAfterRename = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
   setPlaylist(normalizedAfterRename);
-      show('Ime playliste sačuvano.', { type: 'success', autoClose: 2000 });
+  show(t('playlist_detail.rename_success', { defaultValue: 'Playlist name saved.' }), { type: 'success', autoClose: 2000 });
     }
     setRenameOpen(false);
   };
@@ -220,7 +222,7 @@ export default function PlaylistDetailScreen() {
       if (error) throw error;
   const normalizedAfterCover = { ...data, lastUpdated: data.lastUpdated || data.lastupdated || data.updated_at || data.created_at };
   setPlaylist(normalizedAfterCover);
-      show('Cover ažuriran.', { type: 'success', autoClose: 1800 });
+  show(t('playlist_detail.cover_updated', { defaultValue: 'Cover updated.' }), { type: 'success', autoClose: 1800 });
     } catch (err) {
       if (SUPA_DEBUG) console.log('[SUPA][COVER_UPLOAD_EXCEPTION]', err);
       let msg = 'Neuspešan upload covera: ' + (err?.message || 'Nepoznata greška');
@@ -237,7 +239,7 @@ export default function PlaylistDetailScreen() {
     }
   };
 
-  if (!playlist) return <div className="playlist-detail-loading">Loading...</div>;
+  if (!playlist) return <div className="playlist-detail-loading">{t('playlist_detail.loading')}</div>;
 
   return (
     <div className="playlist-detail-screen" style={{maxWidth:720,margin:'0 auto',padding:'2rem 1.25rem'}}>
@@ -248,8 +250,8 @@ export default function PlaylistDetailScreen() {
           ) : (
             <span style={{fontSize:48,opacity:.4}}>♪</span>
           )}
-          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.55)',fontSize:11,padding:'4px 6px',textAlign:'center',letterSpacing:.5}}>Change Cover</div>
-          {coverUploading && <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}}>Uploading...</div>}
+          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.55)',fontSize:11,padding:'4px 6px',textAlign:'center',letterSpacing:.5}}>{t('playlist_detail.change_cover')}</div>
+          {coverUploading && <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff'}}>{t('playlist_detail.uploading')}</div>}
         </div>
         <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleCoverChange} />
         <div style={{flex:1,minWidth:0}}>
@@ -257,24 +259,24 @@ export default function PlaylistDetailScreen() {
             <div>
               <h1 style={{fontSize:'2.3rem',fontWeight:700,margin:'0 0 4px'}}>{playlist.name}</h1>
               {playlist.lastUpdated && (
-                <div style={{fontSize:12,color:'#888'}}>Updated: {new Date(playlist.lastUpdated).toLocaleString()}</div>
+                <div style={{fontSize:12,color:'#888'}}>{t('playlist_detail.updated_prefix')} {new Date(playlist.lastUpdated).toLocaleString()}</div>
               )}
             </div>
           </div>
           {(
             <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:10}}>
-              <button onClick={startEditName} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Rename</button>
-              <button onClick={handleCoverClick} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>Change Cover</button>
+              <button onClick={startEditName} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>{t('playlist_detail.rename')}</button>
+              <button onClick={handleCoverClick} style={{background:'transparent',color:'#fff',padding:'8px 14px',borderRadius:30,border:'1px solid #444',cursor:'pointer',fontSize:13,fontWeight:500}}>{t('playlist_detail.change_cover')}</button>
               <button onClick={()=>setModalOpen(true)} style={{background:'#fff',color:'#000',padding:'8px 18px',borderRadius:30,border:'none',cursor:'pointer',fontWeight:600,display:'flex',alignItems:'center',gap:6,fontSize:14}}>+
-                <span>Add Songs</span>
+                <span>{t('playlist_detail.add_songs')}</span>
               </button>
             </div>
           )}
         </div>
       </div>
-      <h2 style={{fontSize:'1.2rem',margin:'1rem 0 1rem'}}>Playlist Songs</h2>
+  <h2 style={{fontSize:'1.2rem',margin:'1rem 0 1rem'}}>{t('playlist_detail.songs_header')}</h2>
       {playlistSongs.length === 0 ? (
-        <div style={{opacity:.65}}>No songs yet. Use "Add Songs" to populate this playlist.</div>
+  <div style={{opacity:.65}}>{t('playlist_detail.empty')}</div>
       ) : (
         <div>
           {playlistSongs.map(song => (
@@ -293,9 +295,9 @@ export default function PlaylistDetailScreen() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(8px)',zIndex:10000,display:'flex',justifyContent:'center',alignItems:'flex-start',padding:'4rem 1rem 2rem',overflowY:'auto'}}>
           <div style={{width:'100%',maxWidth:520,background:'#121212',border:'1px solid #2a2a2a',borderRadius:26,position:'relative',padding:'1.75rem 1.4rem 2.2rem'}}>
             <button onClick={()=>setModalOpen(false)} style={{position:'absolute',top:10,right:14,background:'none',border:'none',color:'#aaa',fontSize:26,cursor:'pointer',lineHeight:1}}>×</button>
-            <h3 style={{margin:'0 0 1.25rem',fontSize:20,fontWeight:600,textAlign:'center'}}>Add to this playlist</h3>
+            <h3 style={{margin:'0 0 1.25rem',fontSize:20,fontWeight:600,textAlign:'center'}}>{t('playlist_detail.add_to_playlist')}</h3>
             <div style={{position:'relative',marginBottom:'1.25rem'}}>
-              <input value={modalSearch} onChange={e=>setModalSearch(e.target.value)} placeholder="Search" style={{width:'100%',padding:'0.8rem 1rem',borderRadius:14,border:'1px solid #303030',background:'#1a1a1a',color:'#fff',fontSize:14}} />
+              <input value={modalSearch} onChange={e=>setModalSearch(e.target.value)} placeholder={t('playlist_detail.search_placeholder')} style={{width:'100%',padding:'0.8rem 1rem',borderRadius:14,border:'1px solid #303030',background:'#1a1a1a',color:'#fff',fontSize:14}} />
               <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:16,opacity:.5}}>🔍</span>
             </div>
             <div style={{maxHeight:'55vh',overflowY:'auto',paddingRight:4}}>
@@ -316,7 +318,7 @@ export default function PlaylistDetailScreen() {
               })}
               { (modalSearch.trim() && modalResults.length===0) && (
                 <div style={{padding:'1rem 0',textAlign:'center',fontSize:14,color:'#888'}}>
-                  No results.
+                  {t('playlist_detail.no_results')}
                 </div>
               )}
             </div>
@@ -326,17 +328,17 @@ export default function PlaylistDetailScreen() {
       {renameOpen && (
         <div style={{position:'fixed',inset:0,zIndex:10050,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)'}} role="dialog" aria-modal="true" onClick={()=>setRenameOpen(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:'min(92vw,560px)',maxWidth:560,background:'#161616',border:'1px solid #2a2a2a',borderRadius:26,padding:'2rem 1.75rem 1.9rem',boxShadow:'0 20px 55px -18px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.05)'}}>
-            <h3 style={{margin:0,fontSize:22,fontWeight:600,textAlign:'center',letterSpacing:.4}}>Rename Playlist</h3>
-            <p style={{margin:'0.75rem 0 1.25rem',fontSize:13,lineHeight:1.5,color:'#999',textAlign:'center'}}>Enter a descriptive name. It can wrap to multiple lines and will be truncated gracefully elsewhere.</p>
+            <h3 style={{margin:0,fontSize:22,fontWeight:600,textAlign:'center',letterSpacing:.4}}>{t('playlist_detail.rename_title')}</h3>
+            <p style={{margin:'0.75rem 0 1.25rem',fontSize:13,lineHeight:1.5,color:'#999',textAlign:'center'}}>{t('playlist_detail.rename_help')}</p>
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              <textarea ref={renameRef} value={newName} onChange={e=>{ setNewName(e.target.value.slice(0,160)); autoResize(renameRef.current); }} onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) { handleSaveName(); } if(e.key==='Escape'){ setRenameOpen(false);} }} style={{resize:'none',overflow:'hidden',width:'100%',background:'#0f0f0f',color:'#fff',border:'1px solid #333',borderRadius:18,padding:'14px 16px',fontSize:20,fontWeight:600,lineHeight:1.2,letterSpacing:.3,boxShadow:'0 4px 18px -6px rgba(0,0,0,0.6)'}} placeholder="Playlist name" rows={1} />
+              <textarea ref={renameRef} value={newName} onChange={e=>{ setNewName(e.target.value.slice(0,160)); autoResize(renameRef.current); }} onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) { handleSaveName(); } if(e.key==='Escape'){ setRenameOpen(false);} }} style={{resize:'none',overflow:'hidden',width:'100%',background:'#0f0f0f',color:'#fff',border:'1px solid #333',borderRadius:18,padding:'14px 16px',fontSize:20,fontWeight:600,lineHeight:1.2,letterSpacing:.3,boxShadow:'0 4px 18px -6px rgba(0,0,0,0.6)'}} placeholder={t('playlist_detail.name_placeholder')} rows={1} />
               <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',padding:'0 4px'}}>
                 <span>{newName.length}/160</span>
-                <span>Press Cmd/Ctrl+Enter to save</span>
+                <span>{t('playlist_detail.save_hint')}</span>
               </div>
               <div style={{display:'flex',gap:14,marginTop:4}}>
-                <button onClick={()=>setRenameOpen(false)} style={{flex:1,background:'linear-gradient(135deg,#2a2a2a,#202020)',color:'#bbb',border:'1px solid #333',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:600,cursor:'pointer'}}>Cancel</button>
-                <button disabled={!newName.trim() || newName.trim()===playlist.name} onClick={handleSaveName} style={{flex:1,background: (!newName.trim()|| newName.trim()===playlist.name)?'linear-gradient(135deg,#1db95455,#16994344)':'linear-gradient(135deg,#1db954,#169943)',color:'#fff',border:'none',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:700,cursor:(!newName.trim()|| newName.trim()===playlist.name)?'not-allowed':'pointer',boxShadow:'0 8px 24px -10px rgba(0,0,0,0.6)'}}>Save</button>
+                <button onClick={()=>setRenameOpen(false)} style={{flex:1,background:'linear-gradient(135deg,#2a2a2a,#202020)',color:'#bbb',border:'1px solid #333',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:600,cursor:'pointer'}}>{t('common.cancel')}</button>
+                <button disabled={!newName.trim() || newName.trim()===playlist.name} onClick={handleSaveName} style={{flex:1,background: (!newName.trim()|| newName.trim()===playlist.name)?'linear-gradient(135deg,#1db95455,#16994344)':'linear-gradient(135deg,#1db954,#169943)',color:'#fff',border:'none',borderRadius:16,padding:'14px 18px',fontSize:14,fontWeight:700,cursor:(!newName.trim()|| newName.trim()===playlist.name)?'not-allowed':'pointer',boxShadow:'0 8px 24px -10px rgba(0,0,0,0.6)'}}>{t('common.save')}</button>
               </div>
             </div>
           </div>

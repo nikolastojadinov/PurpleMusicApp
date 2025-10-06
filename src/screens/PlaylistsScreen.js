@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
 import { getCurrentUser } from '../services/userService';
 import { isCurrentlyPremium } from '../services/premiumService';
@@ -8,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 // ...existing code...
 
 export default function PlaylistsScreen() {
+  const { t } = useTranslation();
   // ...existing code...
   
   const [playlists, setPlaylists] = useState([]);
@@ -69,15 +71,15 @@ export default function PlaylistsScreen() {
   return (
     <div className="playlists-screen">
       <div className="playlists-header">
-        <h1 className="screen-title">My Playlists</h1>
-        <button className="create-playlist-btn" onClick={handleCreatePlaylist} title="Create Playlist">
+        <h1 className="screen-title">{t('playlists.title')}</h1>
+        <button className="create-playlist-btn" onClick={handleCreatePlaylist} title={t('playlists.create_title')}>
           <span>+</span>
-          Create Playlist
+          {t('playlists.create')}
         </button>
       </div>
 
       <div className="playlists-list">
-        <h2 className="section-title">Made by you</h2>
+  <h2 className="section-title">{t('playlists.made_by_you')}</h2>
         {playlists.map((playlist) => (
           <div key={playlist.id} className="playlist-item" onClick={() => handlePlayPlaylist(playlist)}>
             <div className="playlist-details">

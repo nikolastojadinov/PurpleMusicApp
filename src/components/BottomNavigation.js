@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function BottomNavigation() {
@@ -41,11 +42,12 @@ export default function BottomNavigation() {
     }
   };
 
+  const { t } = useTranslation();
   const navItems = [
-    { path: '/', label: 'Home' },
-    { path: '/search', label: 'Search' },
-    { path: '/liked', label: 'Liked Songs' },
-    { path: '/playlists', label: 'My Playlists' }
+    { path: '/', label: t('nav.home') },
+    { path: '/search', label: t('nav.search') },
+    { path: '/liked', label: t('nav.liked') },
+    { path: '/playlists', label: t('nav.playlists') }
   ];
 
   return (
