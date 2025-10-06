@@ -1,6 +1,7 @@
 [build]
-  # Clean install + ignore peer dependency version conflicts (TS peer mismatch between CRA toolchain & i18next optional peers)
-  command = "npm ci --legacy-peer-deps && npm run build"
+  # Fallback to regular install with --force due to persistent upstream peer resolution conflicts on Netlify
+  # We pin TypeScript 4.9.5 (CRA compatible) and force install; i18next TS peer is optional.
+  command = "npm install --force && npm run build"
   publish = "build"
 
 [build.environment]
