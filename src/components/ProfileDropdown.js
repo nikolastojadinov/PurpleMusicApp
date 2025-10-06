@@ -235,7 +235,7 @@ export default function ProfileDropdown() {
                 )}
                 <div className="dropdown-divider" />
                 <a
-                  href="/privacy.html"
+                  href="https://purplemusic.app/policy-privacy.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="dropdown-button"
@@ -249,7 +249,7 @@ export default function ProfileDropdown() {
                   </div>
                 </a>
                 <a
-                  href="/terms.html"
+                  href="https://purplemusic.app/terms-of-service.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="dropdown-button"
