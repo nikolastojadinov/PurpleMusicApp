@@ -279,18 +279,49 @@ export default function ProfileDropdown() {
 
             {/* Go Premium Button / Premium Status */}
             {user && user.is_premium ? (
-              <button
-                className="dropdown-button premium"
-                disabled
-                style={{opacity:0.8, cursor:'default'}}
-                title={user.premium_until ? `Premium until ${new Date(user.premium_until).toISOString().slice(0,10)}` : 'Premium Member'}
-              >
-                <div className="button-icon premium-icon">⭐</div>
-                <div className="button-text">
-                  <div className="button-title">Premium Member</div>
-                  <div className="button-subtitle">Until {user.premium_until ? new Date(user.premium_until).toISOString().slice(0,10) : '-'}</div>
-                </div>
-              </button>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <button
+                  className="dropdown-button premium"
+                  disabled
+                  style={{opacity:0.8, cursor:'default'}}
+                  title={user.premium_until ? `Premium until ${new Date(user.premium_until).toISOString().slice(0,10)}` : 'Premium Member'}
+                >
+                  <div className="button-icon premium-icon">⭐</div>
+                  <div className="button-text">
+                    <div className="button-title">Premium Member</div>
+                    <div className="button-subtitle">Until {user.premium_until ? new Date(user.premium_until).toISOString().slice(0,10) : '-'}</div>
+                  </div>
+                </button>
+                <div className="dropdown-divider" />
+                <a
+                  href="https://purplemusic.app/policy-privacy.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dropdown-button"
+                  onClick={()=>setIsOpen(false)}
+                  style={{textDecoration:'none'}}
+                >
+                  <div className="button-icon" role="img" aria-label="privacy">🔒</div>
+                  <div className="button-text">
+                    <div className="button-title">Privacy Policy</div>
+                    <div className="button-subtitle">How we handle data</div>
+                  </div>
+                </a>
+                <a
+                  href="https://purplemusic.app/terms-of-service.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dropdown-button"
+                  onClick={()=>setIsOpen(false)}
+                  style={{textDecoration:'none'}}
+                >
+                  <div className="button-icon" role="img" aria-label="terms">📄</div>
+                  <div className="button-text">
+                    <div className="button-title">Terms of Service</div>
+                    <div className="button-subtitle">Usage agreement</div>
+                  </div>
+                </a>
+              </div>
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button
