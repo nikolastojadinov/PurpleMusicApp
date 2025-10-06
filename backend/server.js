@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
@@ -557,9 +559,7 @@ app.get('/api/payments/inspect/:paymentId', async (req, res) => {
 });
 
 // Root route (Render expects a simple 200 OK text response) - updated per deployment requirements
-app.get('/', (req, res) => {
-  res.send('PurpleMusic API is running ✅');
-});
+// NOTE: Root route will be handled by React SPA (index.html) via catch-all below.
 
 // Health check endpoint (Render / monitoring eszközök számára)
 app.get('/healthz', (req, res) => {
@@ -572,8 +572,31 @@ app.get('/healthz', (req, res) => {
   });
 });
 
+// ---- Static React build serving & SPA fallback ----
+// Attempt to resolve build directory (supporting both ../frontend/build and ../build)
+const buildCandidates = [
+  path.join(__dirname, '..', 'frontend', 'build'),
+  path.join(__dirname, '..', 'build')
+];
+let reactBuildPath = buildCandidates.find(p => fs.existsSync(path.join(p, 'index.html')));
+if (!reactBuildPath) {
+  console.warn('[BOOT] No React build found in expected paths. Expected one of:', buildCandidates);
+} else {
+  console.log('[BOOT] Serving React build from:', reactBuildPath);
+  app.use(express.static(reactBuildPath));
+}
+
+// IMPORTANT: Place AFTER API routes so /api/* is not captured by SPA fallback.
+app.get('*', (req, res, next) => {
+  // Only attempt SPA fallback if build exists and request is NOT an API call
+  if (reactBuildPath && !req.path.startsWith('/api/')) {
+    return res.sendFile(path.join(reactBuildPath, 'index.html'));
+  }
+  return next();
+});
+
 // Use Render-provided PORT or fallback to 10000 as specified
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`PurpleMusic full app is running ✅ (port ${PORT})`);
 });
