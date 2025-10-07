@@ -10,21 +10,7 @@ import './i18n/index.js';
 const rootEl = document.getElementById('root');
 const root = ReactDOM.createRoot(rootEl);
 
-// Global debug listeners (temporary)
-window.addEventListener('error', (e) => { try { console.log('[GLOBAL][error]', e.message, e.filename, e.lineno); } catch(_){} });
-window.addEventListener('unhandledrejection', (e) => { try { console.log('[GLOBAL][unhandledrejection]', e.reason); } catch(_){} });
-console.log('[DEBUG][index] root element =', rootEl);
-
-const removeWatchdog = () => {
-  try {
-    const wd = document.getElementById('pm-watchdog');
-    if (wd) wd.remove();
-  } catch(_){ }
-};
-
-function setStatus(msg){
-  try { const sEl = document.getElementById('pm-wd-status'); if (sEl) sEl.textContent = msg; } catch(_){}
-}
+// Removed temporary global debug and watchdog utilities.
 
 // Minimal fallback component displayed if App import/render fails.
 function BootFallback({ phase, error }) {
@@ -42,20 +28,9 @@ function BootFallback({ phase, error }) {
   );
 }
 
-// Mark that bundle executed even before dynamic import
-setStatus('bundle ok');
-
 (async function bootstrap(){
-  setStatus('boot-app-loading');
   try {
     const mod = await import(/* webpackChunkName: "app-root" */ './App');
-    setStatus('app-imported');
-    try {
-      const { default: i18n } = await import('./i18n/index.js');
-      console.log('[DEBUG][bootstrap] i18n initialized?', i18n.isInitialized, 'language=', i18n.language);
-    } catch(e){
-      console.warn('[DEBUG][bootstrap] i18n preload check failed', e);
-    }
     const App = mod.default;
     try {
       root.render(
@@ -63,21 +38,12 @@ setStatus('bundle ok');
           <App />
         </React.StrictMode>
       );
-      window.__PM_APP_MOUNTED__ = true;
-      removeWatchdog();
-      setStatus('mounted');
     } catch(renderErr){
       console.error('[BOOT][render-error]', renderErr);
-      setStatus('render-error');
       root.render(<BootFallback phase="render" error={renderErr} />);
-      window.__PM_APP_MOUNTED__ = true; // still mark to hide watchdog after fallback
-      removeWatchdog();
     }
   } catch(importErr){
     console.error('[BOOT][import-error]', importErr);
-    setStatus('app-import-error');
     root.render(<BootFallback phase="import" error={importErr} />);
-    window.__PM_APP_MOUNTED__ = true;
-    removeWatchdog();
   }
 })();
