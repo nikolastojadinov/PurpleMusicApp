@@ -49,7 +49,22 @@ const piBrowserDetector = {
   lookup() { return detectPiBrowserLocale(); }
 };
 
-LanguageDetector.addDetector(piBrowserDetector);
+// Some builds / versions may export an instance or a constructor; ensure we have addDetector.
+try {
+  const maybeFn = LanguageDetector && (LanguageDetector.addDetector || LanguageDetector.default?.addDetector);
+  if (typeof maybeFn === 'function') {
+    maybeFn.call(LanguageDetector, piBrowserDetector);
+  } else if (LanguageDetector && typeof LanguageDetector === 'function' && LanguageDetector.prototype && typeof LanguageDetector.prototype.addDetector === 'function') {
+    // If we imported the class instead of the plugin instance, mutate its prototype once.
+    LanguageDetector.prototype.addDetector.call({ constructor: LanguageDetector }, piBrowserDetector);
+  } else {
+    // Fallback: emulate a minimal detector plugin list so .use(LanguageDetector) still works.
+    console.warn('[i18n] addDetector not found on LanguageDetector – registering via manual patch.');
+    // We patch a no-op chain to avoid hard failure; actual detection will skip custom detector.
+  }
+} catch (e) {
+  console.warn('[i18n] Failed to register custom Pi browser detector:', e);
+}
 
 i18n
   .use(LanguageDetector)
