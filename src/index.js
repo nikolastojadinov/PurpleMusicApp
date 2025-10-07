@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+// Ensure i18n side-effects run before any component renders.
+import './i18n/index.js';
 // NOTE: App is dynamically imported below to isolate any early-load errors.
 
 // (Pi SDK init now handled inside AuthProvider with retry logic)
@@ -48,6 +50,12 @@ setStatus('bundle ok');
   try {
     const mod = await import(/* webpackChunkName: "app-root" */ './App');
     setStatus('app-imported');
+    try {
+      const { default: i18n } = await import('./i18n/index.js');
+      console.log('[DEBUG][bootstrap] i18n initialized?', i18n.isInitialized, 'language=', i18n.language);
+    } catch(e){
+      console.warn('[DEBUG][bootstrap] i18n preload check failed', e);
+    }
     const App = mod.default;
     try {
       root.render(

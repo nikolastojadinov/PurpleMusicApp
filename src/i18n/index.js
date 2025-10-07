@@ -22,7 +22,28 @@ import tr from './locales/tr.json';
 import it from './locales/it.json';
 import pl from './locales/pl.json';
 
-const resources = { en, sr, hu, de, es, zh, ar, hi, ko, ja, fr, pt, ru, tr, it, pl };
+// IMPORTANT: i18next expects resources in the shape { lng: { namespace: { ... } } }.
+// Our JSON files currently contain grouped keys (nav, profile, etc.) directly at root.
+// To make calls like t('nav.home') work with the default namespace, we wrap each locale
+// object inside the conventional 'translation' namespace.
+const resources = {
+  en: { translation: en },
+  sr: { translation: sr },
+  hu: { translation: hu },
+  de: { translation: de },
+  es: { translation: es },
+  zh: { translation: zh },
+  ar: { translation: ar },
+  hi: { translation: hi },
+  ko: { translation: ko },
+  ja: { translation: ja },
+  fr: { translation: fr },
+  pt: { translation: pt },
+  ru: { translation: ru },
+  tr: { translation: tr },
+  it: { translation: it },
+  pl: { translation: pl }
+};
 
 // Helper: detect Pi Browser locale if available
 function detectPiBrowserLocale() {
@@ -71,11 +92,18 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    defaultNS: 'translation',
+    ns: ['translation'],
     fallbackLng: 'en',
     supportedLngs: Object.keys(resources),
     detection: detectorOptions,
     interpolation: { escapeValue: false },
-    react: { useSuspense: false }
+    react: { useSuspense: false },
+    saveMissing: true, // surface if a key is genuinely absent
+    missingKeyHandler: function(lng, ns, key) {
+      // Helpful console warning instead of silent fallback to key string
+      console.warn(`[i18n][missing] ${lng} :: ${ns} :: ${key}`);
+    }
   });
 
 // Update <html lang> and dir on language change for RTL support
