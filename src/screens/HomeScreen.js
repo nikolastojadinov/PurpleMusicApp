@@ -11,18 +11,23 @@ export default function HomeScreen() {
   const [songs, setSongs] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  React.useEffect(()=>{ console.log('[DEBUG][HomeScreen] mount'); return ()=>console.log('[DEBUG][HomeScreen] unmount'); },[]);
 
   React.useEffect(() => {
     let active = true;
     (async () => {
       try {
         setLoading(true);
+        console.log('[DEBUG][HomeScreen] start loading library');
         const list = await loadMusicLibrary();
         if (active) setSongs(list);
+        if (active) console.log('[DEBUG][HomeScreen] songs loaded count=', list.length);
       } catch (e) {
         if (active) setError(e.message);
+        console.error('[DEBUG][HomeScreen] load error', e);
       } finally {
         if (active) setLoading(false);
+        if (active) console.log('[DEBUG][HomeScreen] loading finished');
       }
     })();
     return () => { active = false; };

@@ -27,6 +27,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 function App() {
   // Auto-detect language once on mount
   useEffect(() => {
+    console.log('[DEBUG][App] mount, current path =', window.location.pathname);
     try {
       const stored = localStorage.getItem('appLanguage');
       if (stored) {
@@ -46,6 +47,7 @@ function App() {
         <ErrorBoundary>
           <div className="app">
             <Router>
+              {console.log('[DEBUG][App] rendering router with location', window.location.pathname)}
               <Header />
               <main className="main-content">
                 <Routes>
