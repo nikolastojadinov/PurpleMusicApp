@@ -45,6 +45,22 @@ const resources = {
   pl: { translation: pl }
 };
 
+// --- Persisted language restore (preferredLanguage) ---
+// We support both the new key 'preferredLanguage' and legacy 'appLanguage' for backward compatibility.
+let persistedLang;
+try {
+  const keys = ['preferredLanguage', 'appLanguage'];
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    if (v && typeof v === 'string') { persistedLang = v; break; }
+  }
+  if (persistedLang) {
+    console.log('[i18n] restored persisted language:', persistedLang);
+  }
+} catch (e) {
+  // Access to localStorage might fail in some embedded contexts; ignore.
+}
+
 // Helper: detect Pi Browser locale if available
 function detectPiBrowserLocale() {
   try {
@@ -92,6 +108,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    // If we have a persisted language, force it; otherwise allow detector to run.
+    lng: persistedLang || undefined,
     defaultNS: 'translation',
     ns: ['translation'],
     fallbackLng: 'en',
@@ -117,6 +135,14 @@ function applyHtmlLangDir(lng) {
   } catch {}
 }
 applyHtmlLangDir(i18n.language);
-i18n.on('languageChanged', applyHtmlLangDir);
+i18n.on('languageChanged', (lng) => {
+  applyHtmlLangDir(lng);
+  try {
+    localStorage.setItem('preferredLanguage', lng);
+    // Maintain legacy key for any older code still reading it
+    localStorage.setItem('appLanguage', lng);
+  } catch(_) {}
+  console.log('[i18n] language changed ->', lng);
+});
 
 export default i18n;
