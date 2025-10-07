@@ -23,8 +23,10 @@ import './index.css';
 import './i18n/index.js';
 import i18n from './i18n/index.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import usePiAuth from './hooks/usePiAuth';
 
 function App() {
+  const { user: piUser, loading: piLoading, error: piError } = usePiAuth();
   // Auto-detect language once on mount
   useEffect(() => {
     console.log('[DEBUG][App] mount, current path =', window.location.pathname);
@@ -53,6 +55,16 @@ function App() {
           <div className="app">
             <Router>
               {console.log('[DEBUG][App] rendering router with location', window.location.pathname)}
+              {piLoading && (
+                <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#000',color:'#fff',zIndex:9999,fontSize:16}}>
+                  <div>Authenticating with Pi Network…</div>
+                </div>
+              )}
+              {(!piLoading && piError) && (
+                <div style={{position:'fixed',top:10,left:'50%',transform:'translateX(-50%)',background:'#2a2a2a',color:'#fff',padding:'8px 14px',borderRadius:12,fontSize:13,zIndex:9999,boxShadow:'0 4px 12px rgba(0,0,0,0.4)'}}>
+                  {piError}
+                </div>
+              )}
               <Header />
               <main className="main-content">
                 <Routes>
