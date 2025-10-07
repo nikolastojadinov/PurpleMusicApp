@@ -124,7 +124,7 @@ i18n
     }
   });
 
-// Update <html lang> and dir on language change for RTL support
+// Update <html lang> and dir on language change for RTL support (db sync handled in AuthProvider)
 const RTL_LANGS = new Set(['ar', 'fa']);
 function applyHtmlLangDir(lng) {
   try {

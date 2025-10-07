@@ -93,6 +93,50 @@ export function AuthProvider({ children }) {
     }
   }, [piUser, user, persistSession]);
 
+  // Apply user language from Supabase (or fallback) once user is available
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const userLang = user.language || user.lang;
+      if (userLang && userLang !== i18n.language) {
+        i18n.changeLanguage(userLang);
+        console.log('[LangSync] Applied user language:', userLang);
+      }
+    } catch(e){ /* silent */ }
+  }, [user]);
+
+  // Debounced language change listener to persist into Supabase
+  useEffect(() => {
+    if (!user) return;
+    let timeoutId = null;
+    const piUid = user.pi_uid || user.pi_user_uid; // support both schemas
+    if (!piUid) return;
+    const column = user.pi_uid ? 'pi_uid' : 'pi_user_uid';
+    const handler = (lng) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const { error: updErr } = await supabase
+            .from('users')
+            .update({ language: i18n.language })
+            .eq(column, piUid);
+          if (!updErr) {
+            console.log('[LangSync] Updated Supabase language:', i18n.language);
+          } else {
+            console.warn('[LangSync] Supabase update error', updErr);
+          }
+        } catch (err) {
+          console.warn('[LangSync] persistence failed', err);
+        }
+      }, 500);
+    };
+    i18n.on('languageChanged', handler);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      i18n.off('languageChanged', handler);
+    };
+  }, [user]);
+
   // Restore from storage if no auto Pi user after hook settles
   useEffect(() => {
     if (!piAutoLoading && !piUser && user == null) {
