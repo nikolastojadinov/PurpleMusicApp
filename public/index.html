@@ -24,6 +24,18 @@
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   </head>
   <body>
+    <div id="pm-watchdog" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:monospace;z-index:99999;font-size:14px;">Loading PurpleMusic… <span id="pm-wd-status" style="margin-left:8px;opacity:.6;">boot</span></div>
     <div id="root"></div>
+    <script>
+      // If React doesn't mount within 4s, show hint.
+      (function(){
+        const statusEl = document.getElementById('pm-wd-status');
+        setTimeout(()=>{
+          if (!window.__PM_APP_MOUNTED__) {
+            if (statusEl) statusEl.textContent = 'timeout – bundle not executed';
+          }
+        }, 4000);
+      })();
+    </script>
   </body>
 </html>
