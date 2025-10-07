@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
-import i18n from '../i18n';
+import i18n from '../i18n/index.js';
 import { ensurePremiumFresh } from '../services/premiumService';
 import { supabase } from '../supabaseClient';
 
