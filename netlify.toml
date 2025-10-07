@@ -1,7 +1,6 @@
 [build]
-  # Fallback to regular install with --force due to persistent upstream peer resolution conflicts on Netlify
-  # We pin TypeScript 4.9.5 (CRA compatible) and force install; i18next TS peer is optional.
-  command = "npm install --force && npm run build"
+  # Install with --force (peer conflict workaround), then produce standard + legacy bundle.
+  command = "npm install --force && npm run build:all"
   publish = "build"
 
 [build.environment]

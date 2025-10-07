@@ -588,6 +588,28 @@ if (fs.existsSync(path.join(primaryBuildPath, 'index.html'))) {
   console.warn('[BOOT] No React build found. Expected one of:', primaryBuildPath, 'or', secondaryBuildPath);
 }
 if (activeBuildPath) {
+  // Add explicit logging for each JS static asset request.
+  app.use('/static/js', (req, res, next) => {
+    const start = Date.now();
+    const origSend = res.send;
+    let bytes = 0;
+    // Proactive existence check to detect fallthrough that would return index.html instead of JS.
+    try {
+      const requested = req.path.replace(/^\/+/, '');
+      const full = path.join(activeBuildPath, 'static', 'js', requested);
+      if (!fs.existsSync(full)) {
+        console.warn('[ASSET:MISS]', requested, 'resolved=', full, '-> may fall through to SPA and serve HTML');
+      }
+    } catch(_e) {}
+    res.send = function(chunk){
+      try { if (chunk) bytes = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk); } catch(_){}
+      return origSend.apply(this, arguments);
+    };
+    res.on('finish', () => {
+      console.log(`[ASSET:JS] ${req.method} ${req.originalUrl} -> ${res.statusCode} ${bytes}B ct=${res.get('Content-Type')} t=${Date.now()-start}ms`);
+    });
+    next();
+  });
   app.use(express.static(activeBuildPath));
 }
 
@@ -611,10 +633,22 @@ app.get('/debug/build-info', (req, res) => {
 
 // Catch-all route (after APIs) -> only if build exists
 app.get('*', (req, res, next) => {
+  // Never treat API or static asset paths as SPA fallback targets.
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+  if (req.path.startsWith('/static/')) {
+    // If we reach here, express.static did not find the file -> return 404 (avoid returning index.html masquerading as JS/CSS)
+    return res.status(404).send();
+  }
   if (!activeBuildPath) {
     return res.status(503).json({ error: 'Frontend build not available' });
   }
+  // Force no-cache for index.html so updated bundle hashes propagate quickly.
+  if (req.path === '/' || /index\.html$/i.test(req.path)) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  console.log('[SPA:FALLBACK]', req.originalUrl);
   return res.sendFile(path.join(activeBuildPath, 'index.html'));
 });
 

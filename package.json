@@ -6,6 +6,8 @@
     "start": "react-scripts start",
     "start:backend": "node backend/server.js",
     "build": "react-scripts build",
+    "build:legacy": "node scripts/build-legacy.js",
+    "build:all": "npm run build && npm run build:legacy",
     "install:backend": "npm install --prefix backend",
     "postinstall": "npm run install:backend"
   },
@@ -19,14 +21,17 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^16.0.0",
-  "react-router-dom": "^6.22.3",
+    "react-router-dom": "^6.22.3",
     "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
       ">0.2%",
-      "not dead",
-      "not op_mini all"
+      "last 3 chrome versions",
+      "last 3 firefox versions",
+      "last 3 edge versions",
+      "last 3 safari versions",
+      "ie 11"
     ],
     "development": [
       "last 1 chrome version",
@@ -35,6 +40,7 @@
     ]
   },
   "devDependencies": {
+    "esbuild": "^0.23.1",
     "eslint-plugin-react-hooks": "^6.1.1",
     "typescript": "4.9.5"
   },

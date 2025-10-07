@@ -21,11 +21,127 @@
         color: #FFFFFF;
       }
     </style>
+    <script>
+      // Early legacy detection BEFORE CRA injects main.*.js
+      (function(){
+        try { new Function('var x={}; x?.y'); } catch(e) {
+          // Browser does NOT support optional chaining -> load legacy bundle
+          var sEl = document.getElementById('pm-wd-status');
+          if (sEl) sEl.textContent = 'loading-legacy';
+          window.__PM_LEGACY_MODE__ = true;
+          var legacy = document.createElement('script');
+          legacy.src = '/legacy.bundle.js';
+          legacy.defer = true;
+          legacy.onload = function(){
+            var s = document.getElementById('pm-wd-status');
+            if (s && !window.__PM_APP_MOUNTED__) s.textContent = 'legacy-loaded';
+          };
+            legacy.onerror = function(){
+            var s = document.getElementById('pm-wd-status');
+            if (s) s.textContent = 'legacy-load-error';
+          };
+          document.head.appendChild(legacy);
+          // Attempt to prevent original main script execution (remove on DOMContentLoaded)
+          document.addEventListener('DOMContentLoaded', function(){
+            var mains = Array.prototype.slice.call(document.querySelectorAll('script[src*="/static/js/main."]'));
+            mains.forEach(function(tag){ tag.parentNode.removeChild(tag); });
+          });
+        }
+      })();
+    </script>
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   </head>
   <body>
     <div id="pm-watchdog" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:monospace;z-index:99999;font-size:14px;">Loading PurpleMusic… <span id="pm-wd-status" style="margin-left:8px;opacity:.6;">boot</span></div>
     <div id="root"></div>
+    <script>
+      // INLINE INSTRUMENTATION v2
+      // Purpose: Detect whether index.html is the document actually returned (vs. wrong HTML served for JS),
+      // update watchdog status at each phase, and capture script load / error events.
+      (function(){
+        try {
+          window.__INLINE_PROBE_TS__ = Date.now();
+          const statusEl = document.getElementById('pm-wd-status');
+          if (statusEl) statusEl.textContent = 'html-inline-ok';
+          console.log('[INLINE] index.html inline script executed at', window.__INLINE_PROBE_TS__);
+          // Early global error logger before bundle
+          window.addEventListener('error', function(e){
+            try { console.log('[EARLY][error]', e.message || e.type, e.filename, e.lineno); } catch(_){}
+          });
+          window.addEventListener('unhandledrejection', function(e){
+            try { console.log('[EARLY][unhandledrejection]', e.reason); } catch(_){}
+          });
+
+          // Resource (script) load error detector (captures main bundle load failures)
+          window.addEventListener('error', function(ev){
+            if (ev && ev.target && ev.target.tagName === 'SCRIPT') {
+              const src = ev.target.getAttribute('src');
+              console.log('[RES-ERR] Script failed to load:', src, ev);
+              if (statusEl) statusEl.textContent = 'script-load-error';
+              window.__PM_SCRIPT_ERROR__ = src || true;
+            }
+          }, true);
+
+          // After DOMContentLoaded, enumerate script tags so we know what the browser saw.
+          document.addEventListener('DOMContentLoaded', function(){
+            try {
+              const scripts = Array.from(document.getElementsByTagName('script')).map(s=>({src:s.src, inline: !s.src, defer: s.defer, async: s.async }));
+              console.log('[INLINE] script inventory', scripts);
+              window.__PM_SCRIPT_INVENTORY__ = scripts;
+            } catch(e){ console.log('[INLINE] inventory error', e); }
+          });
+
+          // MutationObserver to detect when CRA injects main.*.js and attach explicit load/error hooks if not already caught.
+          (function observeMainScript(){
+            if (window.__PM_MAIN_OBSERVER__) return; // idempotent
+            const statusEl = document.getElementById('pm-wd-status');
+            function tagHook(node){
+              if (!node || node.tagName !== 'SCRIPT' || !node.src) return;
+              if (/\/static\/js\/main\.[A-Fa-f0-9]+\.js/.test(node.src)) {
+                if (statusEl) statusEl.textContent = 'main-tag-added';
+                console.log('[INLINE][MO] detected main bundle tag', node.src);
+                node.addEventListener('load', () => {
+                  console.log('[INLINE][MO] main bundle load event');
+                  if (statusEl && !window.__PM_APP_MOUNTED__) statusEl.textContent = 'main-loaded-await-mount';
+                });
+                node.addEventListener('error', () => {
+                  console.log('[INLINE][MO] main bundle error event');
+                  if (statusEl) statusEl.textContent = 'main-load-error';
+                });
+              }
+            }
+            const mo = new MutationObserver(muts => {
+              for (const m of muts) {
+                m.addedNodes && m.addedNodes.forEach(tagHook);
+              }
+            });
+            try {
+              mo.observe(document.documentElement, { childList:true, subtree:true });
+              window.__PM_MAIN_OBSERVER__ = mo;
+            } catch(e){ console.log('[INLINE][MO] observe failed', e); }
+            // Also scan existing in case already present.
+            document.querySelectorAll('script').forEach(tagHook);
+          })();
+        } catch(e){
+          console.log('[INLINE] instrumentation failure', e);
+        }
+      })();
+    </script>
+    <script>
+      // Additional watchdog: remove overlay immediately after mount detection (poll every 500ms)
+      (function(){
+        const iv = setInterval(()=>{
+          if (window.__PM_APP_MOUNTED__) {
+            const wd = document.getElementById('pm-watchdog');
+            if (wd) {
+              console.log('[INLINE] React mount detected – removing watchdog overlay');
+              wd.remove();
+            }
+            clearInterval(iv);
+          }
+        }, 500);
+      })();
+    </script>
     <script>
       // If React doesn't mount within 4s, show hint.
       (function(){
@@ -35,6 +151,84 @@
             if (statusEl) statusEl.textContent = 'timeout – bundle not executed';
           }
         }, 4000);
+      })();
+    </script>
+    <script>
+      // Sentinel after the CRA bundle should remove watchdog; if it still exists after 8s we flag extended timeout.
+      setTimeout(()=>{
+        if (!window.__PM_APP_MOUNTED__) {
+          const statusEl = document.getElementById('pm-wd-status');
+            if (statusEl && statusEl.textContent.indexOf('timeout')===-1) statusEl.textContent = 'extended-timeout';
+        }
+      }, 8000);
+    </script>
+    <script>
+      // Main bundle content integrity verification (detect HTML fallback or truncated file)
+      (function(){
+        function verify(){
+          try {
+            const scripts = Array.from(document.scripts);
+            const mainTag = scripts.find(s => /\/static\/js\/main\.[a-f0-9]+\.js/.test(s.src));
+            if (!mainTag) { return; }
+            const statusEl = document.getElementById('pm-wd-status');
+            fetch(mainTag.src, { cache: 'no-store' }).then(r => Promise.all([
+              r.text(), r.headers.get('content-type'), r.status
+            ])).then(([txt, ct, st]) => {
+              window.__PM_MAIN_FETCH_CHECK__ = { len: txt.length, ct, st, first120: txt.slice(0,120) };
+              const looksHtml = /<!doctype html/i.test(txt);
+              const hasBootstrap = /createRoot\(/.test(txt) || /ReactDOM\.render/.test(txt);
+              if (looksHtml || !hasBootstrap) {
+                if (statusEl) statusEl.textContent = 'main-content-mismatch';
+                console.warn('[INLINE][VERIFY] main bundle mismatch: looksHtml=' + looksHtml + ' hasBootstrap=' + hasBootstrap + ' status=' + st + ' ct=' + ct);
+              } else {
+                window.__PM_MAIN_VERIFIED__ = true;
+                if (statusEl && !window.__PM_APP_MOUNTED__) statusEl.textContent = 'main-content-ok';
+              }
+            }).catch(err => {
+              console.warn('[INLINE][VERIFY] main fetch failed', err);
+            });
+          } catch(e) {
+            console.log('[INLINE][VERIFY] exception', e);
+          }
+        }
+        // Delay slightly to allow CRA to inject the script tag
+        setTimeout(verify, 1500);
+      })();
+    </script>
+    <script>
+      // Manual fallback: if main bundle not executed after 5s, fetch & eval it.
+      (function(){
+        setTimeout(function(){
+          if (window.__PM_APP_MOUNTED__) return; // already mounted
+          var statusEl = document.getElementById('pm-wd-status');
+          if (statusEl) statusEl.textContent = 'attempt-manual-eval';
+          try {
+            var mainTag = Array.from(document.scripts).find(function(s){ return /\/static\/js\/main\.[a-f0-9]+\.js/.test(s.src); });
+            if(!mainTag){ if(statusEl) statusEl.textContent='no-main-tag'; return; }
+            fetch(mainTag.src + '?fallback_eval=1', {cache:'no-store'}).then(function(r){ return r.text(); }).then(function(code){
+              if (window.__PM_APP_MOUNTED__) return; // executed in meantime
+              try {
+                console.log('[INLINE][FALLBACK] Evaluating main bundle manually');
+                new Function(code)();
+                if (window.__PM_APP_MOUNTED__) {
+                  if(statusEl) statusEl.textContent='manual-eval-success';
+                } else {
+                  if(statusEl) statusEl.textContent='manual-eval-no-mount';
+                }
+              } catch(evalErr){
+                console.error('[INLINE][FALLBACK] manual eval error', evalErr);
+                if(statusEl) statusEl.textContent='manual-eval-error';
+                window.__PM_MANUAL_EVAL_ERROR__ = evalErr && (evalErr.stack || evalErr.message);
+              }
+            }).catch(function(fetchErr){
+              console.warn('[INLINE][FALLBACK] fetch failed', fetchErr);
+              if(statusEl) statusEl.textContent='manual-eval-fetch-error';
+            });
+          } catch(ex){
+            console.warn('[INLINE][FALLBACK] exception', ex);
+            if(statusEl) statusEl.textContent='manual-eval-exception';
+          }
+        }, 5000);
       })();
     </script>
   </body>
