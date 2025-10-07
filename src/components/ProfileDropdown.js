@@ -60,7 +60,10 @@ export default function ProfileDropdown() {
 
   function handleChangeLanguage(code){
     i18n.changeLanguage(code);
-    try { localStorage.setItem('appLanguage', code); } catch {}
+    try {
+      localStorage.setItem('preferredLanguage', code);
+      localStorage.setItem('appLanguage', code); // legacy support
+    } catch {}
     setShowLang(false);
     setIsOpen(false);
   }

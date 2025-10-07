@@ -29,16 +29,21 @@ function App() {
   useEffect(() => {
     console.log('[DEBUG][App] mount, current path =', window.location.pathname);
     try {
-      const stored = localStorage.getItem('appLanguage');
-      if (stored) {
-        i18n.changeLanguage(stored);
+      // Respect new persisted key first, then legacy, else autodetect.
+      const persisted = localStorage.getItem('preferredLanguage') || localStorage.getItem('appLanguage');
+      if (persisted) {
+        console.log('[DEBUG][App] skipping auto-detect; using persisted language', persisted);
+        // i18n init may have already set this via lng option; only change if different
+        if (i18n.language !== persisted) i18n.changeLanguage(persisted);
         return;
       }
       const detected = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
-      const lang = detected.split('-')[0];
-      i18n.changeLanguage(lang);
-    } catch {
-      i18n.changeLanguage('en');
+      const lang = (detected || 'en').split('-')[0];
+      console.log('[DEBUG][App] no persisted language, detected ->', lang);
+      if (i18n.language !== lang) i18n.changeLanguage(lang);
+    } catch (e) {
+      console.warn('[DEBUG][App] language init failed, defaulting to en', e);
+      if (i18n.language !== 'en') i18n.changeLanguage('en');
     }
   }, []);
   return (
