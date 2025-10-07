@@ -177,17 +177,30 @@ export default function ProfileDropdown() {
           <div className="dropdown-arrow"></div>
           
           <div className="dropdown-content">
-            {/* View Profile Button */}
-            <button
-              onClick={handleViewProfile}
-              className="dropdown-button view-profile"
-            >
-              <div className="button-icon profile-icon">👤</div>
-              <div className="button-text">
-                <div className="button-title">{t('profile.view_profile')}{user && user.username ? ` – ${user.username}` : ''}</div>
-                <div className="button-subtitle">{user && user.username ? user.username : t('profile.manage_account')}</div>
-              </div>
-            </button>
+            {/* View / Login Profile Section */}
+            {user ? (
+              <button
+                onClick={handleViewProfile}
+                className="dropdown-button view-profile"
+              >
+                <div className="button-icon profile-icon">👤</div>
+                <div className="button-text">
+                  <div className="button-title">{t('profile.view_profile')} – {user.username || 'Pioneer'}</div>
+                  <div className="button-subtitle">{t('profile.manage_account')}</div>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={handlePiNetworkLogin}
+                className="dropdown-button pi-network"
+              >
+                <div className="button-icon pi-icon">π</div>
+                <div className="button-text">
+                  <div className="button-title">{t('profile.login_pi')}</div>
+                  <div className="button-subtitle">{t('profile.login_pi_sub')}</div>
+                </div>
+              </button>
+            )}
 
             {/* Divider */}
             <div className="dropdown-divider"></div>
@@ -255,18 +268,7 @@ export default function ProfileDropdown() {
             )}
 
               {/* Pi Network Login/Logout Button */}
-              {!user ? (
-                <button
-                  onClick={handlePiNetworkLogin}
-                  className="dropdown-button pi-network"
-                >
-                  <div className="button-icon pi-icon">π</div>
-                  <div className="button-text">
-                    <div className="button-title">{t('profile.login_pi')}</div>
-                    <div className="button-subtitle">{t('profile.login_pi_sub')}</div>
-                  </div>
-                </button>
-              ) : (
+              {!user ? null : (
                 <button
                   onClick={handleLogout}
                   className="dropdown-button logout"

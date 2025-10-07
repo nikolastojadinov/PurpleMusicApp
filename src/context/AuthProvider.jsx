@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import i18n from '../i18n/index.js';
 import { ensurePremiumFresh } from '../services/premiumService';
 import { supabase } from '../supabaseClient';
+import usePiAuth from '../hooks/usePiAuth';
 
 // Keys for localStorage persistence
 const LS_USER_KEY = 'pm_user';
@@ -68,21 +69,37 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Effect: wait until Pi script present then init & restore session
+  // Integrate automatic Pi auth hook
+  const { user: piUser, loading: piAutoLoading, error: piError, retry: piRetry } = usePiAuth();
+
+  // When auto Pi auth yields a user, sync with existing context (if not already set)
   useEffect(() => {
-    let attempts = 0;
-    const MAX_ATTEMPTS = 40; // ~12s with 300ms interval
-    const interval = setInterval(() => {
-      if (window.Pi || attempts > MAX_ATTEMPTS) {
-        initPiSdk();
-        restoreFromStorage();
-        setLoading(false);
-        clearInterval(interval);
-      }
-      attempts++;
-    }, 300);
-    return () => clearInterval(interval);
-  }, [initPiSdk, restoreFromStorage]);
+    if (piUser && !user) {
+      // Attempt to map fields; piUser.db may contain supabase row
+      const dbRow = piUser.db || null;
+      const merged = dbRow ? { ...dbRow } : {
+        id: dbRow?.id || undefined,
+        pi_user_uid: piUser.pi_uid || piUser.uid,
+        username: piUser.username,
+        wallet_address: dbRow?.wallet_address || null,
+        is_premium: dbRow?.is_premium || false,
+        premium_until: dbRow?.premium_until || null,
+        premium_plan: dbRow?.premium_plan || null
+      };
+      setUser(merged);
+      setPiAccessToken(piUser.accessToken || null);
+      persistSession(merged, piUser.accessToken || null);
+      setLoading(false);
+    }
+  }, [piUser, user, persistSession]);
+
+  // Restore from storage if no auto Pi user after hook settles
+  useEffect(() => {
+    if (!piAutoLoading && !piUser && user == null) {
+      restoreFromStorage();
+      setLoading(false);
+    }
+  }, [piAutoLoading, piUser, restoreFromStorage, user]);
 
   // (No auto-login logic: user triggers login explicitly.)
 
@@ -176,7 +193,7 @@ export function AuthProvider({ children }) {
   const hideAuthModal = useCallback(() => setAuthModal(m => ({ ...m, visible: false })), []);
   const value = {
     user,
-    loading,
+    loading: loading || piAutoLoading,
     piAccessToken,
     loginWithPi,
     logout,
@@ -185,6 +202,8 @@ export function AuthProvider({ children }) {
     authModal,
     hideAuthModal,
     isLoggedIn: !!user,
+    piError,
+    piRetry
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,104 +1,150 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { supabase } from '../supabaseClient';
 
 /**
- * Robust Pi Network authentication hook.
- * Responsibilities:
- *  - Poll for Pi SDK (window.Pi) up to MAX_WAIT ms.
- *  - Initialize Pi SDK once present.
- *  - Attempt authentication with required scopes.
- *  - Expose user / loading / error states without throwing.
- *  - Fail gracefully if not inside Pi Browser (SDK never appears).
+ * usePiAuth
+ * Spec-compliant automatic Pi Browser auth + Supabase sync.
+ * - Polls for window.Pi every 500ms (default) up to 10s.
+ * - Initializes Pi SDK then authenticates with scopes ['username','payments'].
+ * - Upserts user into Supabase (first trying spec columns, then falling back to existing schema).
+ * - Persists user in localStorage under key 'piUser'.
+ * - Exposes retry capability and robust logging.
  */
-export function usePiAuth(options = {}) {
-  const {
-    pollInterval = 500,
-    maxWait = 10000,
-    scopes = ['username', 'payments'],
-    autoAuthenticate = true
-  } = options;
-
+export function usePiAuth({ pollInterval = 500, maxWait = 10000 } = {}) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const startedRef = useRef(false);
+  const pollRef = useRef(null);
   const timeoutRef = useRef(null);
-  const intervalRef = useRef(null);
+  const startedRef = useRef(false);
 
-  useEffect(() => {
-    if (startedRef.current) return; // idempotent
-    startedRef.current = true;
+  const persistUser = useCallback((u) => {
+    try { localStorage.setItem('piUser', JSON.stringify(u)); } catch(_){}
+  }, []);
 
-    let done = false;
+  const loadPersisted = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('piUser');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.username && parsed.pi_uid) {
+          setUser(parsed);
+        }
+      }
+    } catch(_){}
+  }, []);
 
-    function cleanup() {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    }
-
-    async function attemptAuth() {
-      if (done) return;
+  const supabaseSync = useCallback(async ({ username, uid, accessToken }) => {
+    // First attempt: columns specified in new spec
+    let dbUser = null;
+    try {
+      const { data, error: upErr } = await supabase
+        .from('users')
+        .upsert({ username, pi_uid: uid, access_token: accessToken }, { onConflict: 'pi_uid' })
+        .select()
+        .single();
+      if (upErr) throw upErr;
+      dbUser = data;
+      console.log('[PiAuth] Supabase sync successful (pi_uid schema)');
+      return dbUser;
+    } catch (primaryErr) {
+      console.warn('[PiAuth] Primary upsert failed, attempting fallback schema', primaryErr);
       try {
-        if (!window.Pi) return; // wait until present
-        console.log('[PiAuth] SDK detected');
-        cleanup();
-        // Initialize safely
-        try {
-          window.Pi.init({ version: '2.0' });
-        } catch (initErr) {
-          console.warn('[PiAuth] Pi.init failed', initErr);
+        // Fallback to existing schema naming (pi_user_uid, wallet_address maybe not known here)
+        const { data: existing, error: fetchErr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('pi_user_uid', uid)
+          .single();
+        if (!fetchErr && existing) {
+          console.log('[PiAuth] Supabase existing user (fallback schema)');
+          return existing;
         }
-        if (!autoAuthenticate) {
-          setLoading(false);
-          return;
-        }
-        try {
-          const authResult = await window.Pi.authenticate(scopes, (incompletePayment) => {
-            console.log('[PiAuth] Incomplete payment encountered (ignored for auth):', incompletePayment);
-          });
-          if (authResult && authResult.user) {
-            console.log('[PiAuth] User authenticated');
-            setUser(authResult.user);
-          } else {
-            console.log('[PiAuth] Authentication returned no user');
-          }
-        } catch (authErr) {
-          console.error('[PiAuth] authenticate error', authErr);
-          setError(authErr.message || 'Authentication failed');
-        } finally {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error('[PiAuth] unexpected error', e);
-        setError(e.message || 'Unexpected error');
-        setLoading(false);
+        const { data: fallbackInserted, error: fallbackErr } = await supabase
+          .from('users')
+          .upsert({ username, pi_user_uid: uid }, { onConflict: 'pi_user_uid' })
+          .select()
+          .single();
+        if (fallbackErr) throw fallbackErr;
+        console.log('[PiAuth] Supabase sync successful (fallback schema)');
+        return fallbackInserted;
+      } catch (fallbackErr) {
+        console.error('[PiAuth] Supabase sync failed', fallbackErr);
+        throw fallbackErr;
       }
     }
+  }, []);
 
-    // If SDK already injected synchronously, skip polling.
-    if (typeof window !== 'undefined' && window.Pi) {
-      attemptAuth();
-      return () => cleanup();
+  const authenticate = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (!window.Pi) throw new Error('Pi SDK unavailable – open in Pi Browser');
+      console.log('[PiAuth] SDK detected');
+      try { window.Pi.init({ version: '2.0' }); } catch(initErr){ console.warn('[PiAuth] Pi.init failed', initErr); }
+      const auth = await window.Pi.authenticate(['username','payments'], (incomplete) => {
+        console.log('[PiAuth] Incomplete payment (ignored for login):', incomplete);
+      });
+      if (!auth || !auth.user) throw new Error('Authentication returned no user');
+      const username = auth.user.username;
+      const uid = auth.user.uid;
+      const accessToken = auth.accessToken;
+      console.log('[PiAuth] User authenticated:', username);
+      let synced = null;
+      try {
+        synced = await supabaseSync({ username, uid, accessToken });
+      } catch(syncErr){
+        setError(syncErr.message || 'Supabase sync failed');
+      }
+      const mergedUser = { ...auth.user, uid, username, accessToken, db: synced };
+      setUser(mergedUser);
+      persistUser({ pi_uid: uid, username, accessToken, db: synced });
+    } catch (e) {
+      console.error('[PiAuth] Error:', e);
+      setError(e.message || 'Unknown Pi auth error');
+    } finally {
+      setLoading(false);
     }
+  }, [persistUser, supabaseSync]);
 
-    // Poll for SDK presence
-    intervalRef.current = setInterval(attemptAuth, pollInterval);
-    // Hard timeout
+  const start = useCallback(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    loadPersisted();
+    if (window.Pi) {
+      authenticate();
+      return;
+    }
+    pollRef.current = setInterval(() => {
+      if (window.Pi) {
+        clearInterval(pollRef.current);
+        clearTimeout(timeoutRef.current);
+        authenticate();
+      }
+    }, pollInterval);
     timeoutRef.current = setTimeout(() => {
-      if (done) return;
-      done = true;
-      cleanup();
       if (!window.Pi) {
-        const msg = 'Pi SDK unavailable – please open in Pi Browser.';
-        console.warn('[PiAuth] Error:', msg);
-        setError(msg);
-        setLoading(false);
+        clearInterval(pollRef.current);
+        setError('Pi SDK unavailable – open in Pi Browser');
       }
     }, maxWait);
+  }, [authenticate, loadPersisted, maxWait, pollInterval]);
 
-    return () => cleanup();
-  }, [autoAuthenticate, maxWait, pollInterval, scopes]);
+  useEffect(() => {
+    start();
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [start]);
 
-  return { user, loading, error };
+  const retry = useCallback(() => {
+    // Allow manual retry (e.g., user clicked login button after enabling Pi Browser)
+    startedRef.current = false; // permit restart
+    start();
+  }, [start]);
+
+  return { user, loading, error, retry };
 }
 
 export default usePiAuth;
