@@ -15,7 +15,7 @@ export default function HomeScreen() {
   const [ytLoading, setYtLoading] = useState(false);
   const [feedSections, setFeedSections] = useState({ quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] });
   const [feedLoading, setFeedLoading] = useState(true);
-  const [feedError, setFeedError] = useState(null); // internal only
+  const [feedError, setFeedError] = useState(null); // internal only (kept for potential future diagnostics)
   const suppressedPatterns = ['the string did not match the expected pattern','violates row-level security policy','row-level security policy'];
   const shouldSuppress = (msg) => {
     if (!msg) return false;
@@ -114,7 +114,7 @@ export default function HomeScreen() {
       }
     })();
     return () => { active = false; };
-  }, []);
+  }, [shouldSuppress]);
 
   const gridStyle = {
     display:'grid',

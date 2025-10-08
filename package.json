@@ -5,7 +5,7 @@
   "scripts": {
     "start": "react-scripts start",
     "start:backend": "node backend/server.js",
-    "build": "node scripts/verify-env.js && react-scripts build",
+  "build": "node scripts/prebuild-env-patch.js && node scripts/verify-env.js && react-scripts build",
     "install:backend": "npm install --prefix backend",
     "postinstall": "npm run install:backend"
   },
@@ -20,7 +20,9 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^16.0.0",
     "react-router-dom": "^6.22.3",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "dotenv": "^16.4.5",
+    "dotenv-expand": "^10.0.0"
   },
   "browserslist": {
     "production": [

@@ -5,6 +5,36 @@
  * This prevents opaque CRA build failures later and keeps secrets scanning logs clean.
  */
 
+// If running in CI (Netlify sets CI=true), pre-load a minimal .env.ci file WITHOUT bash-style expansions.
+try {
+  if (process.env.CI === 'true') {
+    const fs = require('fs');
+    const path = require('path');
+    const ciPath = path.join(process.cwd(), '.env.ci');
+    if (fs.existsSync(ciPath)) {
+      const lines = fs.readFileSync(ciPath, 'utf8').split(/\r?\n/);
+      for (const line of lines) {
+        if (!line || line.startsWith('#')) continue;
+        const eq = line.indexOf('=');
+        if (eq === -1) continue;
+        const key = line.slice(0, eq).trim();
+        if (!key) continue;
+        const val = line.slice(eq + 1).trim();
+        if (!process.env[key]) process.env[key] = val;
+      }
+      console.log('[verify-env] Loaded .env.ci overrides');
+    }
+  }
+} catch (e) {
+  console.warn('[verify-env] Failed to pre-load .env.ci', e.message);
+}
+
+// Workaround: disable dotenv-expand recursion under Node 22 (CRA 5 not fully compatible)
+if (!process.env.DOTENV_DISABLE_EXPAND) {
+  process.env.DOTENV_DISABLE_EXPAND = 'true';
+  console.log('[verify-env] DOTENV_DISABLE_EXPAND=true (workaround for Node 22)');
+}
+
 // Required for client build to function.
 const REQUIRED = [
   'REACT_APP_API_URL',
