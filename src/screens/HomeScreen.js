@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import searchYouTube, { searchPlaylists } from '../api/youtube';
 import { remember } from '../utils/cache';
 import { useYouTube } from '../components/YouTubeContext.jsx';
-import { loadMusicLibrary } from '../services/libraryLoader';
+// removed unused loadMusicLibrary import
 import { useNavigate } from 'react-router-dom';
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  useTranslation(); // t unused currently
   const { play } = useYouTube();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');

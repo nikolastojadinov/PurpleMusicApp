@@ -19,7 +19,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(song.duration);
   const [volume, setVolume] = useState(0.8);
-  const [dragOffset, setDragOffset] = useState(0);
+  // removed unused dragOffset state
   const [playerBottom, setPlayerBottom] = useState(120); // default offset from bottom - above footer
   const [translateY, setTranslateY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -191,6 +191,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   // closePremiumPopup no longer needed (handled by global modal)
 
   // Attach drag listeners
+  // Drag listeners effect - dependencies intentionally limited to 'dragging'
   React.useEffect(() => {
     if (dragging) {
       window.addEventListener('mousemove', handleDrag);
@@ -204,7 +205,8 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
         window.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [dragging, startY, touchStartY]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging]);
 
   // Reset ad state when track changes
   React.useEffect(() => {

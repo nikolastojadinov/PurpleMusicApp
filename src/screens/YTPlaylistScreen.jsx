@@ -5,7 +5,7 @@ import { useYouTube } from '../components/YouTubeContext.jsx';
 
 export default function YTPlaylistScreen(){
   const { id } = useParams();
-  const { openPlaylist, loadPlaylistItems, playFromPlaylist, playlist } = useYouTube();
+  const { openPlaylist, playFromPlaylist } = useYouTube();
   const [meta, setMeta] = useState(null); // { title, thumbnailUrl }
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);

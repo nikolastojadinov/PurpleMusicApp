@@ -45,7 +45,7 @@ export default function ProfileDropdown() {
         return { code, label };
       })
       .sort((a,b) => a.label.localeCompare(b.label, i18n.language || 'en', { sensitivity:'base' }));
-  }, [i18n.language]);
+  }, [i18n.language, languageCodes]);
 
   // Prevent background scroll when language modal is open
   useEffect(()=>{
@@ -252,6 +252,7 @@ export default function ProfileDropdown() {
                         <button
                           key={code}
                           className={`pm-lang-item${active ? ' active' : ''}`}
+                          role="option"
                           aria-selected={active}
                           onClick={()=>handleChangeLanguage(code)}
                         >
@@ -418,7 +419,7 @@ export default function ProfileDropdown() {
 
 // Payment history modal component
 function PaymentHistoryModal({ onClose, rows, loading, error }) {
-  const { t } = i18n; // fallback if hook not available outside provider context
+  const { t } = i18n; // fallback if hook not available outside provider context (used in markup)
   // Use direct i18n.t to avoid extra import; component rendered within provider so i18n instance has language
   const [mounted, setMounted] = useState(false);
   useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
