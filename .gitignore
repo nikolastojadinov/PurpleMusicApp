@@ -11,6 +11,7 @@ dist/
 
 # Env
 .env
+# .env.local intentionally ignored; commit only sanitized template variants if needed
 .env.local
 
 # OS / misc
