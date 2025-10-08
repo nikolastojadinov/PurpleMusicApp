@@ -25,7 +25,8 @@ export default function PlaylistDetailScreen() {
   const [modalSearch, setModalSearch] = useState('');
   const [modalResults, setModalResults] = useState([]);
   const [playlistSongs, setPlaylistSongs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // kept for potential UI but not referenced; disable next-line lint
+  // eslint-disable-next-line no-unused-vars
   const [musicLibrary, setMusicLibrary] = useState([]); // full library loaded from storage / known list
   const [modalOpen, setModalOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -53,7 +54,7 @@ export default function PlaylistDetailScreen() {
   setPlaylist(normalized);
     }
     fetchPlaylist();
-  }, [playlistId, navigate]);
+  }, [playlistId, navigate, SUPA_DEBUG, show, t]);
 
   // Fetch playlist songs
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function PlaylistDetailScreen() {
       setPlaylistSongs(data || []);
     }
     fetchPlaylistSongs();
-  }, [playlistId]);
+  }, [playlistId, SUPA_DEBUG]);
 
 
   // Load full library once and derive recommended songs
@@ -144,10 +145,7 @@ export default function PlaylistDetailScreen() {
   }
 
   // Play preview
-  function handlePlaySong(song) {
-    const audio = new Audio(song.track_url);
-    audio.play();
-  }
+  // Removed unused handlePlaySong
 
   // Update playlist name
   const handleSaveName = async () => {

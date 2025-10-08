@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { play, openPlaylist } = useYouTube();
+  const { play } = useYouTube();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [ytResults, setYtResults] = useState([]);
@@ -16,17 +16,10 @@ export default function HomeScreen() {
   const [feedSections, setFeedSections] = useState({ quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] });
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState(null);
-  const [localSongs, setLocalSongs] = useState([]);
+  // localSongs removed (unused)
 
   // Load local library (still used for recommendation mixing later)
-  useEffect(() => {
-    (async () => {
-      try {
-        const list = await loadMusicLibrary();
-        setLocalSongs(list);
-      } catch(e) { /* ignore */ }
-    })();
-  }, []);
+  // Removed unused local library preloading
 
   const [ytError, setYtError] = useState(null);
   const runSearch = useCallback(async (q) => {
@@ -42,7 +35,7 @@ export default function HomeScreen() {
     }
     setYtResults(results || []);
     setYtLoading(false);
-  }, []);
+  }, []); // initial feed fetch only once
 
   const onKey = (e) => { if (e.key === 'Enter') runSearch(query); };
 

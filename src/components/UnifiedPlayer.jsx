@@ -3,7 +3,7 @@ import { useYouTube } from './YouTubeContext.jsx';
 import { fetchLyrics } from '../api/lyrics';
 
 export default function UnifiedPlayer(){
-  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, lyrics, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle, playFromPlaylist, hasLyrics, setLyricsRaw } = useYouTube();
+  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle, playFromPlaylist, hasLyrics, setLyricsRaw } = useYouTube();
   const iframeContainerRef = useRef(null);
   const ytPlayerRef = useRef(null);
   const rafRef = useRef(null);

@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
-import { resetPremium } from '../services/premiumService';
 
 export default function ProfileDropdown() {
   const { t } = useTranslation();
@@ -14,11 +13,10 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
   // Premium modal logic moved to PremiumFeatureModalContainer (global)
   const { user, loginWithPi, logout, updateUser } = useAuth(); // updateUser still used for resetPremium force reset
-  const { show } = useGlobalModal();
+  useGlobalModal(); // invoked for side-effects; ignoring returned helpers to avoid unused var
 
   // New state for latest payment polling
   const [latestPayment, setLatestPayment] = useState(null);
-  const [checkingPayment, setCheckingPayment] = useState(false);
 
   // Payment history modal states
   const [showHistory, setShowHistory] = useState(false);
@@ -86,7 +84,6 @@ export default function ProfileDropdown() {
     async function pollLatest() {
       if (!user) return;
       try {
-        setCheckingPayment(true);
         const apiAxios = (await import('../apiAxios')).default;
         const resp = await apiAxios.get('/api/payments/latest', { params: { pi_user_uid: user.pi_user_uid }});
         if (resp.data?.success) {
@@ -100,13 +97,15 @@ export default function ProfileDropdown() {
         }
       } catch(e) {
         // ignore
-      } finally { setCheckingPayment(false); }
+      } finally { /* noop */ }
     }
     if (user) {
       pollLatest();
       pollId = setInterval(()=>{ pollLatest(); }, 15000); // every 15s while dropdown mounted
     }
     return ()=>{ if (pollId) clearInterval(pollId); };
+    // user is intentionally the sole dependency; polling rebind not required for other state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Premium modal open listener removed (handled globally)
@@ -360,19 +359,7 @@ export default function ProfileDropdown() {
                     {t('profile.payment_history')}
                   </button>
                 )}
-                {user && (window.location.search.includes('pmDebug=1')) && (
-                  <button
-                    onClick={async ()=>{
-                      try {
-                        const updated = await resetPremium(user.id);
-                        window.localStorage.setItem('pm_user', JSON.stringify(updated));
-                        updateUser(updated);
-                      } catch(e) { console.error('Reset failed', e); }
-                    }}
-                    style={{background:'transparent', border:'1px solid #933', color:'#f88', padding:'8px 12px', borderRadius:10, fontSize:12, cursor:'pointer'}}
-                    title="Force reset premium status"
-                  >Force Premium Reset</button>
-                )}
+                {/* Removed debug premium reset button for production cleanliness */}
                 <div className="dropdown-divider" />
                 <a
                   href="https://purplemusic.app/policy-privacy.html"

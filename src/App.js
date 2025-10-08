@@ -12,7 +12,7 @@ import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './screens/TermsOfServiceScreen';
 import Header from './components/Header';
 import BottomNavigation from './components/BottomNavigation';
-import ModernAudioPlayer from './components/ModernAudioPlayer';
+// Removed legacy ModernAudioPlayer import (unused)
 // Auth context (restored & improved)
 import { AuthProvider } from './context/AuthProvider.jsx';
 import { GlobalModalProvider } from './context/GlobalModalContext.jsx';
@@ -30,22 +30,20 @@ import LyricsView from './components/LyricsView.jsx';
 import usePiAuth from './hooks/usePiAuth';
 
 function App() {
-  const { user: piUser, loading: piLoading, error: piError } = usePiAuth();
+  const { loading: piLoading, error: piError } = usePiAuth();
   // Auto-detect language once on mount
   useEffect(() => {
-    console.log('[DEBUG][App] mount, current path =', window.location.pathname);
+  // console debug removed for CI cleanliness
     try {
       // Respect new persisted key first, then legacy, else autodetect.
       const persisted = localStorage.getItem('preferredLanguage') || localStorage.getItem('appLanguage');
       if (persisted) {
-        console.log('[DEBUG][App] skipping auto-detect; using persisted language', persisted);
         // i18n init may have already set this via lng option; only change if different
         if (i18n.language !== persisted) i18n.changeLanguage(persisted);
         return;
       }
       const detected = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
       const lang = (detected || 'en').split('-')[0];
-      console.log('[DEBUG][App] no persisted language, detected ->', lang);
       if (i18n.language !== lang) i18n.changeLanguage(lang);
     } catch (e) {
       console.warn('[DEBUG][App] language init failed, defaulting to en', e);
@@ -59,7 +57,6 @@ function App() {
           <YouTubeProvider>
           <div className="app">
             <Router>
-              {console.log('[DEBUG][App] rendering router with location', window.location.pathname)}
               {piLoading && (
                 <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#000',color:'#fff',zIndex:9999,fontSize:16}}>
                   <div>Authenticating with Pi Network…</div>

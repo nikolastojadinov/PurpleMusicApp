@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthProvider.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AuthModal() {
-  const { authModal, hideAuthModal, isLoggedIn } = useAuth();
+  const { authModal, hideAuthModal } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { visible, type, message, dismissible } = authModal;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider.jsx';
 import { PREMIUM_PLANS } from '../services/premiumService';
-import { activatePremium, resetPremium } from '../services/premiumService';
+import { activatePremium } from '../services/premiumService';
 // Passive pending-session checker (no Pi payment API calls)
 import { logPendingPaymentSession } from '../services/paymentSessionWrapper';
 

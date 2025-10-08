@@ -18,7 +18,7 @@ export default function PlaylistsScreen() {
   const navigate = useNavigate();
 
   const user = getCurrentUser();
-  console.log('Current user:', user);
+  // Removed verbose user console log for CI cleanliness
   React.useEffect(() => {
     if (!user?.id) return;
     import('../supabaseClient').then(({ supabase }) => {
@@ -39,13 +39,9 @@ export default function PlaylistsScreen() {
           }
         });
     });
-  }, [user?.id]);
+  }, [user?.id, show]);
 
-  const sampleSongs = [
-    { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', cover: '🌟', album: 'After Hours' },
-    { id: 2, title: 'Watermelon Sugar', artist: 'Harry Styles', cover: '🍉', album: 'Fine Line' },
-    { id: 3, title: 'Levitating', artist: 'Dua Lipa', cover: '✨', album: 'Future Nostalgia' },
-  ];
+  // Removed unused sampleSongs array
 
   const handlePlayPlaylist = (playlist) => {
     navigate(`/playlist/${playlist.id}`);

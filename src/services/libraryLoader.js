@@ -1,15 +1,9 @@
-import { supabase } from '../supabaseClient';
-
 const MUSIC_BUCKET = 'Music';
 const COVERS_BUCKET = 'Covers';
 const PUBLIC_BASE = (path) => `https://ofkfygqrfenctzitigae.supabase.co/storage/v1/object/public/${path}`;
 
-function stripExt(name){
-  return name.replace(/\.[^.]+$/,'');
-}
-
 export async function loadMusicLibrary() {
-  console.log('🎵 Loading music library from Supabase...');
+  // Loading local song metadata (static list)
   
   // Direct list of known files (exactly from user's screenshots)
   const knownSongs = [
@@ -70,10 +64,5 @@ export async function loadMusicLibrary() {
     };
   });
 
-  console.log('🎵 Created songs count:', songs.length);
-  console.log('🎵 Sample song URLs (FIXED):', {
-    first: songs[0]?.url,
-    cover: songs[0]?.cover
-  });
   return songs;
 }

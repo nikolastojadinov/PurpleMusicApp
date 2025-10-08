@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { supabase } from '../supabaseClient';
+// Removed unused supabase import (backend sync handled via REST)
 
 /**
  * usePiAuth
