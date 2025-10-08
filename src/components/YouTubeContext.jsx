@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 
 // Silent error suppression patterns
 const SUPPRESSED_PATTERNS = [
+  // Fully silent pattern – never surfaces even in dev beyond optional minimal debug
   'the string did not match the expected pattern',
   'violates row-level security policy',
   'row-level security policy'
@@ -14,8 +15,19 @@ function shouldSuppress(err) {
 }
 
 function debugLog(label, err) {
-  if (!shouldSuppress(err)) return; // only log suppressed ones at debug level
-  try { console.debug(`[SilentSuppress][${label}]`, err?.message || err); } catch(_) {}
+  if (!err) return;
+  const msg = (err.message || String(err)).toLowerCase();
+  if (msg.includes('the string did not match the expected pattern')) {
+    // Completely silence this specific pattern.
+    return;
+  }
+  if (shouldSuppress(err)) {
+    if (process.env.NODE_ENV !== 'production') {
+      try { console.warn(`[SilentSuppress][${label}]`, err?.message || err); } catch(_) {}
+    }
+  } else if (process.env.NODE_ENV !== 'production') {
+    try { console.warn(`[YouTubeContext][${label}]`, err?.message || err); } catch(_) {}
+  }
 }
 
 // Extended YouTube context: supports single video or playlist playback.

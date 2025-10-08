@@ -16,18 +16,27 @@ export default function YouTubeSearch() {
   const [error, setError] = useState(null); // internal only, not shown
 
   const runSearch = useCallback(async (q, type) => {
-    const trimmed = q.trim();
-    if (!trimmed) return;
-    setLoading(true); setError(null);
-    const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
-    if (err) {
-      setError(err);
-      if (!String(err).toLowerCase().includes('the string did not match the expected pattern')) {
-        console.debug('[YouTubeSearch] search note', err);
+    try {
+      const trimmed = q.trim();
+      if (!trimmed) return;
+      setLoading(true); setError(null);
+      const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
+      if (err) {
+        setError(err);
+        const msg = String(err?.message || err).toLowerCase();
+        if (process.env.NODE_ENV !== 'production' && !msg.includes('the string did not match the expected pattern')) {
+          console.warn('[YouTubeSearch] search note', err);
+        }
       }
+      setResults(r || []);
+    } catch(err) {
+      const msg = String(err?.message || err).toLowerCase();
+      if (process.env.NODE_ENV !== 'production' && !msg.includes('the string did not match the expected pattern')) {
+        console.warn('[YouTubeSearch] unexpected search exception', err);
+      }
+    } finally {
+      setLoading(false);
     }
-    setResults(r || []);
-    setLoading(false);
   }, []);
 
   const onKey = (e) => {

@@ -25,10 +25,10 @@ export async function searchYouTube(query) {
         return { results };
       } else {
         const txt = await resp.text();
-        if (!silencePatternError(txt)) console.debug('[YouTube] direct search suppressed/non-fatal', resp.status);
+  if (!silencePatternError(txt) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] direct search non-fatal', resp.status);
       }
     } catch (e) {
-      if (!silencePatternError(e?.message)) console.debug('[YouTube] direct search network note', e.message);
+  if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] direct search network note', e.message);
     }
   }
   // Fallback to backend proxy (no durations now, raw mapping done here)
@@ -38,7 +38,7 @@ export async function searchYouTube(query) {
     const resp = await fetch(proxyUrl);
     if (!resp.ok) {
       const b = await resp.text();
-      if (!silencePatternError(b)) console.debug('[YouTube] proxy search suppressed/non-fatal', resp.status);
+  if (!silencePatternError(b) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] proxy search non-fatal', resp.status);
       return { error: 'proxy_error', results: [] };
     }
     const data = await resp.json();
@@ -52,7 +52,7 @@ export async function searchYouTube(query) {
     })).filter(r => !!r.videoId && isValidVideoId(r.videoId));
     return { results };
   } catch (e) {
-    if (!silencePatternError(e?.message)) console.debug('[YouTube] proxy network note', e.message);
+  if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] proxy network note', e.message);
     return { error: 'network', results: [] };
   }
 }
@@ -80,7 +80,7 @@ export async function searchPlaylists(query) {
         })).filter(r=>!!r.playlistId && isValidPlaylistId(r.playlistId));
         return { results };
       }
-    } catch(e){ if (!silencePatternError(e?.message)) console.debug('[YouTube] playlist direct search note', e.message); }
+  } catch(e){ if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] playlist direct search note', e.message); }
   }
   const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
   const proxyUrl = `${apiBase}/api/youtube/searchPlaylists?q=${encodeURIComponent(q)}`;
@@ -97,7 +97,7 @@ export async function searchPlaylists(query) {
       thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null
     })).filter(r=>!!r.playlistId && isValidPlaylistId(r.playlistId));
     return { results };
-  } catch(e){ if (!silencePatternError(e?.message)) console.debug('[YouTube] playlist proxy note', e.message); return { error:'network', results:[] }; }
+  } catch(e){ if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] playlist proxy note', e.message); return { error:'network', results:[] }; }
 }
 
 // --- Fetch playlist items (videos) ---
@@ -112,7 +112,7 @@ export async function fetchPlaylistItems(playlistId) {
         const data = await resp.json();
         return { items: mapPlaylistItems(data.items) };
       }
-    } catch(e){ if (!silencePatternError(e?.message)) console.debug('[YouTube] playlistItems direct note', e.message); }
+  } catch(e){ if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] playlistItems direct note', e.message); }
   }
   const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
   const proxyUrl = `${apiBase}/api/youtube/playlistItems?playlistId=${encodeURIComponent(playlistId)}`;
@@ -121,7 +121,7 @@ export async function fetchPlaylistItems(playlistId) {
     if (!resp.ok) return { error:'proxy_error', items:[] };
     const data = await resp.json();
     return { items: mapPlaylistItems(data.items) };
-  } catch(e){ if (!silencePatternError(e?.message)) console.debug('[YouTube] playlistItems proxy note', e.message); return { error:'network', items:[] }; }
+  } catch(e){ if (!silencePatternError(e?.message) && process.env.NODE_ENV !== 'production') console.warn('[YouTube] playlistItems proxy note', e.message); return { error:'network', items:[] }; }
 }
 
 function mapPlaylistItems(raw) {
