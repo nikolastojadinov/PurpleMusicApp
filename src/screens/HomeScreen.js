@@ -1,4 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+
+// Shared suppression utility (stable reference)
+const SUPPRESSED_PATTERNS = [
+  'the string did not match the expected pattern',
+  'violates row-level security policy',
+  'row-level security policy'
+];
+function suppressible(msg){
+  if (!msg) return false;
+  const lower = String(msg).toLowerCase();
+  return SUPPRESSED_PATTERNS.some(p=> lower.includes(p));
+}
 import { useTranslation } from 'react-i18next';
 import searchYouTube, { searchPlaylists } from '../api/youtube';
 import { remember } from '../utils/cache';
@@ -15,13 +27,7 @@ export default function HomeScreen() {
   const [ytLoading, setYtLoading] = useState(false);
   const [feedSections, setFeedSections] = useState({ quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] });
   const [feedLoading, setFeedLoading] = useState(true);
-  const [feedError, setFeedError] = useState(null); // internal only (kept for potential future diagnostics)
-  const suppressedPatterns = ['the string did not match the expected pattern','violates row-level security policy','row-level security policy'];
-  const shouldSuppress = (msg) => {
-    if (!msg) return false;
-    const lower = String(msg).toLowerCase();
-    return suppressedPatterns.some(p => lower.includes(p));
-  };
+  // feedError removed (was unused in UI); suppression now logs debug only
   // localSongs removed (unused)
 
   // Load local library (still used for recommendation mixing later)
@@ -102,19 +108,17 @@ export default function HomeScreen() {
         if (!active) return;
         setFeedSections(data);
       } catch(err){
-        if (active) {
-          if (shouldSuppress(err?.message)) {
-            console.debug('[HomeFeed] suppressed error');
-          } else {
-            setFeedError(err.message);
-          }
+        if (active && suppressible(err?.message)) {
+          console.debug('[HomeFeed] suppressed error');
+        } else if (active) {
+          console.debug('[HomeFeed] non-fatal feed load issue');
         }
       } finally {
         if (active) setFeedLoading(false);
       }
     })();
     return () => { active = false; };
-  }, [shouldSuppress]);
+  }, []);
 
   const gridStyle = {
     display:'grid',
@@ -181,7 +185,7 @@ export default function HomeScreen() {
         </div>
       ) : (
         <div style={{display:'flex',flexDirection:'column',gap:40}}>
-          {/* Feed error UI suppressed per spec */}
+          {/* Feed error UI removed intentionally */}
           {feedLoading && <div style={{opacity:.6,fontSize:13}}>Loading feed…</div>}
           {!feedLoading && (
             <>
