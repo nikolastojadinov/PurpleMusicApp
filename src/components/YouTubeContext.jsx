@@ -1,5 +1,23 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
+// Silent error suppression patterns
+const SUPPRESSED_PATTERNS = [
+  'the string did not match the expected pattern',
+  'violates row-level security policy',
+  'row-level security policy'
+];
+
+function shouldSuppress(err) {
+  if (!err) return false;
+  const msg = (typeof err === 'string' ? err : (err.message || '')).toLowerCase();
+  return SUPPRESSED_PATTERNS.some(p => msg.includes(p));
+}
+
+function debugLog(label, err) {
+  if (!shouldSuppress(err)) return; // only log suppressed ones at debug level
+  try { console.debug(`[SilentSuppress][${label}]`, err?.message || err); } catch(_) {}
+}
+
 // Extended YouTube context: supports single video or playlist playback.
 // State shape:
 // mode: 'video' | 'playlist' | null
@@ -41,34 +59,38 @@ export function YouTubeProvider({ children }) {
   }, [playbackMode]);
 
   const play = useCallback((item) => { // backward compat (single video)
-    if (!item) return;
-    setMode('video');
-    setPlaylist(null);
-    setCurrentVideo(item);
+    try {
+      if (!item) return;
+      setMode('video');
+      setPlaylist(null);
+      setCurrentVideo(item);
+    } catch(err){ debugLog('play', err); }
   }, []);
 
   const playVideo = play; // alias
 
   const openPlaylist = useCallback((meta) => {
-    // meta: { id, title, thumbnailUrl, items? }
-    if (!meta?.id) return;
-    setMode('playlist');
-    setPlaylist({ id: meta.id, title: meta.title, thumbnailUrl: meta.thumbnailUrl || null, items: meta.items || [], index: 0 });
-    if (meta.items && meta.items[0]) {
-      setCurrentVideo(meta.items[0]);
-    } else {
-      setCurrentVideo(null);
-    }
+    try {
+      if (!meta?.id) return;
+      setMode('playlist');
+      setPlaylist({ id: meta.id, title: meta.title, thumbnailUrl: meta.thumbnailUrl || null, items: meta.items || [], index: 0 });
+      if (meta.items && meta.items[0]) {
+        setCurrentVideo(meta.items[0]);
+      } else {
+        setCurrentVideo(null);
+      }
+    } catch(err){ debugLog('openPlaylist', err); }
   }, []);
 
   const loadPlaylistItems = useCallback((items) => {
-    setPlaylist(p => {
-      if (!p) return p;
-      const next = { ...p, items };
-      // If nothing playing yet, start with first item
-      if (!currentVideo && items[0]) setCurrentVideo(items[0]);
-      return next;
-    });
+    try {
+      setPlaylist(p => {
+        if (!p) return p;
+        const next = { ...p, items };
+        if (!currentVideo && items[0]) setCurrentVideo(items[0]);
+        return next;
+      });
+    } catch(err){ debugLog('loadPlaylistItems', err); }
   }, [currentVideo]);
 
   const playFromPlaylist = useCallback((index) => {

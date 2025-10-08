@@ -15,7 +15,13 @@ export default function HomeScreen() {
   const [ytLoading, setYtLoading] = useState(false);
   const [feedSections, setFeedSections] = useState({ quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] });
   const [feedLoading, setFeedLoading] = useState(true);
-  const [feedError, setFeedError] = useState(null);
+  const [feedError, setFeedError] = useState(null); // internal only
+  const suppressedPatterns = ['the string did not match the expected pattern','violates row-level security policy','row-level security policy'];
+  const shouldSuppress = (msg) => {
+    if (!msg) return false;
+    const lower = String(msg).toLowerCase();
+    return suppressedPatterns.some(p => lower.includes(p));
+  };
   // localSongs removed (unused)
 
   // Load local library (still used for recommendation mixing later)
@@ -96,7 +102,13 @@ export default function HomeScreen() {
         if (!active) return;
         setFeedSections(data);
       } catch(err){
-        if (active) setFeedError(err.message);
+        if (active) {
+          if (shouldSuppress(err?.message)) {
+            console.debug('[HomeFeed] suppressed error');
+          } else {
+            setFeedError(err.message);
+          }
+        }
       } finally {
         if (active) setFeedLoading(false);
       }
@@ -169,7 +181,7 @@ export default function HomeScreen() {
         </div>
       ) : (
         <div style={{display:'flex',flexDirection:'column',gap:40}}>
-          {feedError && <div style={{color:'#f77',fontSize:13}}>{feedError}</div>}
+          {/* Feed error UI suppressed per spec */}
           {feedLoading && <div style={{opacity:.6,fontSize:13}}>Loading feed…</div>}
           {!feedLoading && (
             <>

@@ -75,10 +75,10 @@ export default function BottomNavigation() {
   );
 }
 
-// Icon components (outline when inactive, filled when active)
+// Icon components (always outline; active just scales)
 function HomeIcon({ active }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" style={{transition:'transform .35s, fill .3s, stroke .3s', transform: active ? 'scale(1.18)' : 'scale(.96)'}} fill={active ? '#fff' : 'none'} stroke="#fff" strokeWidth={1.7} strokeLinejoin="round" strokeLinecap="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" style={{transition:'transform .35s, stroke .3s', transform: active ? 'scale(1.1)' : 'scale(1)'}} fill="none" stroke={active ? '#fff' : '#aaa'} strokeWidth={1.7} strokeLinejoin="round" strokeLinecap="round">
       <path d="M3 11.4 12 4l9 7.4" />
       <path d="M5.5 10.2V20h5.2v-5.1h2.6V20h5.2v-9.8" />
     </svg>
@@ -87,7 +87,7 @@ function HomeIcon({ active }) {
 
 function HeartIcon({ active }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, fill .3s, stroke .3s', transform: active ? 'scale(1.18)' : 'scale(.96)'}} fill={active ? '#fff' : 'none'} stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, stroke .3s', transform: active ? 'scale(1.1)' : 'scale(1)'}} fill="none" stroke={active ? '#fff' : '#aaa'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 20s-3.7-3.18-5.6-5.07C4.5 13.04 3.4 11.5 3.4 9.7 3.4 7.1 5.5 5 8.1 5c1.4 0 2.7.6 3.6 1.6.9-1 2.2-1.6 3.6-1.6 2.6 0 4.7 2.1 4.7 4.7 0 1.8-1.1 3.34-3 5.23C15.7 16.83 12 20 12 20Z" />
     </svg>
   );
@@ -95,7 +95,7 @@ function HeartIcon({ active }) {
 
 function PlusIcon({ active }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, fill .3s, stroke .3s', transform: active ? 'scale(1.18)' : 'scale(.96)'}} fill={active ? '#fff' : 'none'} stroke="#fff" strokeWidth={1.9} strokeLinecap="round">
+    <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, stroke .3s', transform: active ? 'scale(1.1)' : 'scale(1)'}} fill="none" stroke={active ? '#fff' : '#aaa'} strokeWidth={1.9} strokeLinecap="round">
       <path d="M12 5v14" />
       <path d="M5 12h14" />
     </svg>
