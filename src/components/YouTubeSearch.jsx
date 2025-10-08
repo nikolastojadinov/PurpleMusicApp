@@ -22,10 +22,14 @@ export default function YouTubeSearch() {
       setLoading(true); setError(null);
       const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
       if (err) {
-        setError(err);
         const msg = String(err?.message || err).toLowerCase();
-        if (process.env.NODE_ENV !== 'production' && !msg.includes('the string did not match the expected pattern')) {
-          console.warn('[YouTubeSearch] search note', err);
+        // Do NOT persist this specific pattern error in component state
+        if (!msg.includes('the string did not match the expected pattern')) {
+          setError(err);
+          if (process.env.NODE_ENV !== 'production') console.warn('[YouTubeSearch] search note', err);
+        } else if (process.env.NODE_ENV !== 'production') {
+          // Dev-only minimal breadcrumb (not stored, no UI)
+          console.info('[YouTubeSearch] suppressed pattern error');
         }
       }
       setResults(r || []);

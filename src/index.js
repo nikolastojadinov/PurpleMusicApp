@@ -6,6 +6,20 @@ import './utils/consoleProdShim';
 import './i18n/index.js';
 // NOTE: App is dynamically imported below to isolate any early-load errors.
 
+// Global hard suppression of the YouTube pattern message (prevents popup overlays / default handler propagation)
+if (typeof window !== 'undefined') {
+  try {
+    window.addEventListener('error', (e) => {
+      const msg = e?.message || '';
+      if (typeof msg === 'string' && msg.toLowerCase().includes('did not match the expected pattern')) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        return false; // some browsers honor return false to suppress
+      }
+    }, { capture: true });
+  } catch(_) {}
+}
+
 // (Pi SDK init now handled inside AuthProvider with retry logic)
 
 const rootEl = document.getElementById('root');
