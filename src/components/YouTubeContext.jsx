@@ -8,9 +8,12 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 const YouTubeContext = createContext(null);
 
 export function YouTubeProvider({ children }) {
-  const [mode, setMode] = useState(null);
+  const [mode, setMode] = useState(null); // 'video' | 'playlist' | null
+  const [playbackMode, setPlaybackMode] = useState('audio'); // 'audio' | 'video'
   const [currentVideo, setCurrentVideo] = useState(null);
   const [playlist, setPlaylist] = useState(null); // { id, title, thumbnailUrl, items, index }
+  const [lyrics, setLyrics] = useState({ lines: [], synced: false });
+  const [lyricsVisible, setLyricsVisible] = useState(false);
 
   const play = useCallback((item) => { // backward compat (single video)
     if (!item) return;
@@ -83,12 +86,31 @@ export function YouTubeProvider({ children }) {
 
   const clear = useCallback(() => {
     setMode(null);
+    setPlaybackMode('audio');
     setPlaylist(null);
     setCurrentVideo(null);
+    setLyrics({ lines: [], synced: false });
+    setLyricsVisible(false);
+  }, []);
+
+  const toggleVideoMode = useCallback(() => {
+    setPlaybackMode(m => m === 'audio' ? 'video' : 'audio');
+  }, []);
+
+  const toggleLyricsView = useCallback(() => setLyricsVisible(v => !v), []);
+
+  const setLyricsData = useCallback((data) => {
+    if (!data) return;
+    setLyrics({ lines: Array.isArray(data.lines) ? data.lines : [], synced: !!data.synced });
+  }, []);
+
+  const syncLyrics = useCallback((currentTime) => {
+    // Placeholder – real implementation would update active index based on timestamps.
+    return currentTime;
   }, []);
 
   return (
-    <YouTubeContext.Provider value={{ mode, current: currentVideo, playlist, play, playVideo, openPlaylist, loadPlaylistItems, playFromPlaylist, next, prev, clear }}>
+    <YouTubeContext.Provider value={{ mode, playbackMode, current: currentVideo, playlist, play, playVideo, openPlaylist, loadPlaylistItems, playFromPlaylist, next, prev, clear, toggleVideoMode, lyrics, setLyricsData, lyricsVisible, toggleLyricsView, syncLyrics }}>
       {children}
     </YouTubeContext.Provider>
   );
