@@ -172,7 +172,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
       }
     };
     checkLikeStatus();
-  }, [song?.url]);
+  }, [song?.url, song]);
 
   // Skip functionality with premium check
   const handlePrev = () => {

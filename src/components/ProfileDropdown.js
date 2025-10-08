@@ -25,12 +25,11 @@ export default function ProfileDropdown() {
   const [historyError, setHistoryError] = useState(null);
   const [showLang, setShowLang] = useState(false);
 
-  const languageCodes = [
-    'ar','cs','de','el','en','es','fa','fr','hi','id','it','ja','ko','nl','pl','pt','ro','ru','sr','sv','th','tr','uk','vi','zh'
-  ];
-
   // Build sorted language list by localized name
   const sortedLanguages = useMemo(() => {
+    const languageCodes = [
+      'ar','cs','de','el','en','es','fa','fr','hi','id','it','ja','ko','nl','pl','pt','ro','ru','sr','sv','th','tr','uk','vi','zh'
+    ];
     let dn;
     try {
       dn = new Intl.DisplayNames([i18n.language], { type: 'language' });
@@ -45,9 +44,7 @@ export default function ProfileDropdown() {
         return { code, label };
       })
       .sort((a,b) => a.label.localeCompare(b.label, i18n.language || 'en', { sensitivity:'base' }));
-  // language list recomputed only when open; safe to depend on languageCodes static list
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [languageCodes]);
+  }, [i18n.language]);
 
   // Prevent background scroll when language modal is open
   useEffect(()=>{
