@@ -1,6 +1,6 @@
 [build]
-  # Install with --force (peer conflict workaround), then produce standard + legacy bundle.
-  command = "npm install --force && npm run build:all"
+  # Use clean install (ci) for reproducibility; run build:all (includes legacy bundle).
+  command = "npm ci && npm run build:all"
   publish = "build"
 
 [build.environment]
@@ -65,6 +65,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[secrets_scan]
+  omit_keys = ["VITE_YOUTUBE_API_KEY", "REACT_APP_YOUTUBE_API_KEY"]
 
 # Notes:
 # - Created physical file policy-privacy.html with original content
