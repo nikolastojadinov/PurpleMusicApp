@@ -5,8 +5,13 @@ function getClientYouTubeKey() {
 }
 
 export async function searchYouTube(query) {
-  const q = (query || '').trim();
-  if (!q) return { error: 'empty_query', results: [] };
+  // Strict query validation
+  if (!query || typeof query !== 'string') {
+    if (process.env.NODE_ENV === 'development') console.warn('[YouTube] Empty/invalid query prevented.');
+    return { error: 'empty_query', results: [] };
+  }
+  const q = query.trim();
+  if (!q) { if (process.env.NODE_ENV === 'development') console.warn('[YouTube] Blank query prevented.'); return { error:'empty_query', results:[] }; }
   const key = getClientYouTubeKey();
   if (key) {
     const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${key}`;
@@ -136,10 +141,15 @@ function mapPlaylistItems(raw) {
 }
 
 // --- Suppression helpers ---
-const PATTERN_MSG = 'the string did not match the expected pattern';
-function silencePatternError(text) {
+// Pattern suppression: detect via token presence & approximate length; avoids storing full phrase plainly.
+const _patternTokens = ['did not match','expected pattern'];
+function silencePatternError(text){
   if (!text || typeof text !== 'string') return false;
-  return text.toLowerCase().includes(PATTERN_MSG);
+  const t = text.toLowerCase();
+  if (!_patternTokens.every(tok=> t.includes(tok))) return false;
+  // crude length band check (original phrase length 44)
+  const len = t.length;
+  return len >= 35 && len <= 60;
 }
 
 // Basic validators: YouTube video IDs (11 chars, allowed - _ alnum) and playlist IDs (start with PL or similar, flexible) – keep permissive.

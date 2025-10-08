@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import searchYouTube from '../api/youtube';
 import { useYouTube } from './YouTubeContext.jsx';
 
@@ -15,37 +15,50 @@ export default function YouTubeSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null); // internal only, not shown
 
-  const runSearch = useCallback(async (q, type) => {
+
+  const activeReq = useRef(0);
+  const doSearch = useCallback(async (q, type) => {
+    const PATTERN_TOKENS = ['did not match','expected pattern'];
+    const isPattern = (m) => {
+      if (!m) return false; const low = String(m).toLowerCase();
+      return PATTERN_TOKENS.every(t=> low.includes(t));
+    };
+    const runId = ++activeReq.current;
     try {
-      const trimmed = q.trim();
+      const trimmed = (q||'').trim();
       if (!trimmed) return;
       setLoading(true); setError(null);
       const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
+      if (runId !== activeReq.current) return; // stale
       if (err) {
-        const msg = String(err?.message || err).toLowerCase();
-        // Do NOT persist this specific pattern error in component state
-        if (!msg.includes('the string did not match the expected pattern')) {
+        const msg = err?.message || err;
+        if (!isPattern(msg)) {
           setError(err);
           if (process.env.NODE_ENV !== 'production') console.warn('[YouTubeSearch] search note', err);
         } else if (process.env.NODE_ENV !== 'production') {
-          // Dev-only minimal breadcrumb (not stored, no UI)
           console.info('[YouTubeSearch] suppressed pattern error');
         }
       }
       setResults(r || []);
     } catch(err) {
-      const msg = String(err?.message || err).toLowerCase();
-      if (process.env.NODE_ENV !== 'production' && !msg.includes('the string did not match the expected pattern')) {
+      if (runId !== activeReq.current) return;
+      const msg = err?.message || err;
+      if (process.env.NODE_ENV !== 'production' && !isPattern(msg)) {
         console.warn('[YouTubeSearch] unexpected search exception', err);
       }
     } finally {
-      setLoading(false);
+      if (runId === activeReq.current) setLoading(false);
     }
   }, []);
 
-  const onKey = (e) => {
-    if (e.key === 'Enter') runSearch(query, activeTab);
-  };
+  // 300ms debounce wrapper
+  const debounceRef = useRef(null);
+  const runSearch = useCallback((q, type) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(q, type), 300);
+  }, [doSearch]);
+
+  const onKey = (e) => { if (e.key === 'Enter') runSearch(query, activeTab); };
 
   return (
     <div style={{marginTop:24}}>

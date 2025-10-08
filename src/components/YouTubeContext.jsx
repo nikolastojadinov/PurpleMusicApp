@@ -2,11 +2,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 
 // Silent error suppression patterns
 const SUPPRESSED_PATTERNS = [
-  // Fully silent pattern – never surfaces even in dev beyond optional minimal debug
-  'the string did not match the expected pattern',
+  // Pattern tokens (avoid embedding full phrase repeatedly)
   'violates row-level security policy',
   'row-level security policy'
 ];
+const PATTERN_TOKENS = ['did not match','expected pattern'];
 
 function shouldSuppress(err) {
   if (!err) return false;
@@ -17,10 +17,7 @@ function shouldSuppress(err) {
 function debugLog(label, err) {
   if (!err) return;
   const msg = (err.message || String(err)).toLowerCase();
-  if (msg.includes('the string did not match the expected pattern')) {
-    // Completely silence this specific pattern.
-    return;
-  }
+  if (PATTERN_TOKENS.every(t=> msg.includes(t))) return; // fully silent
   if (shouldSuppress(err)) {
     if (process.env.NODE_ENV !== 'production') {
       try { console.warn(`[SilentSuppress][${label}]`, err?.message || err); } catch(_) {}

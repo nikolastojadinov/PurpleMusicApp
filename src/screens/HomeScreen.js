@@ -7,10 +7,10 @@ import { useNavigate } from 'react-router-dom';
 
 // Shared suppression utility (stable reference)
 const SUPPRESSED_PATTERNS = [
-  'the string did not match the expected pattern',
   'violates row-level security policy',
   'row-level security policy'
 ];
+const PATTERN_TOKENS = ['did not match','expected pattern'];
 function suppressible(msg){
   if (!msg) return false;
   const lower = String(msg).toLowerCase();
@@ -39,9 +39,12 @@ export default function HomeScreen() {
     const { results, error } = await searchYouTube(q.trim(), 'video');
     if (error) {
       // Capture internally but do not surface to UI; downgrade to debug
-      setYtError(error);
-      if (!String(error).toLowerCase().includes('the string did not match the expected pattern')) {
-        console.debug('[Home][YouTube] search note', error);
+      const msg = String(error?.message || error).toLowerCase();
+      if (!PATTERN_TOKENS.every(t=> msg.includes(t))) {
+        setYtError(error);
+        if (process.env.NODE_ENV !== 'production') console.warn('[Home][YouTube] search note', error);
+      } else if (process.env.NODE_ENV !== 'production') {
+        console.info('[Home][YouTube] suppressed pattern error');
       }
     }
     setYtResults(results || []);

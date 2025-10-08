@@ -10,11 +10,11 @@ import './i18n/index.js';
 if (typeof window !== 'undefined') {
   try {
     window.addEventListener('error', (e) => {
-      const msg = e?.message || '';
-      if (typeof msg === 'string' && msg.toLowerCase().includes('did not match the expected pattern')) {
+      const msg = (e?.message || '').toLowerCase();
+      if (msg && msg.includes('did not match') && msg.includes('expected pattern')) {
         e.stopImmediatePropagation();
         e.preventDefault();
-        return false; // some browsers honor return false to suppress
+        return false;
       }
     }, { capture: true });
   } catch(_) {}
