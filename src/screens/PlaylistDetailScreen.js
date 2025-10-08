@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { loadMusicLibrary } from '../services/libraryLoader';
+import { useGlobalModal } from '../context/GlobalModalContext.jsx';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+
 // Helper: auto-resize textarea height to fit content (multi-line playlist name)
 function autoResize(el) {
   if (!el) return;
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 320) + 'px';
 }
-// Unified: use same loader as global SearchScreen so results are guaranteed even if DB Music table is empty
-import { loadMusicLibrary } from '../services/libraryLoader';
-import { useGlobalModal } from '../context/GlobalModalContext.jsx';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
 
 export default function PlaylistDetailScreen() {
   const { t } = useTranslation();

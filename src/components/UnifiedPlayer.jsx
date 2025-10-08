@@ -11,9 +11,8 @@ export default function UnifiedPlayer(){
   const touchStartY = useRef(null);
   const dragDelta = useRef(0);
   const [dragStyle, setDragStyle] = useState(null);
-
-  // Guard: no player if nothing selected
-  if (!current) return null;
+  // Keep a stable flag so hooks order never changes even if current=null
+  const hasCurrent = !!current;
 
   // Ensure YouTube IFrame API present
   useEffect(() => {
@@ -25,6 +24,8 @@ export default function UnifiedPlayer(){
 
   // Build / rebuild player when videoId changes (video mode only)
   useEffect(() => {
+    // Only attempt to (re)build if we actually have a current track and are in video mode.
+    if (!hasCurrent) return;
     if (playbackMode !== 'video') return; // only create in video mode
     if (!current?.videoId) return;
     if (!window.YT || !window.YT.Player) return; // API not ready yet
@@ -45,7 +46,7 @@ export default function UnifiedPlayer(){
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.videoId, playbackMode]);
+  }, [hasCurrent, current?.videoId, playbackMode]);
 
   const startProgressLoop = () => {
     cancelProgressLoop();
@@ -97,8 +98,9 @@ export default function UnifiedPlayer(){
 
   // Persistence (basic)
   useEffect(() => {
+    if (!hasCurrent) return;
     try { localStorage.setItem('pm_playback_session', JSON.stringify({ current, progress, repeat, shuffle, playlistIndex: playlist?.index })); } catch(_) {}
-  }, [current, progress, repeat, shuffle, playlist?.index]);
+  }, [hasCurrent, current, progress, repeat, shuffle, playlist?.index]);
 
   // Lyrics open
   const openLyrics = async () => {
@@ -128,6 +130,8 @@ export default function UnifiedPlayer(){
       dragDelta.current = 0; touchStartY.current=null;
     }
   };
+
+  if (!hasCurrent) return null;
 
   return (
     <>
