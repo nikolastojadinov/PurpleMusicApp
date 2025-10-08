@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { loadMusicLibrary } from '../services/libraryLoader';
 import ModernAudioPlayer from '../components/ModernAudioPlayer';
+import YouTubeSearch from '../components/YouTubeSearch.jsx';
 
 export default function SearchScreen() {
   const { t } = useTranslation();
@@ -131,6 +132,12 @@ export default function SearchScreen() {
           )}
         </div>
       )}
+
+      {/* YouTube Integrated Search Section */}
+      <div style={{marginTop:40}}>
+        <h2 className="section-title" style={{fontSize:18, marginBottom:8}}>YouTube</h2>
+        <YouTubeSearch />
+      </div>
 
       {playerOpen && selectedSong && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 80, zIndex: 1000 }}>

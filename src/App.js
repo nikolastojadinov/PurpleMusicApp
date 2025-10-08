@@ -23,6 +23,8 @@ import './index.css';
 import './i18n/index.js';
 import i18n from './i18n/index.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { YouTubeProvider } from './components/YouTubeContext.jsx';
+import YouTubePlayer from './components/YouTubePlayer.jsx';
 import usePiAuth from './hooks/usePiAuth';
 
 function App() {
@@ -52,6 +54,7 @@ function App() {
     <AuthProvider>
       <GlobalModalProvider>
         <ErrorBoundary>
+          <YouTubeProvider>
           <div className="app">
             <Router>
               {console.log('[DEBUG][App] rendering router with location', window.location.pathname)}
@@ -88,8 +91,10 @@ function App() {
               <AuthIntroOverlay />
               <AuthModal />
               <PremiumFeatureModalContainer />
+              <YouTubePlayer />
             </Router>
           </div>
+          </YouTubeProvider>
         </ErrorBoundary>
       </GlobalModalProvider>
     </AuthProvider>
