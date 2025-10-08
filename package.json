@@ -6,6 +6,7 @@
     "start": "react-scripts start",
     "start:backend": "node backend/server.js",
   "build": "node scripts/verify-env.js && NODE_OPTIONS='--require ./scripts/prebuild-env-patch.js' react-scripts build",
+  "deploy:netlify": "node scripts/deploy-netlify.js",
     "install:backend": "npm install --prefix backend",
     "postinstall": "npm run install:backend"
   },

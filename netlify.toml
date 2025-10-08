@@ -1,9 +1,13 @@
 [build]
-  command = "CI=false npm run build"
+  command = "CI=false && npm run build"
   publish = "build"
   [build.environment]
     NODE_VERSION = "20"
     CI = "false"
+    REACT_APP_API_URL = "https://purplemusic-backend.onrender.com"
+    REACT_APP_SUPABASE_URL = "https://ofkfygqrfenctzitigae.supabase.co"
+    REACT_APP_SUPABASE_ANON_KEY = "eyJh...Holo"
+    VITE_YOUTUBE_API_KEY = "AIza...gjEI"
     SECRETS_SCAN_ENABLED = "false"
 
 [dev]
