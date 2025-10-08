@@ -13,7 +13,7 @@ export default function YouTubeSearch() {
   const [activeTab, setActiveTab] = useState('video');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // internal only, not shown
 
   const runSearch = useCallback(async (q, type) => {
     const trimmed = q.trim();
@@ -21,9 +21,10 @@ export default function YouTubeSearch() {
     setLoading(true); setError(null);
     const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
     if (err) {
-      if (err === 'proxy_error') setError('Backend YouTube proxy error.');
-      else if (err === 'network') setError('Network error while searching.');
-      else setError('Search failed.');
+      setError(err);
+      if (!String(err).toLowerCase().includes('the string did not match the expected pattern')) {
+        console.debug('[YouTubeSearch] search note', err);
+      }
     }
     setResults(r || []);
     setLoading(false);
@@ -63,7 +64,7 @@ export default function YouTubeSearch() {
       />
       <div style={{marginTop:20, minHeight:60}}>
         {loading && <div style={{opacity:.7,fontSize:13}}>Searching…</div>}
-        {error && <div style={{color:'#f88', fontSize:13}}>{error}</div>}
+  {/* Error UI intentionally suppressed */}
         {!loading && !error && results.length === 0 && query && (
           <div style={{opacity:.6,fontSize:13}}>No results found.</div>
         )}

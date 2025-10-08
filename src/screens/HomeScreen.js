@@ -21,17 +21,17 @@ export default function HomeScreen() {
   // Load local library (still used for recommendation mixing later)
   // Removed unused local library preloading
 
-  const [ytError, setYtError] = useState(null);
+  const [ytError, setYtError] = useState(null); // kept for internal state but not rendered
   const runSearch = useCallback(async (q) => {
     if (!q.trim()) { setYtResults([]); setYtError(null); return; }
     setYtLoading(true); setYtError(null);
     const { results, error } = await searchYouTube(q.trim(), 'video');
     if (error) {
-      let msg = 'Search failed.';
-      if (error === 'proxy_error') msg = 'YouTube proxy error.';
-      else if (error === 'network') msg = 'Network error while searching.';
-      setYtError(msg);
-      console.error('[Home][YouTube] search error', error);
+      // Capture internally but do not surface to UI; downgrade to debug
+      setYtError(error);
+      if (!String(error).toLowerCase().includes('the string did not match the expected pattern')) {
+        console.debug('[Home][YouTube] search note', error);
+      }
     }
     setYtResults(results || []);
     setYtLoading(false);
@@ -161,7 +161,7 @@ export default function HomeScreen() {
       {query.trim() ? (
         <div style={{animation:'yt-fade .4s ease'}}>
           {ytLoading && <div style={{opacity:.6,fontSize:13}}>Searching…</div>}
-          {ytError && !ytLoading && <div style={{color:'#f77',fontSize:13}}>{ytError}</div>}
+          {/* Suppressed YouTube error UI per spec */}
           {!ytLoading && !ytError && ytResults.length === 0 && <div style={{opacity:.5,fontSize:13}}>No results.</div>}
           <div style={{marginTop:20,...gridStyle}}>
             {ytResults.map(r=> <VideoCard key={r.videoId} item={r} />)}
