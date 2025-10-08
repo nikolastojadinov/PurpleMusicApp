@@ -5,9 +5,7 @@
   "scripts": {
     "start": "react-scripts start",
     "start:backend": "node backend/server.js",
-  "build": "node scripts/verify-env.js && react-scripts build",
-    "build:legacy": "node scripts/build-legacy.js",
-    "build:all": "npm run build && npm run build:legacy",
+    "build": "node scripts/verify-env.js && react-scripts build",
     "install:backend": "npm install --prefix backend",
     "postinstall": "npm run install:backend"
   },
@@ -40,7 +38,7 @@
     ]
   },
   "devDependencies": {
-    "esbuild": "^0.23.1",
+  "esbuild": "^0.23.1",
     "eslint-plugin-react-hooks": "^6.1.1",
     "typescript": "4.9.5"
   },
