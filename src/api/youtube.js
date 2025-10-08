@@ -3,7 +3,8 @@
 // Do NOT hardcode keys.
 
 export async function searchYouTube(query, type = 'video') {
-  const apiKey = import.meta?.env?.VITE_YOUTUBE_API_KEY;
+  // Create React App environment variable naming.
+  const apiKey = process.env.REACT_APP_YOUTUBE_API_KEY;
   if (!apiKey) {
     console.error('[YouTube] Missing VITE_YOUTUBE_API_KEY');
     return { error: 'missing_key', results: [] };
