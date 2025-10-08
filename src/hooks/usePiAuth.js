@@ -35,43 +35,19 @@ export function usePiAuth({ pollInterval = 500, maxWait = 10000 } = {}) {
   }, []);
 
   const supabaseSync = useCallback(async ({ username, uid, accessToken }) => {
-    // First attempt: columns specified in new spec
-    let dbUser = null;
+    // Delegate to backend service (uses service role key) to avoid RLS rejection.
     try {
-      const { data, error: upErr } = await supabase
-        .from('users')
-        .upsert({ username, pi_uid: uid, access_token: accessToken }, { onConflict: 'pi_uid' })
-        .select()
-        .single();
-      if (upErr) throw upErr;
-      dbUser = data;
-      console.log('[PiAuth] Supabase sync successful (pi_uid schema)');
-      return dbUser;
-    } catch (primaryErr) {
-      console.warn('[PiAuth] Primary upsert failed, attempting fallback schema', primaryErr);
-      try {
-        // Fallback to existing schema naming (pi_user_uid, wallet_address maybe not known here)
-        const { data: existing, error: fetchErr } = await supabase
-          .from('users')
-          .select('*')
-          .eq('pi_user_uid', uid)
-          .single();
-        if (!fetchErr && existing) {
-          console.log('[PiAuth] Supabase existing user (fallback schema)');
-          return existing;
-        }
-        const { data: fallbackInserted, error: fallbackErr } = await supabase
-          .from('users')
-          .upsert({ username, pi_user_uid: uid }, { onConflict: 'pi_user_uid' })
-          .select()
-          .single();
-        if (fallbackErr) throw fallbackErr;
-        console.log('[PiAuth] Supabase sync successful (fallback schema)');
-        return fallbackInserted;
-      } catch (fallbackErr) {
-        console.error('[PiAuth] Supabase sync failed', fallbackErr);
-        throw fallbackErr;
-      }
+      const resp = await fetch('/api/users/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pi_uid: uid, username, access_token: accessToken })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || 'sync_failed');
+      return data.user;
+    } catch (e) {
+      console.error('[PiAuth] backend sync failed', e);
+      throw e;
     }
   }, []);
 

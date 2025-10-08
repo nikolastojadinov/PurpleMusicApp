@@ -20,8 +20,11 @@ export default function YouTubeSearch() {
     if (!trimmed) return;
     setLoading(true); setError(null);
     const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
-    if (err === 'missing_key') setError('⚠️ YouTube API key missing or invalid.');
-    else if (err) setError('Search failed.');
+    if (err) {
+      if (err === 'missing_key') setError('⚠️ YouTube API key missing or invalid (using proxy failed).');
+      else if (err === 'proxy_error' || err === 'proxy_network') setError('Proxy search failed.');
+      else setError('Search failed.');
+    }
     setResults(r || []);
     setLoading(false);
   }, []);
@@ -66,13 +69,14 @@ export default function YouTubeSearch() {
         )}
         <div style={{display:'grid', gap:16, gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', marginTop: results.length?24:0, animation:'yt-fade .5s ease'}}>          
           {results.map(r => (
-            <div key={r.videoId} style={{background:'#1b1b1b', border:'1px solid #262626', borderRadius:14, padding:10, display:'flex', flexDirection:'column'}}>
+            <div key={r.videoId} style={{background:'#1b1b1b', border:'1px solid #262626', borderRadius:14, padding:10, display:'flex', flexDirection:'column', position:'relative'}}>
               <div style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'16 / 9', marginBottom:8}}>
                 {r.thumbnailUrl && <img src={r.thumbnailUrl} alt={r.title} style={{width:'100%', height:'100%', objectFit:'cover'}} loading="lazy" />}
+                {r.duration && (<span style={{position:'absolute', right:6, bottom:6, background:'rgba(0,0,0,0.65)', padding:'2px 6px', borderRadius:6, fontSize:11, fontWeight:600}}>{r.duration}</span>)}
               </div>
               <div style={{flex:1, display:'flex', flexDirection:'column'}}>
-                <div style={{fontSize:13, fontWeight:600, lineHeight:1.3, marginBottom:6}}>{r.title}</div>
-                <div style={{fontSize:11, opacity:.6, marginBottom:8}}>{r.channelTitle}</div>
+                <div style={{fontSize:13, fontWeight:600, lineHeight:1.3, marginBottom:6, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{r.title}</div>
+                <div style={{fontSize:11, opacity:.6, marginBottom:8, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.channelTitle}</div>
                 <button onClick={()=>play(r)} style={{marginTop:'auto', background:'#6d28d9', border:'none', color:'#fff', padding:'8px 12px', borderRadius:22, fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
               </div>
             </div>

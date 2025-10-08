@@ -25,11 +25,15 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  const [ytError, setYtError] = useState(null);
   const runSearch = useCallback(async (q) => {
-    if (!q.trim()) { setYtResults([]); return; }
-    setYtLoading(true);
+    if (!q.trim()) { setYtResults([]); setYtError(null); return; }
+    setYtLoading(true); setYtError(null);
     const { results, error } = await searchYouTube(q.trim(), 'video');
-    if (error) console.error('[Home][YouTube] search error', error);
+    if (error) {
+      setYtError(error === 'missing_key' ? 'YouTube key missing or invalid.' : 'Search failed.');
+      console.error('[Home][YouTube] search error', error);
+    }
     setYtResults(results || []);
     setYtLoading(false);
   }, []);
@@ -70,12 +74,15 @@ export default function HomeScreen() {
   };
 
   const Card = ({ item }) => (
-    <div onClick={()=>play(item)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter') play(item); }} style={{background:'#181818',border:'1px solid #262626',borderRadius:14,padding:10,cursor:'pointer',display:'flex',flexDirection:'column',transition:'background .25s'}}>
+    <div onClick={()=>play(item)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter') play(item); }} style={{background:'#181818',border:'1px solid #262626',borderRadius:14,padding:10,cursor:'pointer',display:'flex',flexDirection:'column',transition:'background .25s',position:'relative'}}>
       <div style={{position:'relative',aspectRatio:'16 / 9',borderRadius:10,overflow:'hidden',marginBottom:8,background:'#000'}}>
         {item.thumbnailUrl && <img src={item.thumbnailUrl} alt={item.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy" />}
+        {item.duration && (
+          <span style={{position:'absolute',right:6,bottom:6,background:'rgba(0,0,0,0.65)',padding:'2px 6px',borderRadius:6,fontSize:11,fontWeight:600,color:'#fff'}}>{item.duration}</span>
+        )}
       </div>
-      <div style={{fontSize:13,fontWeight:600,lineHeight:1.3,marginBottom:4}}>{item.title}</div>
-      <div style={{fontSize:11,opacity:.6}}>{item.channelTitle}</div>
+      <div style={{fontSize:13,fontWeight:600,lineHeight:1.3,marginBottom:4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{item.title}</div>
+      <div style={{fontSize:11,opacity:.6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{item.channelTitle}</div>
     </div>
   );
 
@@ -96,7 +103,8 @@ export default function HomeScreen() {
       {query.trim() ? (
         <div style={{animation:'yt-fade .4s ease'}}>
           {ytLoading && <div style={{opacity:.6,fontSize:13}}>Searching…</div>}
-          {!ytLoading && ytResults.length === 0 && <div style={{opacity:.5,fontSize:13}}>No results.</div>}
+          {ytError && !ytLoading && <div style={{color:'#f77',fontSize:13}}>{ytError}</div>}
+          {!ytLoading && !ytError && ytResults.length === 0 && <div style={{opacity:.5,fontSize:13}}>No results.</div>}
           <div style={{marginTop:20,...gridStyle}}>
             {ytResults.map(r=> <Card key={r.videoId} item={r} />)}
           </div>
