@@ -79,6 +79,75 @@ app.get('/api/youtube/search', async (req, res) => {
   }
 });
 
+// --- YouTube Playlists Search Proxy ---
+// Returns raw YouTube API response for playlist search
+app.get('/api/youtube/searchPlaylists', async (req, res) => {
+  const { q } = req.query;
+  if (!q || !q.trim()) return res.status(400).json({ error: 'Missing query' });
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'backend_missing_key' });
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=playlist&maxResults=12&q=${encodeURIComponent(q.trim())}&key=${apiKey}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error('[YouTube Proxy] playlist search error', resp.status, body.slice(0,300));
+      return res.status(resp.status).json({ error: 'upstream_error', status: resp.status });
+    }
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e) {
+    console.error('[YouTube Proxy] playlist search failure', e.message);
+    return res.status(500).json({ error: 'proxy_failure', message: e.message });
+  }
+});
+
+// --- YouTube Playlist Items Proxy ---
+// Params: playlistId, pageToken (optional)
+app.get('/api/youtube/playlistItems', async (req, res) => {
+  const { playlistId, pageToken } = req.query;
+  if (!playlistId) return res.status(400).json({ error: 'Missing playlistId' });
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'backend_missing_key' });
+  const base = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(playlistId)}`;
+  const url = base + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '') + `&key=${apiKey}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error('[YouTube Proxy] playlistItems error', resp.status, body.slice(0,300));
+      return res.status(resp.status).json({ error: 'upstream_error', status: resp.status });
+    }
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e) {
+    console.error('[YouTube Proxy] playlistItems failure', e.message);
+    return res.status(500).json({ error: 'proxy_failure', message: e.message });
+  }
+});
+
+// --- YouTube Playlist Info Proxy ---
+app.get('/api/youtube/playlistInfo', async (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: 'Missing id' });
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'backend_missing_key' });
+  const url = `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${encodeURIComponent(id)}&key=${apiKey}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error('[YouTube Proxy] playlistInfo error', resp.status, body.slice(0,300));
+      return res.status(resp.status).json({ error: 'upstream_error', status: resp.status });
+    }
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e) {
+    console.error('[YouTube Proxy] playlistInfo failure', e.message);
+    return res.status(500).json({ error: 'proxy_failure', message: e.message });
+  }
+});
+
 // --- Secure user sync endpoint (uses service role) to avoid client-side RLS insert failures ---
 app.post('/api/users/sync', async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'supabase_uninitialized' });

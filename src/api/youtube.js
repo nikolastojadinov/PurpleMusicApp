@@ -58,3 +58,79 @@ export async function searchYouTube(query) {
 }
 
 export default searchYouTube;
+
+// --- Playlist search (returns playlists) ---
+export async function searchPlaylists(query) {
+  const q = (query || '').trim();
+  if (!q) return { error:'empty_query', results:[] };
+  const key = getClientYouTubeKey();
+  if (key) {
+    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=playlist&maxResults=12&q=${encodeURIComponent(q)}&key=${key}`;
+    try {
+      const resp = await fetch(endpoint);
+      if (resp.ok) {
+        const data = await resp.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        const results = items.map(it => ({
+          playlistId: it?.id?.playlistId,
+          title: it?.snippet?.title,
+            description: it?.snippet?.description || '',
+          channelTitle: it?.snippet?.channelTitle,
+          thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null
+        })).filter(r=>!!r.playlistId);
+        return { results };
+      }
+    } catch(e){ console.warn('[YouTube] playlist direct search error', e.message); }
+  }
+  const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+  const proxyUrl = `${apiBase}/api/youtube/searchPlaylists?q=${encodeURIComponent(q)}`;
+  try {
+    const resp = await fetch(proxyUrl);
+    if (!resp.ok) return { error:'proxy_error', results:[] };
+    const data = await resp.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    const results = items.map(it => ({
+      playlistId: it?.id?.playlistId,
+      title: it?.snippet?.title,
+      description: it?.snippet?.description || '',
+      channelTitle: it?.snippet?.channelTitle,
+      thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null
+    })).filter(r=>!!r.playlistId);
+    return { results };
+  } catch(e){ return { error:'network', results:[] }; }
+}
+
+// --- Fetch playlist items (videos) ---
+export async function fetchPlaylistItems(playlistId) {
+  if (!playlistId) return { error:'missing_id', items:[] };
+  const key = getClientYouTubeKey();
+  if (key) {
+    const endpoint = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(playlistId)}&key=${key}`;
+    try {
+      const resp = await fetch(endpoint);
+      if (resp.ok) {
+        const data = await resp.json();
+        return { items: mapPlaylistItems(data.items) };
+      }
+    } catch(e){ console.warn('[YouTube] playlistItems direct error', e.message); }
+  }
+  const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+  const proxyUrl = `${apiBase}/api/youtube/playlistItems?playlistId=${encodeURIComponent(playlistId)}`;
+  try {
+    const resp = await fetch(proxyUrl);
+    if (!resp.ok) return { error:'proxy_error', items:[] };
+    const data = await resp.json();
+    return { items: mapPlaylistItems(data.items) };
+  } catch(e){ return { error:'network', items:[] }; }
+}
+
+function mapPlaylistItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(it => ({
+    videoId: it?.snippet?.resourceId?.videoId,
+    title: it?.snippet?.title,
+    channelTitle: it?.snippet?.videoOwnerChannelTitle || it?.snippet?.channelTitle,
+    thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null,
+    description: it?.snippet?.description || ''
+  })).filter(v => !!v.videoId);
+}

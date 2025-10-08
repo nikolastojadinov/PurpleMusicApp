@@ -6,6 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import LikedSongsScreen from './screens/LikedSongsScreen';
 import PlaylistsScreen from './screens/PlaylistsScreen';
 import PlaylistDetailScreen from './screens/PlaylistDetailScreen';
+import YTPlaylistScreen from './screens/YTPlaylistScreen.jsx';
 import ViewProfileScreen from './screens/ViewProfileScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './screens/TermsOfServiceScreen';
@@ -76,6 +77,7 @@ function App() {
                   <Route path="/liked" element={<LikedSongsScreen />} />
                   <Route path="/playlists" element={<PlaylistsScreen />} />
                   <Route path="/playlist/:id" element={<PlaylistDetailScreen />} />
+                  <Route path="/yt/playlist/:id" element={<YTPlaylistScreen />} />
                   <Route path="/profile" element={<ViewProfileScreen />} />
                   <Route path="/privacy" element={<PrivacyPolicyScreen />} />
                   <Route path="/terms" element={<TermsOfServiceScreen />} />
