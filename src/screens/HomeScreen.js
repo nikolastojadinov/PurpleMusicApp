@@ -1,4 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import searchYouTube, { searchPlaylists } from '../api/youtube';
+import { remember } from '../utils/cache';
+import { useYouTube } from '../components/YouTubeContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 // Shared suppression utility (stable reference)
 const SUPPRESSED_PATTERNS = [
@@ -11,12 +16,6 @@ function suppressible(msg){
   const lower = String(msg).toLowerCase();
   return SUPPRESSED_PATTERNS.some(p=> lower.includes(p));
 }
-import { useTranslation } from 'react-i18next';
-import searchYouTube, { searchPlaylists } from '../api/youtube';
-import { remember } from '../utils/cache';
-import { useYouTube } from '../components/YouTubeContext.jsx';
-// removed unused loadMusicLibrary import
-import { useNavigate } from 'react-router-dom';
 
 export default function HomeScreen() {
   useTranslation(); // t unused currently

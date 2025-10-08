@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import './utils/consoleProdShim';
 // Ensure i18n side-effects run before any component renders.
 import './i18n/index.js';
 // NOTE: App is dynamically imported below to isolate any early-load errors.

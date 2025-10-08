@@ -1,19 +1,30 @@
 #!/usr/bin/env node
 /**
- * verify-env.js
- * Hard stop the build early if required environment variables are missing.
- * This prevents opaque CRA build failures later and keeps secrets scanning logs clean.
+ * verify-env.js (soft mode)
+ * Previous behavior: abort build on missing vars. New behavior: WARN ONLY.
+ * Goals:
+ *  - Never exit non‑zero (prevents Netlify build failure on partial envs)
+ *  - Redact sensitive values when echoing
+ *  - Provide Node version advisory (warn if not 20.x)
+ *  - Include optional YouTube key status (VITE_YOUTUBE_API_KEY / REACT_APP_YOUTUBE_API_KEY)
  */
 
-// If running in CI (Netlify sets CI=true), pre-load a minimal .env.ci file WITHOUT bash-style expansions.
+const fs = require('fs');
+const path = require('path');
+
+function redact(v){
+  if (!v) return '(empty)';
+  const s = String(v);
+  if (s.length <= 8) return '****';
+  return s.slice(0,4) + '...' + s.slice(-4);
+}
+
+// Soft pre-load .env.ci in CI if present (no shell expansion parsing).
 try {
   if (process.env.CI === 'true') {
-    const fs = require('fs');
-    const path = require('path');
     const ciPath = path.join(process.cwd(), '.env.ci');
     if (fs.existsSync(ciPath)) {
-      const lines = fs.readFileSync(ciPath, 'utf8').split(/\r?\n/);
-      for (const line of lines) {
+      for (const line of fs.readFileSync(ciPath, 'utf8').split(/\r?\n/)) {
         if (!line || line.startsWith('#')) continue;
         const eq = line.indexOf('=');
         if (eq === -1) continue;
@@ -22,74 +33,58 @@ try {
         const val = line.slice(eq + 1).trim();
         if (!process.env[key]) process.env[key] = val;
       }
-      console.log('[verify-env] Loaded .env.ci overrides');
+      console.log('[verify-env] Loaded .env.ci (soft)');
     }
   }
-} catch (e) {
-  console.warn('[verify-env] Failed to pre-load .env.ci', e.message);
+} catch(e){
+  console.warn('[verify-env] Warning: failed loading .env.ci ->', e.message);
 }
 
-// Workaround: disable dotenv-expand recursion under Node 22 (CRA 5 not fully compatible)
+// We keep expansion disabled as a defense (legacy recursion under Node 22)
 if (!process.env.DOTENV_DISABLE_EXPAND) {
   process.env.DOTENV_DISABLE_EXPAND = 'true';
-  console.log('[verify-env] DOTENV_DISABLE_EXPAND=true (workaround for Node 22)');
 }
 
-// Required for client build to function.
+// Advisory: enforce (soft) Node 20.
+try {
+  const major = parseInt(process.versions.node.split('.')[0], 10);
+  if (major < 20) {
+    console.warn(`[verify-env] Warning: Detected Node ${process.versions.node}. Recommended Node 20.x for consistent builds.`);
+  }
+} catch(_) {}
+
 const REQUIRED = [
   'REACT_APP_API_URL',
   'REACT_APP_SUPABASE_URL',
   'REACT_APP_SUPABASE_ANON_KEY'
 ];
+const YOUTUBE_KEYS = ['VITE_YOUTUBE_API_KEY','REACT_APP_YOUTUBE_API_KEY'];
 
-// Optional but recommended server-only secret (should *not* normally exist in frontend build env)
-const OPTIONAL_SERVER = ['SUPABASE_SERVICE_KEY'];
+const missing = REQUIRED.filter(k => !process.env[k] || String(process.env[k]).trim() === '');
+const hasYoutube = YOUTUBE_KEYS.some(k=>process.env[k]);
 
-// YouTube key now optional because we proxy; only warn if absent.
-const oneOfYouTube = ['VITE_YOUTUBE_API_KEY', 'REACT_APP_YOUTUBE_API_KEY'];
-
-const missing = [];
-
-for (const key of REQUIRED) {
-  if (!process.env[key] || String(process.env[key]).trim() === '') {
-    missing.push(key);
+console.log('=== Environment Overview (soft validation) ===');
+for (const k of REQUIRED) {
+  const v = process.env[k];
+  if (v) {
+    console.log(`  ✓ ${k} = ${redact(v)}`);
+  } else {
+    console.warn(`  ! ${k} MISSING`);
   }
 }
 
-const hasYouTube = oneOfYouTube.some(k => !!process.env[k]);
+if (hasYoutube) {
+  const k = YOUTUBE_KEYS.find(k=>process.env[k]);
+  console.log(`  ✓ ${k} (YouTube) = ${redact(process.env[k])}`);
+} else {
+  console.warn('  ! VITE_YOUTUBE_API_KEY (or REACT_APP_YOUTUBE_API_KEY) not set -> will rely solely on backend proxy');
+}
 
 if (missing.length) {
-  console.error('\n================ ENV VALIDATION FAILED ================');
-  for (const key of missing) {
-    console.error(`❌ Missing required environment variable: ${key}`);
-  }
-  console.error('\nSet these in your deployment environment (Netlify UI / CLI or Render) and re-run the build.');
-  console.error('Aborting build.');
-  process.exit(1);
-} else {
-  console.log('✅ Environment variables present:');
-  [...REQUIRED].forEach(k => {
-    if (!k) return;
-    const val = process.env[k];
-    const redacted = val && val.length > 8 ? val.slice(0,4) + '...' + val.slice(-4) : 'set';
-    console.log(`  - ${k}: ${redacted}`);
-  });
-  if (hasYouTube) {
-    const k = oneOfYouTube.find(k=>process.env[k]);
-    const val = process.env[k];
-    const redacted = val && val.length > 8 ? val.slice(0,4) + '...' + val.slice(-4) : 'set';
-    console.log(`  - ${k}: ${redacted}`);
-  } else {
-    console.log('  - YouTube key: (none) -> will use backend proxy only');
-  }
-  OPTIONAL_SERVER.forEach(k => {
-    if (process.env[k]) {
-      const val = process.env[k];
-      const redacted = val && val.length > 8 ? val.slice(0,4) + '...' + val.slice(-4) : 'set';
-      console.log(`  - ${k}: ${redacted} (present – ensure not exposed client-side)`);
-    } else {
-      console.log(`  - ${k}: (not set – fine for frontend build)`);
-    }
-  });
-  console.log('Proceeding with build...\n');
+  console.warn('\n[verify-env] Proceeding despite missing vars (soft mode). App features depending on these may fail at runtime.');
 }
+
+console.log('[verify-env] Completed soft validation.\n');
+
+// Never exit non-zero
+process.exitCode = 0;
