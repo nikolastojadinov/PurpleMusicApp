@@ -17,13 +17,6 @@ export default function BottomNavigation() {
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
         );
-      case '/search':
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
-          </svg>
-        );
       case '/liked':
         return (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -45,7 +38,6 @@ export default function BottomNavigation() {
   const { t } = useTranslation();
   const navItems = [
     { path: '/', label: t('nav.home') },
-    { path: '/search', label: t('nav.search') },
     { path: '/liked', label: t('nav.liked') },
     { path: '/playlists', label: t('nav.playlists') }
   ];
