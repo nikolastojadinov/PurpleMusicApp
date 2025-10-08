@@ -212,7 +212,7 @@ export default function ModernAudioPlayer({ song = demoSong, autoPlay = false, o
   React.useEffect(() => {
     setAdPlayedForTrack(false);
     setIsAdPlaying(false);
-  }, [song?.src]);
+  }, [song?.src, song]);
 
   // Auto play logic with enforced sequencing (ad first -> then song)
   React.useEffect(() => {

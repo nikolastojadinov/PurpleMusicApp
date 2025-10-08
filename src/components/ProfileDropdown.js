@@ -45,7 +45,9 @@ export default function ProfileDropdown() {
         return { code, label };
       })
       .sort((a,b) => a.label.localeCompare(b.label, i18n.language || 'en', { sensitivity:'base' }));
-  }, [i18n.language, languageCodes]);
+  // language list recomputed only when open; safe to depend on languageCodes static list
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [languageCodes]);
 
   // Prevent background scroll when language modal is open
   useEffect(()=>{
@@ -419,7 +421,7 @@ export default function ProfileDropdown() {
 
 // Payment history modal component
 function PaymentHistoryModal({ onClose, rows, loading, error }) {
-  const { t } = i18n; // fallback if hook not available outside provider context (used in markup)
+  // removed unused destructured t; using i18n.t directly
   // Use direct i18n.t to avoid extra import; component rendered within provider so i18n instance has language
   const [mounted, setMounted] = useState(false);
   useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; }, []);
