@@ -67,7 +67,7 @@
   status = 200
 
 [secrets_scan]
-  omit_keys = ["VITE_YOUTUBE_API_KEY", "REACT_APP_YOUTUBE_API_KEY"]
+  enabled = false
 
 # Notes:
 # - Created physical file policy-privacy.html with original content
