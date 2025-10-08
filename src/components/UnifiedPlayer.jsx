@@ -3,7 +3,7 @@ import { useYouTube } from './YouTubeContext.jsx';
 import { fetchLyrics } from '../api/lyrics';
 
 export default function UnifiedPlayer(){
-  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, lyrics, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle, playFromPlaylist } = useYouTube();
+  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, lyrics, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle, playFromPlaylist, hasLyrics, setLyricsRaw } = useYouTube();
   const iframeContainerRef = useRef(null);
   const ytPlayerRef = useRef(null);
   const rafRef = useRef(null);
@@ -104,9 +104,23 @@ export default function UnifiedPlayer(){
 
   // Lyrics open
   const openLyrics = async () => {
-    if (!lyrics.lines.length) {
-      const res = await fetchLyrics(current.channelTitle, current.title);
-      setLyricsData(res);
+    try {
+      if (!hasLyrics) {
+        const res = await fetchLyrics(current.channelTitle, current.title);
+        // Backend may return either structured or raw text; attempt to detect LRC patterns
+        if (res && typeof res === 'string') {
+          setLyricsRaw(res);
+        } else if (res && Array.isArray(res.lines)) {
+          setLyricsData(res);
+        } else if (res?.raw) {
+          setLyricsRaw(res.raw);
+        } else if (res?.text) {
+          setLyricsRaw(res.text);
+        }
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[lyrics] fetch failed', e);
     }
     toggleLyricsView();
   };
@@ -182,7 +196,7 @@ export default function UnifiedPlayer(){
             </div>
             <div style={actionRow}>
               <button style={actBtn(playbackMode==='video')} onClick={toggleVideoMode}>Video</button>
-              <button style={actBtn(!!lyrics.lines.length)} onClick={openLyrics}>Lyrics</button>
+              <button style={actBtn(hasLyrics)} onClick={openLyrics}>Lyrics</button>
               <button style={actBtn(false)}>Share</button>
               <button style={actBtn(false)}>♥</button>
             </div>
