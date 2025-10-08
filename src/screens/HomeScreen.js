@@ -31,7 +31,10 @@ export default function HomeScreen() {
     setYtLoading(true); setYtError(null);
     const { results, error } = await searchYouTube(q.trim(), 'video');
     if (error) {
-      setYtError(error === 'missing_key' ? 'YouTube key missing or invalid.' : 'Search failed.');
+      let msg = 'Search failed.';
+      if (error === 'proxy_error') msg = 'YouTube proxy error.';
+      else if (error === 'network') msg = 'Network error while searching.';
+      setYtError(msg);
       console.error('[Home][YouTube] search error', error);
     }
     setYtResults(results || []);

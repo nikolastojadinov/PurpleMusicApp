@@ -11,9 +11,12 @@
   port = 3000
 
 [template.environment]
-  SUPABASE_URL = "https://ofkfygqrfenctzitigae.supabase.co"
-  SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ma2Z5Z3FyZmVuY3R6aXRpZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2NjgwMjcsImV4cCI6MjA3MzI0NDAyN30.-GFl3-IncJ7hno_LHE5jtCOe_HI07nxwiq3aaISHolo"
-  REACT_APP_API_URL = "https://purplemusicapp.onrender.com" # Frissítsd a Render deploy URL-re
+  # Provide only variable names; real values must be added in Netlify UI or CLI env config.
+  SUPABASE_URL = "${SUPABASE_URL}"
+  SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}"
+  REACT_APP_SUPABASE_URL = "${SUPABASE_URL}"
+  REACT_APP_SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}"
+  REACT_APP_API_URL = "${REACT_APP_API_URL}" # Set this in Netlify to point to Render backend base URL
 
 # Redirects for static legal documents and friendly short paths
 [[redirects]]

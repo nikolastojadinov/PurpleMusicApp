@@ -1,102 +1,40 @@
-// Unified YouTube search helper supporting both CRA (process.env.REACT_APP_YOUTUBE_API_KEY)
-// and Vite (import.meta.env.VITE_YOUTUBE_API_KEY). If no client key available, falls
-// back to backend proxy /api/youtube/search (which uses YOUTUBE_API_KEY server-side).
-// Adds video duration via secondary videos API call when direct API usage is possible.
-
-const getClientKey = () => {
-  try {
-    // Vite style
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) {
-      return import.meta.env.VITE_YOUTUBE_API_KEY;
-    }
-  } catch(_) {}
-  // CRA style
-  return process.env.REACT_APP_YOUTUBE_API_KEY;
-};
-
-function parseIsoDuration(iso) {
-  if (!iso || typeof iso !== 'string') return null;
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return null;
-  const h = parseInt(m[1]||'0',10), mn = parseInt(m[2]||'0',10), s = parseInt(m[3]||'0',10);
-  const total = h*3600 + mn*60 + s;
-  const mm = Math.floor(total / 60);
-  const ss = total % 60;
-  if (mm >= 60) {
-    const HH = Math.floor(mm/60);
-    const MM = mm % 60;
-    return `${HH}:${MM.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
-  }
-  return `${mm}:${ss.toString().padStart(2,'0')}`;
-}
+// Secure-only YouTube search helper.
+// Always proxies through backend (Render) or Netlify Function to avoid bundling API keys in client build.
+// Tries backend Express /api/youtube/search (includes durations) then falls back to Netlify function /.netlify/functions/search (no durations).
 
 export async function searchYouTube(query, type = 'video') {
   const trimmed = (query || '').trim();
   if (!trimmed) return { error: 'empty_query', results: [] };
-  const key = getClientKey();
-  if (!key) {
-    // Use backend proxy fallback
-    try {
-      const resp = await fetch(`/api/youtube/search?q=${encodeURIComponent(trimmed)}`);
-      const data = await resp.json();
-      if (!resp.ok) {
-        return { error: data?.error || 'proxy_error', results: [] };
-      }
-      return { results: data.results || [] };
-    } catch (e) {
-      console.error('[YouTube] proxy fallback failed', e);
-      return { error: 'proxy_network', results: [] };
-    }
-  }
-  // Direct client call with key (better latency; add durations)
-  const params = new URLSearchParams({ part: 'snippet', q: trimmed, maxResults: '15', type, key });
-  const endpoint = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+  const backendBase = process.env.REACT_APP_API_URL || '';
+  // Attempt backend first (Express server with durations)
+  const primaryUrl = `${backendBase ? backendBase.replace(/\/$/,'') : ''}/api/youtube/search?q=${encodeURIComponent(trimmed)}&type=${encodeURIComponent(type)}`;
   try {
-    const res = await fetch(endpoint);
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('[YouTube] API error', res.status, text.slice(0,300));
-      if (res.status === 400 || res.status === 403) {
-        // fallback to proxy if available
-        try {
-          const prox = await fetch(`/api/youtube/search?q=${encodeURIComponent(trimmed)}`);
-            const pdata = await prox.json();
-          if (prox.ok) return { results: pdata.results || [] };
-        } catch(_){}
-        return { error: 'api_error', status: res.status, results: [] };
-      }
-      return { error: 'api_error', status: res.status, results: [] };
+    const resp = await fetch(primaryUrl);
+    if (resp.ok) {
+      const data = await resp.json();
+      return { results: data.results || [] };
     }
-    const data = await res.json();
-    const items = Array.isArray(data.items) ? data.items : [];
-    const base = items.map(it => ({
-      videoId: it?.id?.videoId,
-      title: it?.snippet?.title,
-      channelTitle: it?.snippet?.channelTitle,
-      thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null,
-      description: it?.snippet?.description
-    })).filter(r => !!r.videoId);
-    // Fetch durations
-    let durationMap = {};
-    if (base.length) {
-      try {
-        const ids = base.map(b => b.videoId).join(',');
-        const durParams = new URLSearchParams({ part: 'contentDetails', id: ids, key });
-        const vids = await fetch(`https://www.googleapis.com/youtube/v3/videos?${durParams.toString()}`);
-        if (vids.ok) {
-          const vjson = await vids.json();
-          for (const v of vjson.items || []) {
-            if (v?.id && v?.contentDetails?.duration) durationMap[v.id] = parseIsoDuration(v.contentDetails.duration);
-          }
-        }
-      } catch (e) {
-        console.warn('[YouTube] duration fetch failed', e.message);
-      }
-    }
-    const results = base.map(b => ({ ...b, duration: durationMap[b.videoId] }));
-    return { results };
   } catch (e) {
-    console.error('[YouTube] fetch failed', e);
+    console.warn('[YouTube] primary backend search failed', e.message);
+  }
+  // Fallback: Netlify function (path differs)
+  try {
+    const fnUrl = `/.netlify/functions/search?q=${encodeURIComponent(trimmed)}`;
+    const resp2 = await fetch(fnUrl);
+    const data2 = await resp2.json();
+    if (!resp2.ok) return { error: data2?.error || 'proxy_error', results: [] };
+    // Normalize shape (Netlify returns thumbnail vs thumbnailUrl)
+    const norm = (data2.results || []).map(r => ({
+      videoId: r.videoId,
+      title: r.title,
+      channelTitle: r.channelTitle,
+      thumbnailUrl: r.thumbnail,
+      description: r.description,
+      duration: r.duration // may be undefined
+    })).filter(r => !!r.videoId);
+    return { results: norm };
+  } catch (e) {
+    console.error('[YouTube] fallback function search failed', e);
     return { error: 'network', results: [] };
   }
 }

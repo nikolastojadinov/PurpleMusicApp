@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-// Types are provided for editors in src/types/database.types.d.ts (no runtime import needed)
+// Supabase client (public) – expects environment variables to be set at build/deploy time.
+// Never commit keys directly; Netlify / Render should provide REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY.
 
-const SUPABASE_URL = 'https://ofkfygqrfenctzitigae.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ma2Z5Z3FyZmVuY3R6aXRpZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2NjgwMjcsImV4cCI6MjA3MzI0NDAyN30.-GFl3-IncJ7hno_LHE5jtCOe_HI07nxwiq3aaISHolo';
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+	// eslint-disable-next-line no-console
+	console.warn('[supabaseClient] Missing Supabase env vars; client features may fail.');
+}
+
+export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');

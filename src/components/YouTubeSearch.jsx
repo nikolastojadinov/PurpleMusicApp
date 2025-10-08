@@ -21,8 +21,8 @@ export default function YouTubeSearch() {
     setLoading(true); setError(null);
     const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
     if (err) {
-      if (err === 'missing_key') setError('⚠️ YouTube API key missing or invalid (using proxy failed).');
-      else if (err === 'proxy_error' || err === 'proxy_network') setError('Proxy search failed.');
+      if (err === 'proxy_error') setError('Backend YouTube proxy error.');
+      else if (err === 'network') setError('Network error while searching.');
       else setError('Search failed.');
     }
     setResults(r || []);
