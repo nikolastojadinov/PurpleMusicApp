@@ -44,7 +44,7 @@ export default function ProfileDropdown() {
         return { code, label };
       })
       .sort((a,b) => a.label.localeCompare(b.label, i18n.language || 'en', { sensitivity:'base' }));
-  }, [i18n.language]);
+  }, []);
 
   // Prevent background scroll when language modal is open
   useEffect(()=>{
