@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
 // Extended YouTube context: supports single video or playlist playback.
 // State shape:
@@ -14,6 +14,30 @@ export function YouTubeProvider({ children }) {
   const [playlist, setPlaylist] = useState(null); // { id, title, thumbnailUrl, items, index }
   const [lyrics, setLyrics] = useState({ lines: [], synced: false });
   const [lyricsVisible, setLyricsVisible] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [expanded, setExpanded] = useState(false); // fullscreen player
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState('off'); // off | one | all
+  const playerRef = useRef(null); // underlying YT.Player instance
+
+  // Persistence
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('yt_player_state');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.playbackMode) setPlaybackMode(parsed.playbackMode);
+      }
+    } catch(_) {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('yt_player_state', JSON.stringify({ playbackMode }));
+    } catch(_) {}
+  }, [playbackMode]);
 
   const play = useCallback((item) => { // backward compat (single video)
     if (!item) return;
@@ -91,6 +115,9 @@ export function YouTubeProvider({ children }) {
     setCurrentVideo(null);
     setLyrics({ lines: [], synced: false });
     setLyricsVisible(false);
+    setPlaying(false);
+    setProgress(0);
+    setDuration(0);
   }, []);
 
   const toggleVideoMode = useCallback(() => {
@@ -109,8 +136,24 @@ export function YouTubeProvider({ children }) {
     return currentTime;
   }, []);
 
+  // Player control helpers (backed by iframe API when available)
+  const playCurrent = useCallback(() => {
+    try { playerRef.current?.playVideo?.(); } catch(_) {}
+    setPlaying(true);
+  }, []);
+  const pauseCurrent = useCallback(() => {
+    try { playerRef.current?.pauseVideo?.(); } catch(_) {}
+    setPlaying(false);
+  }, []);
+  const seekTo = useCallback((sec) => {
+    try { playerRef.current?.seekTo?.(sec, true); setProgress(sec); } catch(_) {}
+  }, []);
+  const toggleExpanded = useCallback(()=> setExpanded(e=>!e), []);
+  const cycleRepeat = useCallback(()=> setRepeat(r => r === 'off' ? 'one' : r === 'one' ? 'all' : 'off'), []);
+  const toggleShuffle = useCallback(()=> setShuffle(s=>!s), []);
+
   return (
-    <YouTubeContext.Provider value={{ mode, playbackMode, current: currentVideo, playlist, play, playVideo, openPlaylist, loadPlaylistItems, playFromPlaylist, next, prev, clear, toggleVideoMode, lyrics, setLyricsData, lyricsVisible, toggleLyricsView, syncLyrics }}>
+    <YouTubeContext.Provider value={{ mode, playbackMode, current: currentVideo, playlist, play, playVideo, openPlaylist, loadPlaylistItems, playFromPlaylist, next, prev, clear, toggleVideoMode, lyrics, setLyricsData, lyricsVisible, toggleLyricsView, syncLyrics, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, shuffle, toggleShuffle, repeat, cycleRepeat, playerRef }}>
       {children}
     </YouTubeContext.Provider>
   );

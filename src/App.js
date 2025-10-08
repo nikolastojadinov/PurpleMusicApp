@@ -26,6 +26,7 @@ import i18n from './i18n/index.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { YouTubeProvider } from './components/YouTubeContext.jsx';
 import YouTubePlayer from './components/YouTubePlayer.jsx';
+import UnifiedPlayer from './components/UnifiedPlayer.jsx';
 import LyricsView from './components/LyricsView.jsx';
 import usePiAuth from './hooks/usePiAuth';
 
@@ -95,6 +96,7 @@ function App() {
               <AuthModal />
               <PremiumFeatureModalContainer />
               <YouTubePlayer />
+              <UnifiedPlayer />
               <LyricsView />
             </Router>
           </div>
