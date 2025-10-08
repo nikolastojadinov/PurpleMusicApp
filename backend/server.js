@@ -59,61 +59,23 @@ app.post('/api/verify-login', verifyLogin);
 // --- YouTube Search Proxy (fallback for frontend when key unavailable client-side) ---
 // Returns shape: { results: [ { videoId, title, channelTitle, thumbnailUrl, description, duration } ] }
 app.get('/api/youtube/search', async (req, res) => {
-  const q = req.query.q || req.query.query;
-  if (!q || !q.trim()) return res.status(400).json({ error: 'missing_query' });
+  const { q } = req.query;
+  if (!q || !q.trim()) return res.status(400).json({ error: 'Missing query' });
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'backend_missing_key' });
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q.trim())}&key=${apiKey}`;
   try {
-    const params = new URLSearchParams({ part: 'snippet', q: q.trim(), maxResults: '15', type: 'video', key: apiKey });
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
-    const searchResp = await axios.get(searchUrl);
-    const items = Array.isArray(searchResp.data?.items) ? searchResp.data.items : [];
-    const mapped = items.map(it => ({
-      videoId: it?.id?.videoId,
-      title: it?.snippet?.title,
-      channelTitle: it?.snippet?.channelTitle,
-      thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null,
-      description: it?.snippet?.description
-    })).filter(r => !!r.videoId);
-    // Fetch durations in a second call (batch)
-    let durationMap = {};
-    if (mapped.length) {
-      try {
-        const ids = mapped.map(m => m.videoId).join(',');
-        const durParams = new URLSearchParams({ part: 'contentDetails', id: ids, key: apiKey });
-        const videosUrl = `https://www.googleapis.com/youtube/v3/videos?${durParams.toString()}`;
-        const videosResp = await axios.get(videosUrl);
-        for (const v of videosResp.data?.items || []) {
-          if (v?.id && v?.contentDetails?.duration) durationMap[v.id] = v.contentDetails.duration;
-        }
-      } catch (e) {
-        console.warn('[YouTube Proxy] duration fetch failed', e.message);
-      }
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error('[YouTube Proxy] YouTube search error', resp.status, body.slice(0,300));
+      return res.status(resp.status).json({ error: 'upstream_error', status: resp.status });
     }
-    const parseIsoDur = iso => {
-      if (!iso || typeof iso !== 'string') return null;
-      // Simple ISO8601 (PT#H#M#S)
-      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-      if (!m) return null;
-      const h = parseInt(m[1]||'0',10), mn = parseInt(m[2]||'0',10), s = parseInt(m[3]||'0',10);
-      const total = h*3600 + mn*60 + s;
-      const mm = Math.floor(total / 60);
-      const ss = total % 60;
-      if (mm >= 60) {
-        const HH = Math.floor(mm/60);
-        const MM = mm % 60;
-        return `${HH}:${MM.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
-      }
-      return `${mm}:${ss.toString().padStart(2,'0')}`;
-    };
-    const results = mapped.map(m => ({ ...m, duration: parseIsoDur(durationMap[m.videoId]) }));
-    return res.json({ results });
-  } catch (err) {
-    const status = err?.response?.status;
-    const data = err?.response?.data;
-    console.error('[YouTube Proxy] search error', { status, data });
-    if (status === 400 || status === 403) return res.status(502).json({ error: 'api_error', status });
-    return res.status(500).json({ error: 'unknown', status });
+    const data = await resp.json();
+    return res.json(data);
+  } catch (e) {
+    console.error('[YouTube Proxy] fetch failure', e.message);
+    return res.status(500).json({ error: 'proxy_failure', message: e.message });
   }
 });
 
