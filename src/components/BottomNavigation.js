@@ -1,43 +1,86 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+// Reverted simplified PurpleMusic footer navigation (original style) with three tabs
 export default function BottomNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // removed unused getIcon helper
-
-  const navItems = [
-    { path: '/', label: 'Home', icon: 'home' },
-    { path: '/trends', label: 'Trends', icon: 'trends' },
-    { path: '/yt', label: 'YouTube', icon: 'yt' },
-    { path: '/playlists', label: 'Library', icon: 'lib' }
+  const tabs = [
+    { path: '/', label: 'Home', icon: '🏠' },
+    { path: '/liked', label: 'Liked', icon: '💜' },
+    { path: '/create-playlist', label: 'New', icon: '➕' }
   ];
 
-  const iconSvg = (icon) => {
-    switch(icon){
-      case 'home': return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>);
-      case 'trends': return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>);
-      case 'yt': return (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 15.5v-7l6 3.5-6 3.5Z"/><path d="M21.6 7.2c-.2-.9-.9-1.6-1.8-1.8C18 5 12 5 12 5s-6 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9 2 12 2 12s0 3 .4 4.8c.2.9.9 1.6 1.8 1.8C6 19 12 19 12 19s6 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.8.4-4.8.4-4.8s0-3-.4-4.8Z"/></svg>);
-      case 'lib': return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>);
-      default: return null;
-    }
+  const barStyle = {
+    position: 'fixed',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 70,
+    display: 'flex',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    background: 'linear-gradient(90deg,#b566f1,#c792f5)',
+    boxShadow: '0 -4px 14px -2px rgba(0,0,0,0.35)',
+    zIndex: 1100,
+    padding: '8px 8px 10px',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    fontFamily: 'inherit'
   };
 
+  const btnBase = (active) => ({
+    flex: 1,
+    height: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: active ? 600 : 500,
+    letterSpacing: '.4px',
+    transition: 'color .25s, transform .25s',
+    transform: active ? 'translateY(-2px)' : 'translateY(0)',
+    textShadow: active ? '0 2px 6px rgba(0,0,0,0.35)' : 'none'
+  });
+
+  const iconStyle = (active) => ({
+    fontSize: 26,
+    lineHeight: 1,
+    transition: 'transform .28s cubic-bezier(.4,1.6,.4,1)',
+    transform: active ? 'scale(1.15)' : 'scale(.92)',
+    filter: active ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' : 'none'
+  });
+
   return (
-    <nav className="bottom-navigation">
-      {navItems.map((item) => (
-        <button
-          key={item.path}
-          className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-          onClick={() => navigate(item.path)}
-        >
-          <span className="nav-icon" style={{display:'flex',alignItems:'center',justifyContent:'center',width:40,height:26,position:'relative'}}>
-            <span style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color: location.pathname===item.path ? '#E91E63' : '#B3B3B3', transition:'color .3s'}}>{iconSvg(item.icon)}</span>
-          </span>
-          <span className="nav-label" style={{color: location.pathname===item.path ? '#fff' : '#B3B3B3'}}>{item.label}</span>
-        </button>
-      ))}
+    <nav style={barStyle} aria-label="Primary">
+      {tabs.map(tab => {
+        const active = location.pathname === tab.path;
+        return (
+          <button
+            key={tab.path}
+            onClick={() => navigate(tab.path)}
+            style={btnBase(active)}
+            aria-label={tab.label}
+            aria-current={active ? 'page' : undefined}
+            onKeyDown={(e)=>{ if(e.key==='Enter') navigate(tab.path); }}
+          >
+            <span style={iconStyle(active)}>{tab.icon}</span>
+            <span style={{opacity: active ? 1 : 0.85}}>{tab.label}</span>
+          </button>
+        );
+      })}
+      <style>{`
+        @media (min-width: 900px){ nav[aria-label=Primary] { max-width: 760px; margin:0 auto; border-radius:26px 26px 0 0; } }
+        nav[aria-label=Primary] button:hover span:first-child { transform:scale(1.18); }
+        nav[aria-label=Primary] button:focus-visible { outline:2px solid rgba(255,255,255,0.9); outline-offset:2px; border-radius:18px; }
+      `}</style>
     </nav>
   );
 }
