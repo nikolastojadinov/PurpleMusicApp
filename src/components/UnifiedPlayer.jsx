@@ -1,43 +1,107 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useYouTube } from './YouTubeContext.jsx';
 import { fetchLyrics } from '../api/lyrics';
 
-// UnifiedPlayer: mini + fullscreen player. Audio-first; video shown in overlay iframe when playbackMode === 'video'.
 export default function UnifiedPlayer(){
-  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, lyrics, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle } = useYouTube();
-  const audioRef = useRef(null);
-  const iframeRef = useRef(null);
+  const { current, playlist, playing, playCurrent, pauseCurrent, progress, setProgress, duration, setDuration, seekTo, expanded, toggleExpanded, playbackMode, toggleVideoMode, lyrics, setLyricsData, toggleLyricsView, repeat, cycleRepeat, shuffle, toggleShuffle, playFromPlaylist } = useYouTube();
+  const iframeContainerRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const rafRef = useRef(null);
   const lastVideoId = useRef(null);
+  const touchStartY = useRef(null);
+  const dragDelta = useRef(0);
+  const [dragStyle, setDragStyle] = useState(null);
 
-  // Load audio source from YouTube watch URL (placeholder: using embed audio via iframe only if video mode; otherwise silent audio stub).
-  useEffect(() => {
-    if (!current) return;
-    // For now no direct audio stream (YouTube TOS) – we rely on iframe for video mode; simulate duration unknown.
-    setDuration(0);
-    setProgress(0);
-  }, [current, setDuration, setProgress]);
+  // Guard: no player if nothing selected
+  if (!current) return null;
 
-  // Simulate progress ticking when playing (since no direct audio element in this simplified scaffold) – placeholder until real audio available.
+  // Ensure YouTube IFrame API present
   useEffect(() => {
-    if (!playing) return;
-    let raf; let start = performance.now();
-    const loop = (ts) => {
-      if (!playing) return;
-      const delta = (ts - start) / 1000;
-      start = ts;
-      setProgress(p => p + delta);
-      raf = requestAnimationFrame(loop);
+    if (window.YT && window.YT.Player) return;
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }, []);
+
+  // Build / rebuild player when videoId changes (video mode only)
+  useEffect(() => {
+    if (playbackMode !== 'video') return; // only create in video mode
+    if (!current?.videoId) return;
+    if (!window.YT || !window.YT.Player) return; // API not ready yet
+    if (!iframeContainerRef.current) return;
+    if (lastVideoId.current === current.videoId && ytPlayerRef.current) return;
+    lastVideoId.current = current.videoId;
+    try { ytPlayerRef.current?.destroy?.(); } catch(_) {}
+    ytPlayerRef.current = new window.YT.Player(iframeContainerRef.current, {
+      videoId: current.videoId,
+      playerVars: { autoplay:1, rel:0, playsinline:1 },
+      events: {
+        onReady: (e) => { setDuration(e.target.getDuration()); playCurrent(); startProgressLoop(); },
+        onStateChange: (e) => {
+          if (e.data === window.YT.PlayerState.PLAYING) { playCurrent(); setDuration(e.target.getDuration()); startProgressLoop(); }
+          else if (e.data === window.YT.PlayerState.PAUSED) { pauseCurrent(); cancelProgressLoop(); }
+          else if (e.data === window.YT.PlayerState.ENDED) { handleEnded(); }
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.videoId, playbackMode]);
+
+  const startProgressLoop = () => {
+    cancelProgressLoop();
+    const loop = () => {
+      if (ytPlayerRef.current?.getCurrentTime) {
+        setProgress(ytPlayerRef.current.getCurrentTime());
+      }
+      rafRef.current = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [playing, setProgress]);
+    rafRef.current = requestAnimationFrame(loop);
+  };
+  const cancelProgressLoop = () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  useEffect(() => () => cancelProgressLoop(), []);
 
-  const togglePlay = () => { playing ? pauseCurrent() : playCurrent(); };
+  const handleEnded = useCallback(() => {
+    if (repeat === 'one') { seekTo(0); playCurrent(); return; }
+    if (playlist && playlist.items && playlist.index < playlist.items.length -1) { playFromPlaylist(playlist.index + 1); return; }
+    if (repeat === 'all' && playlist?.items?.length) { playFromPlaylist(0); return; }
+    pauseCurrent();
+  }, [playlist, repeat, playFromPlaylist, seekTo, playCurrent, pauseCurrent]);
+
+  const nextTrack = () => {
+    if (playlist && playlist.items && playlist.index < playlist.items.length -1) playFromPlaylist(playlist.index +1); else if (repeat === 'all' && playlist) playFromPlaylist(0);
+  };
+  const prevTrack = () => {
+    if (playlist && playlist.items && playlist.index >0) playFromPlaylist(playlist.index -1); else seekTo(0);
+  };
+
+  const togglePlay = () => {
+    if (playbackMode === 'video' && ytPlayerRef.current) {
+      const state = ytPlayerRef.current.getPlayerState();
+      if (state === window.YT.PlayerState.PLAYING) { ytPlayerRef.current.pauseVideo(); pauseCurrent(); }
+      else { ytPlayerRef.current.playVideo(); playCurrent(); }
+    } else {
+      playing ? pauseCurrent() : playCurrent();
+    }
+  };
 
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
 
+  // Seek logic (video only right now)
+  const handleSeek = (e) => {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left; const p = x / rect.width; const target = p * duration;
+    seekTo(target);
+    try { ytPlayerRef.current?.seekTo?.(target, true); } catch(_) {}
+  };
+
+  // Persistence (basic)
+  useEffect(() => {
+    try { localStorage.setItem('pm_playback_session', JSON.stringify({ current, progress, repeat, shuffle, playlistIndex: playlist?.index })); } catch(_) {}
+  }, [current, progress, repeat, shuffle, playlist?.index]);
+
+  // Lyrics open
   const openLyrics = async () => {
-    if (!current) return;
     if (!lyrics.lines.length) {
       const res = await fetchLyrics(current.channelTitle, current.title);
       setLyricsData(res);
@@ -45,11 +109,28 @@ export default function UnifiedPlayer(){
     toggleLyricsView();
   };
 
-  if (!current) return null;
+  // Swipe down gesture on fullscreen
+  const onTouchStart = (e) => { if (e.touches.length === 1) { touchStartY.current = e.touches[0].clientY; } };
+  const onTouchMove = (e) => {
+    if (!touchStartY.current) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) {
+      dragDelta.current = dy;
+      setDragStyle({ transform:`translateY(${dy}px)`, opacity: Math.max(0.25, 1 - dy/500) });
+    }
+  };
+  const onTouchEnd = () => {
+    if (dragDelta.current > 140) {
+      setDragStyle(null); dragDelta.current = 0; touchStartY.current=null; toggleExpanded();
+    } else {
+      setDragStyle({ transition:'transform .25s ease, opacity .25s ease', transform:'translateY(0)', opacity:1 });
+      setTimeout(()=> setDragStyle(null), 260);
+      dragDelta.current = 0; touchStartY.current=null;
+    }
+  };
 
   return (
     <>
-      {/* Mini Player */}
       {!expanded && (
         <div style={miniWrap} onClick={toggleExpanded}>
           <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
@@ -66,25 +147,21 @@ export default function UnifiedPlayer(){
           </div>
         </div>
       )}
-      {/* Fullscreen Player */}
       {expanded && (
-        <div style={fullOverlay}>
+        <div style={{...fullOverlay, ...(dragStyle||{})}} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
           <div style={fullInner}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <button onClick={toggleExpanded} style={closeBtn}>↓</button>
               <div style={{fontSize:12,opacity:.6}}>{playlist ? `${playlist.index+1}/${playlist.items.length}` : 'Single'}</div>
               <div style={{width:36}} />
             </div>
-            <div style={artWrap}> {current.thumbnailUrl && <img src={current.thumbnailUrl} alt={current.title} style={artImg} />} </div>
+            <div style={artWrap}>{current.thumbnailUrl && <img src={current.thumbnailUrl} alt={current.title} style={artImg} />}</div>
             <div style={{textAlign:'center',marginTop:30}}>
               <h1 style={{margin:'0 0 6px',fontSize:'1.4rem',fontWeight:600}}>{current.title}</h1>
               <div style={{fontSize:13,opacity:.65}}>{current.channelTitle}</div>
             </div>
-            {/* Progress Bar */}
             <div style={{marginTop:30}}>
-              <div style={progressBar} onClick={(e)=>{
-                if(!duration) return; const rect=e.currentTarget.getBoundingClientRect(); const x=e.clientX-rect.left; const p=x/rect.width; seekTo(p*duration);
-              }}>
+              <div style={progressBar} onClick={handleSeek}>
                 <div style={{...progressFill,width:`${pct}%`}} />
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:.55,marginTop:4}}>
@@ -92,15 +169,13 @@ export default function UnifiedPlayer(){
                 <span>{duration?formatTime(duration):'--:--'}</span>
               </div>
             </div>
-            {/* Controls */}
             <div style={controlsRow}>
-              <button style={ctrlBtn(shuffle)} onClick={toggleShuffle}>⇄</button>
-              <button style={ctrlBtn(false)}>⏮</button>
-              <button style={playBtn} onClick={togglePlay}>{playing ? 'Pause' : 'Play'}</button>
-              <button style={ctrlBtn(false)}>⏭</button>
-              <button style={ctrlBtn(repeat!=='off')} onClick={cycleRepeat}>{repeat==='one'?'①':repeat==='all'?'∞':'↻'}</button>
+              <button style={ctrlBtn(shuffle)} onClick={(e)=>{e.stopPropagation(); toggleShuffle();}}>⇄</button>
+              <button style={ctrlBtn(false)} onClick={(e)=>{e.stopPropagation(); prevTrack();}}>⏮</button>
+              <button style={playBtn} onClick={(e)=>{e.stopPropagation(); togglePlay();}}>{playing ? 'Pause' : 'Play'}</button>
+              <button style={ctrlBtn(false)} onClick={(e)=>{e.stopPropagation(); nextTrack();}}>⏭</button>
+              <button style={ctrlBtn(repeat!=='off')} onClick={(e)=>{e.stopPropagation(); cycleRepeat();}}>{repeat==='one'?'①':repeat==='all'?'∞':'↻'}</button>
             </div>
-            {/* Action Row */}
             <div style={actionRow}>
               <button style={actBtn(playbackMode==='video')} onClick={toggleVideoMode}>Video</button>
               <button style={actBtn(!!lyrics.lines.length)} onClick={openLyrics}>Lyrics</button>
@@ -112,14 +187,7 @@ export default function UnifiedPlayer(){
             <div style={videoOverlay}>
               <div style={videoInner}>
                 <button onClick={toggleVideoMode} style={videoClose}>×</button>
-                <iframe
-                  ref={iframeRef}
-                  title={current.title}
-                  src={`https://www.youtube.com/embed/${current.videoId}?autoplay=1&enablejsapi=1`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{width:'100%',height:'100%',border:0,borderRadius:18}}
-                />
+                <div ref={iframeContainerRef} style={{width:'100%',height:'100%',borderRadius:18,overflow:'hidden'}} />
               </div>
             </div>
           )}
