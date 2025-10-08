@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import searchYouTube, { searchPlaylists } from '../api/youtube';
+import { remember } from '../utils/cache';
 import { useYouTube } from '../components/YouTubeContext.jsx';
 import { loadMusicLibrary } from '../services/libraryLoader';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +13,7 @@ export default function HomeScreen() {
   const [query, setQuery] = useState('');
   const [ytResults, setYtResults] = useState([]);
   const [ytLoading, setYtLoading] = useState(false);
-  const [feedSections, setFeedSections] = useState({ top: [], rec: [], trend: [] }); // now playlists
+  const [feedSections, setFeedSections] = useState({ quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] });
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState(null);
   const [localSongs, setLocalSongs] = useState([]);
@@ -66,24 +67,41 @@ export default function HomeScreen() {
     return () => { clearTimeout(handle); if (suggestAbort.current) suggestAbort.current.abort(); };
   }, [query]);
 
-  // Initial feed (Top / Recommended / Trending) using playlist searches
+  // Helpers to build horizontal section wrappers
+  const Slider = ({ children }) => (
+    <div style={{display:'flex',gap:16,overflowX:'auto',padding:'4px 2px 4px',scrollSnapType:'x mandatory'}}>
+      {children}
+    </div>
+  );
+  const SectionTitle = ({ children }) => <h2 style={{margin:'0 0 12px',fontSize:18,letterSpacing:.5,color:'#E91E63'}}>{children}</h2>;
+
+  // Initial feed (Utify style sections) using playlist & video searches
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         setFeedLoading(true);
-        const seeds = [
-          { key:'top', q:'Official music playlist' },
-          { key:'rec', q:'Pop hits playlist' },
-          { key:'trend', q:'Trending music mix playlist' }
-        ];
-        const out = {};
-        for (const s of seeds) {
-          const { results } = await searchPlaylists(s.q);
-          out[s.key] = (results || []).slice(0, 8);
-          if (!active) return;
-        }
-        if (active) setFeedSections(out);
+        const ttl = 1000*60*60; // 1h
+        const data = await remember('home_feed_v1', ttl, async () => {
+          const out = { quick: [], morning: [], hits: [], newRel: [], albums: [], videos: [] };
+          const [quick, morning, hits, newRel, albums, videos] = await Promise.all([
+            searchPlaylists('best music mix playlist'),
+            searchPlaylists('morning energy music playlist'),
+            searchPlaylists('all hits music playlist'),
+            searchPlaylists('new releases music playlist'),
+            searchPlaylists('popular albums playlist'),
+            searchYouTube('official music video')
+          ]);
+          out.quick = (quick.results||[]).slice(0,10);
+          out.morning = (morning.results||[]).slice(0,10);
+          out.hits = (hits.results||[]).slice(0,10);
+          out.newRel = (newRel.results||[]).slice(0,10);
+          out.albums = (albums.results||[]).slice(0,10);
+          out.videos = (videos.results||[]).slice(0,10);
+          return out;
+        });
+        if (!active) return;
+        setFeedSections(data);
       } catch(err){
         if (active) setFeedError(err.message);
       } finally {
@@ -157,22 +175,34 @@ export default function HomeScreen() {
           </div>
         </div>
       ) : (
-        <div style={{display:'flex',flexDirection:'column',gap:42}}>
+        <div style={{display:'flex',flexDirection:'column',gap:40}}>
           {feedError && <div style={{color:'#f77',fontSize:13}}>{feedError}</div>}
           {feedLoading && <div style={{opacity:.6,fontSize:13}}>Loading feed…</div>}
           {!feedLoading && (
             <>
               <section>
-                <h2 style={{margin:'0 0 14px',fontSize:18}}>{'Top Playlists'}</h2>
-                <div style={gridStyle}>{feedSections.top.map(r=> <PlaylistCard key={r.playlistId} item={r} />)}</div>
+                <SectionTitle>Quick Picks</SectionTitle>
+                <Slider>{feedSections.quick.map(r=> <PlaylistCard key={r.playlistId||r.videoId} item={r} />)}</Slider>
               </section>
               <section>
-                <h2 style={{margin:'0 0 14px',fontSize:18}}>{'Recommended Playlists'}</h2>
-                <div style={gridStyle}>{feedSections.rec.map(r=> <PlaylistCard key={r.playlistId} item={r} />)}</div>
+                <SectionTitle>Morning Boost</SectionTitle>
+                <Slider>{feedSections.morning.map(r=> <PlaylistCard key={r.playlistId||r.videoId} item={r} />)}</Slider>
               </section>
               <section>
-                <h2 style={{margin:'0 0 14px',fontSize:18}}>{'Trending Playlists'}</h2>
-                <div style={gridStyle}>{feedSections.trend.map(r=> <PlaylistCard key={r.playlistId} item={r} />)}</div>
+                <SectionTitle>All Hits</SectionTitle>
+                <Slider>{feedSections.hits.map(r=> <PlaylistCard key={r.playlistId||r.videoId} item={r} />)}</Slider>
+              </section>
+              <section>
+                <SectionTitle>New Releases</SectionTitle>
+                <Slider>{feedSections.newRel.map(r=> <PlaylistCard key={r.playlistId||r.videoId} item={r} />)}</Slider>
+              </section>
+              <section>
+                <SectionTitle>Albums & Singles</SectionTitle>
+                <Slider>{feedSections.albums.map(r=> <PlaylistCard key={r.playlistId||r.videoId} item={r} />)}</Slider>
+              </section>
+              <section>
+                <SectionTitle>Music Videos</SectionTitle>
+                <Slider>{feedSections.videos.map(r=> <VideoCard key={r.videoId||r.playlistId} item={r} />)}</Slider>
               </section>
             </>
           )}

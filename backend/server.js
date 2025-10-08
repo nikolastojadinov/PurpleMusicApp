@@ -148,6 +148,31 @@ app.get('/api/youtube/playlistInfo', async (req, res) => {
   }
 });
 
+// --- Lyrics endpoint placeholder ---
+// GET /api/lyrics?q=artist+title
+// For now returns a mocked response; replace with Musixmatch or other provider integration.
+app.get('/api/lyrics', async (req, res) => {
+  const { q } = req.query;
+  if (!q || !q.trim()) return res.status(400).json({ error: 'missing_query' });
+  try {
+    // Mock lines – simulate unsynced lyrics
+    const sample = [
+      'Instrumental Intro',
+      'First line of the song',
+      'Second line follows soon',
+      'Chorus comes in bright and strong',
+      'Verse two builds on the theme',
+      'Bridge shifts the mood a bit',
+      'Final chorus lifts it higher',
+      'Outro fades into the night'
+    ];
+    return res.json({ lines: sample.map(t => ({ text: t })), synced: false });
+  } catch (e) {
+    console.warn('[Lyrics] failed', e.message);
+    return res.status(500).json({ error: 'lyrics_failed' });
+  }
+});
+
 // --- Secure user sync endpoint (uses service role) to avoid client-side RLS insert failures ---
 app.post('/api/users/sync', async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'supabase_uninitialized' });
