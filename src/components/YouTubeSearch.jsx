@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import searchYouTube from '../api/youtube';
+import searchYouTube, { isValidYouTubeQuery } from '../api/youtube';
 import { useYouTube } from './YouTubeContext.jsx';
 
 const tabs = [
@@ -55,7 +55,9 @@ export default function YouTubeSearch() {
   const debounceRef = useRef(null);
   const runSearch = useCallback((q, type) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(q, type), 300);
+    debounceRef.current = setTimeout(() => {
+      if (isValidYouTubeQuery(q)) doSearch(q, type);
+    }, 350);
   }, [doSearch]);
 
   const onKey = (e) => { if (e.key === 'Enter') runSearch(query, activeTab); };

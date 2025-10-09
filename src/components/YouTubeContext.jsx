@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { isValidVideoId } from '../api/youtube';
 
 // Silent error suppression patterns
 const SUPPRESSED_PATTERNS = [
@@ -69,7 +70,7 @@ export function YouTubeProvider({ children }) {
 
   const play = useCallback((item) => { // backward compat (single video)
     try {
-      if (!item) return;
+      if (!item || !isValidVideoId(item?.videoId)) return;
       setMode('video');
       setPlaylist(null);
       setCurrentVideo(item);
@@ -82,9 +83,10 @@ export function YouTubeProvider({ children }) {
     try {
       if (!meta?.id) return;
       setMode('playlist');
-      setPlaylist({ id: meta.id, title: meta.title, thumbnailUrl: meta.thumbnailUrl || null, items: meta.items || [], index: 0 });
-      if (meta.items && meta.items[0]) {
-        setCurrentVideo(meta.items[0]);
+      const safeItems = Array.isArray(meta.items) ? meta.items.filter(it => isValidVideoId(it?.videoId)) : [];
+      setPlaylist({ id: meta.id, title: meta.title, thumbnailUrl: meta.thumbnailUrl || null, items: safeItems, index: 0 });
+      if (safeItems[0]) {
+        setCurrentVideo(safeItems[0]);
       } else {
         setCurrentVideo(null);
       }
@@ -95,8 +97,9 @@ export function YouTubeProvider({ children }) {
     try {
       setPlaylist(p => {
         if (!p) return p;
-        const next = { ...p, items };
-        if (!currentVideo && items[0]) setCurrentVideo(items[0]);
+        const clean = Array.isArray(items) ? items.filter(it => isValidVideoId(it?.videoId)) : [];
+        const next = { ...p, items: clean };
+        if (!currentVideo && clean[0]) setCurrentVideo(clean[0]);
         return next;
       });
     } catch(err){ debugLog('loadPlaylistItems', err); }
