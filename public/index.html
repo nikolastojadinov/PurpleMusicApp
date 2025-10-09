@@ -21,34 +21,7 @@
         color: #FFFFFF;
       }
     </style>
-    <script>
-      // Early legacy detection BEFORE CRA injects main.*.js
-      (function(){
-        try { new Function('var x={}; x?.y'); } catch(e) {
-          // Browser does NOT support optional chaining -> load legacy bundle
-          var sEl = document.getElementById('pm-wd-status');
-          if (sEl) sEl.textContent = 'loading-legacy';
-          window.__PM_LEGACY_MODE__ = true;
-          var legacy = document.createElement('script');
-          legacy.src = '/legacy.bundle.js';
-          legacy.defer = true;
-          legacy.onload = function(){
-            var s = document.getElementById('pm-wd-status');
-            if (s && !window.__PM_APP_MOUNTED__) s.textContent = 'legacy-loaded';
-          };
-            legacy.onerror = function(){
-            var s = document.getElementById('pm-wd-status');
-            if (s) s.textContent = 'legacy-load-error';
-          };
-          document.head.appendChild(legacy);
-          // Attempt to prevent original main script execution (remove on DOMContentLoaded)
-          document.addEventListener('DOMContentLoaded', function(){
-            var mains = Array.prototype.slice.call(document.querySelectorAll('script[src*="/static/js/main."]'));
-            mains.forEach(function(tag){ tag.parentNode.removeChild(tag); });
-          });
-        }
-      })();
-    </script>
+    <!-- Removed legacy bundle loader (legacy.bundle.js) for clean stable deployment -->
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   </head>
   <body>
