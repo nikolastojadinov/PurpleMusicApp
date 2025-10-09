@@ -6,8 +6,7 @@ import HomeScreen from './screens/HomeScreen';
 import ViewProfileScreen from './screens/ViewProfileScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './screens/TermsOfServiceScreen';
-import Header from './components/Header';
-import BottomNavigation from './components/BottomNavigation';
+import YoutifyShell from './components/YoutifyShell';
 // Removed legacy ModernAudioPlayer import (unused)
 // Auth context (restored & improved)
 import { AuthProvider } from './context/AuthProvider.jsx';
@@ -60,21 +59,16 @@ function App() {
                   {piError}
                 </div>
               )}
-              <Header />
-              <main className="main-content">
-                <Routes>
-                  <Route path="/" element={<HomeScreen />} />
-                  <Route path="/profile" element={<ViewProfileScreen />} />
-                  <Route path="/privacy" element={<PrivacyPolicyScreen />} />
-                  <Route path="/terms" element={<TermsOfServiceScreen />} />
-                </Routes>
-              </main>
-              <BottomNavigation />
-              <footer style={{marginTop:'auto',padding:'14px 18px 90px',textAlign:'center',fontSize:12,opacity:.4}}>
-                <span style={{display:'inline-flex',gap:14,flexWrap:'wrap'}}>
-                  <span style={{color:'inherit'}}>© {new Date().getFullYear()} PurpleMusic</span>
-                </span>
-              </footer>
+              <YoutifyShell>
+                <main className="main-content">
+                  <Routes>
+                    <Route path="/" element={<HomeScreen />} />
+                    <Route path="/profile" element={<ViewProfileScreen />} />
+                    <Route path="/privacy" element={<PrivacyPolicyScreen />} />
+                    <Route path="/terms" element={<TermsOfServiceScreen />} />
+                  </Routes>
+                </main>
+              </YoutifyShell>
               {/* Global overlays */}
               <AuthIntroOverlay />
               <AuthModal />
