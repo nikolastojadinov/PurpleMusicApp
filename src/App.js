@@ -84,6 +84,17 @@ function App() {
                 </Routes>
               </main>
               <BottomNavigation />
+              {/* Runtime YouTube key status indicator for Pi Browser diagnostics */}
+              {(() => {
+                const status = (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__.VITE_YOUTUBE_API_KEY) ? 'LOADED' : 'MISSING';
+                try { console.log('YT KEY STATUS:', status); } catch(_) {}
+                const ok = (typeof window !== 'undefined' && window.__ENV__?.VITE_YOUTUBE_API_KEY !== 'MISSING');
+                return (
+                  <div style={{ position: 'fixed', bottom: 4, left: 0, right: 0, textAlign: 'center', fontSize: 12, pointerEvents:'none', zIndex: 2147483647 }}>
+                    <span style={{ color: ok ? '#10B981' : '#EF4444' }}>{ok ? '✅ YouTube key loaded' : '❌ YouTube key missing'}</span>
+                  </div>
+                );
+              })()}
               <footer style={{marginTop:'auto',padding:'14px 18px 90px',textAlign:'center',fontSize:12,opacity:.4}}>
                 <span style={{display:'inline-flex',gap:14,flexWrap:'wrap'}}>
                   <span style={{color:'inherit'}}>© {new Date().getFullYear()} PurpleMusic</span>

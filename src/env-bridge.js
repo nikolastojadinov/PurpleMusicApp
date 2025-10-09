@@ -1,9 +1,12 @@
 // Bridge Vite env vars to window for restricted WebViews (e.g., Pi Browser)
-// Keep minimal to avoid leaking unrelated variables.
+// Ensure it exists even when import.meta.env is not injected at runtime.
 try {
   if (typeof window !== 'undefined') {
-    window.__ENV__ = Object.assign({}, window.__ENV__, {
-      VITE_YOUTUBE_API_KEY: (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_YOUTUBE_API_KEY : undefined)
-    });
+    window.__ENV__ = window.__ENV__ || {};
+    let viteKey;
+    try { if (typeof import.meta !== 'undefined' && import.meta.env) viteKey = import.meta.env.VITE_YOUTUBE_API_KEY; } catch (_) {}
+    let procKey;
+    try { if (typeof process !== 'undefined' && process.env) procKey = process.env.VITE_YOUTUBE_API_KEY; } catch (_) {}
+    window.__ENV__.VITE_YOUTUBE_API_KEY = viteKey || procKey || 'MISSING';
   }
 } catch(_) {}
