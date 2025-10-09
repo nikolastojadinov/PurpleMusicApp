@@ -25,6 +25,9 @@ export async function safeYouTubeFetch(url) {
   }
 }
 function getClientYouTubeKey() {
+  try {
+    if (typeof window !== 'undefined' && window.__ENV__?.VITE_YOUTUBE_API_KEY) return window.__ENV__.VITE_YOUTUBE_API_KEY;
+  } catch(_) {}
   try { if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_YOUTUBE_API_KEY) return import.meta.env.VITE_YOUTUBE_API_KEY; } catch(_) {}
   return process.env.REACT_APP_YOUTUBE_API_KEY;
 }
