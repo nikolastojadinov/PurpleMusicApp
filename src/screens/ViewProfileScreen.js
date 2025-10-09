@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobalModal } from '../context/GlobalModalContext.jsx';
+import { useAuth } from '../context/AuthProvider.jsx';
 
 export default function ViewProfileScreen() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [profilePicture, setProfilePicture] = useState(null);
   const { show } = useGlobalModal();
   const [username, setUsername] = useState(t('profile_view.default_username', { defaultValue: 'Music Lover' }));
@@ -146,6 +148,32 @@ export default function ViewProfileScreen() {
               <div className="stat-number">156</div>
               <div className="stat-label">{t('profile_view.stats_hours')}</div>
             </div>
+          </div>
+          {/* Spotify connect placeholder */}
+          <div style={{marginTop:16, display:'flex', justifyContent:'center'}}>
+            <button
+              onClick={() => {
+                try {
+                  const base = process.env.REACT_APP_API_URL || '';
+                  const u = new URL((base.replace(/\/$/, '')) + '/api/auth/spotify/login');
+                  const id = user?.id; const pi_uid = user?.pi_uid || user?.pi_user_uid;
+                  if (id) u.searchParams.set('id', id);
+                  if (pi_uid) u.searchParams.set('pi_uid', pi_uid);
+                  window.open(u.toString(), '_self');
+                } catch (e) { console.warn('Spotify login open failed', e); }
+              }}
+              style={{
+                background: '#1DB954',
+                color: '#000',
+                border: 'none',
+                padding: '10px 16px',
+                borderRadius: 24,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Connect Spotify
+            </button>
           </div>
         </div>
       </div>

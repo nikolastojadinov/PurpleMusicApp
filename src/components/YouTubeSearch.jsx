@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import searchYouTube, { isValidYouTubeQuery } from '../api/youtube';
 import { useYouTube } from './YouTubeContext.jsx';
 
@@ -7,9 +7,11 @@ const tabs = [
   { key: 'ytmusic', label: 'YtMusic' }
 ];
 
-export default function YouTubeSearch() {
+export default function YouTubeSearch({ value, onChange, autoFocus = false, placeholder, onPlay }) {
   const { play } = useYouTube();
-  const [query, setQuery] = useState('');
+  const isControlled = typeof value !== 'undefined';
+  const [internalQuery, setInternalQuery] = useState(value || '');
+  const query = isControlled ? (value || '') : internalQuery;
   const [activeTab, setActiveTab] = useState('video');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ export default function YouTubeSearch() {
       const trimmed = (q||'').trim();
       if (!trimmed) return;
       setLoading(true); setError(null);
-      const { results: r, error: err } = await searchYouTube(trimmed, type === 'video' ? 'video' : 'video');
+  const { results: r, error: err } = await searchYouTube(trimmed);
       if (runId !== activeReq.current) return; // stale
       if (err) {
         const msg = err?.message || err;
@@ -62,6 +64,26 @@ export default function YouTubeSearch() {
 
   const onKey = (e) => { if (e.key === 'Enter') runSearch(query, activeTab); };
 
+  // When controlled, trigger debounced search when the external value changes
+  useEffect(() => {
+    if (!isControlled) return;
+    const q = value || '';
+    if (isValidYouTubeQuery(q)) runSearch(q, activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, activeTab]);
+
+  const handleChange = useCallback((e) => {
+    const next = e.target.value;
+    if (!isControlled) setInternalQuery(next);
+    if (onChange) onChange(next);
+    runSearch(next, activeTab);
+  }, [activeTab, isControlled, onChange, runSearch]);
+
+  const handlePlay = useCallback((item) => {
+    if (onPlay) onPlay(item);
+    else play(item);
+  }, [onPlay, play]);
+
   return (
     <div style={{marginTop:24}}>
       <div style={{display:'flex', gap:12, marginBottom:12}}>
@@ -85,9 +107,10 @@ export default function YouTubeSearch() {
       </div>
       <input
         value={query}
-        onChange={e=>setQuery(e.target.value)}
+        onChange={handleChange}
         onKeyDown={onKey}
-        placeholder="Search YouTube… (e.g. Ellie Goulding - Love Me Like You Do)"
+        placeholder={placeholder || 'Search YouTube… (e.g. Ellie Goulding - Love Me Like You Do)'}
+        autoFocus={autoFocus}
         style={{width:'100%', background:'#141414', border:'1px solid #2a2a2a', padding:'12px 16px', borderRadius:14, color:'#fff', fontSize:14}}
       />
       <div style={{marginTop:20, minHeight:60}}>
@@ -106,7 +129,7 @@ export default function YouTubeSearch() {
               <div style={{flex:1, display:'flex', flexDirection:'column'}}>
                 <div style={{fontSize:13, fontWeight:600, lineHeight:1.3, marginBottom:6, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{r.title}</div>
                 <div style={{fontSize:11, opacity:.6, marginBottom:8, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.channelTitle}</div>
-                <button onClick={()=>play(r)} style={{marginTop:'auto', background:'#6d28d9', border:'none', color:'#fff', padding:'8px 12px', borderRadius:22, fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
+                <button onClick={()=>handlePlay(r)} style={{marginTop:'auto', background:'#6d28d9', border:'none', color:'#fff', padding:'8px 12px', borderRadius:22, fontSize:12, fontWeight:600, cursor:'pointer'}}>Play</button>
               </div>
             </div>
           ))}

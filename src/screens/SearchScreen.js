@@ -56,20 +56,14 @@ export default function SearchScreen() {
 
   return (
     <div className="search-screen">
+      {/* Utify-style unified search: YouTube as primary, with our query wired for controlled input */}
       <div className="search-input-container">
-        <input
-          type="text"
-          className="search-input"
-          placeholder={t('search_placeholder', 'Artists, songs, or podcasts')}
+        <YouTubeSearch
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={setSearchQuery}
+          autoFocus={false}
+          placeholder={t('search_placeholder', 'Artists, songs, or podcasts')}
         />
-        <span className="search-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
-          </svg>
-        </span>
       </div>
 
       {!searchQuery && (
@@ -78,7 +72,7 @@ export default function SearchScreen() {
             <h2 className="section-title">{t('recent_searches', 'Recent searches')}</h2>
             <div className="search-list">
               {recentSearches.map((search, index) => (
-                <div key={index} className="search-item">
+                <div key={index} className="search-item" onClick={() => setSearchQuery(search)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter') setSearchQuery(search); }}>
                   <span className="search-text">{search}</span>
                   <span className="search-close">✕</span>
                 </div>
@@ -90,7 +84,7 @@ export default function SearchScreen() {
             <h2 className="section-title">{t('trending_searches', 'Trending searches')}</h2>
             <div className="search-list">
               {trendingSearches.map((search, index) => (
-                <div key={index} className="search-item">
+                <div key={index} className="search-item" onClick={() => setSearchQuery(search)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter') setSearchQuery(search); }}>
                   <span className="trending-icon">📈</span>
                   <span className="search-text">{search}</span>
                 </div>
@@ -133,11 +127,7 @@ export default function SearchScreen() {
         </div>
       )}
 
-      {/* YouTube Integrated Search Section */}
-      <div style={{marginTop:40}}>
-        <h2 className="section-title" style={{fontSize:18, marginBottom:8}}>YouTube</h2>
-        <YouTubeSearch />
-      </div>
+      {/* Local Library results are shown above when query >= 2; YouTube results are already included in the unified search input */}
 
       {playerOpen && selectedSong && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 80, zIndex: 1000 }}>

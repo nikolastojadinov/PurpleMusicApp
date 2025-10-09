@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
@@ -174,6 +175,182 @@ app.get('/api/lyrics', async (req, res) => {
     return res.status(500).json({ error: 'lyrics_failed' });
   }
 });
+
+// =================== Spotify OAuth2 Integration ===================
+// All secrets remain server-side. Frontend receives only short-lived access tokens.
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://purplemusicapp.onrender.com/api/auth/spotify/callback';
+const SPOTIFY_STATE_SECRET = process.env.SPOTIFY_STATE_SECRET || (process.env.SUPABASE_SERVICE_KEY || 'dev_fallback_secret');
+
+function base64url(input) {
+  return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function signStatePayload(payload) {
+  const json = JSON.stringify(payload);
+  const dataB64 = base64url(json);
+  const sig = crypto.createHmac('sha256', SPOTIFY_STATE_SECRET).update(dataB64).digest('base64');
+  const sigB64 = sig.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return `${dataB64}.${sigB64}`;
+}
+
+function verifyState(state) {
+  try {
+    if (!state || !state.includes('.')) return { ok:false, error:'malformed_state' };
+    const [dataB64, sigB64] = state.split('.', 2);
+    const expected = crypto.createHmac('sha256', SPOTIFY_STATE_SECRET).update(dataB64).digest('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+    if (expected !== sigB64) return { ok:false, error:'bad_signature' };
+    const json = Buffer.from(dataB64.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString('utf8');
+    const payload = JSON.parse(json);
+    // Basic freshness check (10 minutes)
+    if (!payload.ts || (Date.now() - payload.ts) > 10*60*1000) return { ok:false, error:'state_expired' };
+    return { ok:true, payload };
+  } catch (e) {
+    return { ok:false, error:'state_invalid' };
+  }
+}
+
+// GET /api/auth/spotify/login
+// Redirects user to Spotify authorization with requested scopes.
+app.get('/api/auth/spotify/login', async (req, res) => {
+  try {
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      return res.status(500).json({ error:'spotify_not_configured' });
+    }
+    const scopes = [
+      'user-read-private',
+      'user-read-email',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'playlist-read-private'
+    ];
+    const { pi_uid, pi_user_uid, id } = req.query || {};
+    const nonce = crypto.randomBytes(12).toString('hex');
+    const payload = { ts: Date.now(), nonce };
+    if (pi_uid) payload.pi_uid = String(pi_uid);
+    if (pi_user_uid) payload.pi_user_uid = String(pi_user_uid);
+    if (id) payload.id = String(id);
+    const state = signStatePayload(payload);
+    const q = new URLSearchParams({
+      response_type: 'code',
+      client_id: SPOTIFY_CLIENT_ID,
+      scope: scopes.join(' '),
+      redirect_uri: SPOTIFY_REDIRECT_URI,
+      state
+    }).toString();
+    const authUrl = `https://accounts.spotify.com/authorize?${q}`;
+    return res.redirect(302, authUrl);
+  } catch (e) {
+    console.error('[Spotify][login] failed', e.message);
+    return res.status(500).json({ error:'spotify_login_failed' });
+  }
+});
+
+// GET /api/auth/spotify/callback
+// Exchanges authorization code for tokens and stores refresh token in Supabase user profile.
+app.get('/api/auth/spotify/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query || {};
+    if (!code || !state) return res.status(400).json({ error:'missing_code_or_state' });
+    const vs = verifyState(state);
+    if (!vs.ok) return res.status(400).json({ error: 'invalid_state', reason: vs.error });
+    const who = vs.payload || {};
+    // Exchange code for tokens
+    const tokenUrl = 'https://accounts.spotify.com/api/token';
+    const basic = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+    let tokenResp;
+    try {
+      tokenResp = await axios.post(tokenUrl, new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: SPOTIFY_REDIRECT_URI
+      }).toString(), {
+        headers: {
+          'Authorization': `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+    } catch (err) {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      console.error('[Spotify][callback] token exchange failed', status, data);
+      return res.status(502).json({ error:'spotify_token_exchange_failed', status, data });
+    }
+    const { access_token, refresh_token, token_type, expires_in, scope } = tokenResp.data || {};
+    if (!access_token) return res.status(502).json({ error:'no_access_token' });
+    // Persist refresh_token if present
+    if (refresh_token && supabase) {
+      try {
+        const filter = {};
+        if (who.pi_uid) filter.pi_uid = who.pi_uid; else if (who.pi_user_uid) filter.pi_user_uid = who.pi_user_uid; else if (who.id) filter.id = who.id;
+        if (Object.keys(filter).length === 0) {
+          console.warn('[Spotify][callback] no user identifier in state; refresh token not saved');
+        } else {
+          const { error: updErr } = await safeUserUpdate(filter, { spotify_refresh_token: refresh_token }, 'id, pi_user_uid, pi_uid, username');
+          if (updErr) console.error('[Spotify][callback] Supabase update failed', updErr.message);
+        }
+      } catch (e) {
+        console.error('[Spotify][callback] refresh token save failed', e.message);
+      }
+    }
+    // Return only short-lived access token to the frontend
+    return res.json({ access_token, token_type, expires_in, scope });
+  } catch (e) {
+    console.error('[Spotify][callback] unhandled', e.message);
+    return res.status(500).json({ error:'spotify_callback_failed' });
+  }
+});
+
+// POST /api/auth/spotify/refresh
+// Body: { pi_uid? | pi_user_uid? | id? }
+// Exchanges stored refresh token for a new access token.
+app.post('/api/auth/spotify/refresh', async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ error:'supabase_uninitialized' });
+    const { pi_uid, pi_user_uid, id } = req.body || {};
+    const filter = {};
+    if (pi_uid) filter.pi_uid = String(pi_uid);
+    else if (pi_user_uid) filter.pi_user_uid = String(pi_user_uid);
+    else if (id) filter.id = id;
+    else return res.status(400).json({ error:'missing_identifier' });
+    // Load stored refresh token
+    let query = supabase.from('users').select('spotify_refresh_token').limit(1);
+    Object.entries(filter).forEach(([k,v]) => { query = query.eq(k, v); });
+    const { data: rows, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const refreshToken = row?.spotify_refresh_token;
+    if (!refreshToken) return res.status(400).json({ error:'no_refresh_token' });
+    // Exchange refresh for access token
+    const tokenUrl = 'https://accounts.spotify.com/api/token';
+    const basic = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+    let tokenResp;
+    try {
+      tokenResp = await axios.post(tokenUrl, new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken
+      }).toString(), {
+        headers: {
+          'Authorization': `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+    } catch (err) {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      console.error('[Spotify][refresh] failed', status, data);
+      return res.status(502).json({ error:'spotify_refresh_failed', status, data });
+    }
+    const { access_token, token_type, expires_in, scope } = tokenResp.data || {};
+    if (!access_token) return res.status(502).json({ error:'no_access_token' });
+    return res.json({ access_token, token_type, expires_in, scope });
+  } catch (e) {
+    console.error('[Spotify][refresh] unhandled', e.message);
+    return res.status(500).json({ error:'spotify_refresh_unhandled' });
+  }
+});
+// =================== End Spotify OAuth2 ===================
 
 // --- Secure user sync endpoint (uses service role) to avoid client-side RLS insert failures ---
 app.post('/api/users/sync', async (req, res) => {
