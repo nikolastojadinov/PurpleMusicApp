@@ -60,10 +60,12 @@ app.post('/api/verify-login', verifyLogin);
 // Returns shape: { results: [ { videoId, title, channelTitle, thumbnailUrl, description, duration } ] }
 app.get('/api/youtube/search', async (req, res) => {
   const { q } = req.query;
+  const typeRaw = String(req.query.type || 'video').toLowerCase();
+  const type = (typeRaw === 'playlist') ? 'playlist' : 'video';
   if (!q || !q.trim()) return res.status(400).json({ error: 'Missing query' });
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'backend_missing_key' });
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q.trim())}&key=${apiKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=${type}&maxResults=12&q=${encodeURIComponent(q.trim())}&key=${apiKey}`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) {

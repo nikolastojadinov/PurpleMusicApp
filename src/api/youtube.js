@@ -1,4 +1,4 @@
-// YouTube search helper: direct API call when key present, otherwise backend proxy fallback.
+// YouTube API access through backend proxy only (no client-side key exposure)
 export function isValidYouTubeQuery(q) {
   if (!q || typeof q !== 'string') return false;
   const cleaned = q.trim();
@@ -24,13 +24,6 @@ export async function safeYouTubeFetch(url) {
     return null;
   }
 }
-function getClientYouTubeKey() {
-  try {
-    if (typeof window !== 'undefined' && window.__ENV__?.VITE_YOUTUBE_API_KEY) return window.__ENV__.VITE_YOUTUBE_API_KEY;
-  } catch(_) {}
-  try { if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_YOUTUBE_API_KEY) return import.meta.env.VITE_YOUTUBE_API_KEY; } catch(_) {}
-  return process.env.REACT_APP_YOUTUBE_API_KEY;
-}
 
 export async function searchYouTube(query) {
   // Strict query validation
@@ -39,25 +32,9 @@ export async function searchYouTube(query) {
     return { error: 'empty_query', results: [] };
   }
   const q = String(query).trim();
-  const key = getClientYouTubeKey();
-  if (key) {
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${key}`;
-    const data = await safeYouTubeFetch(endpoint);
-    if (data) {
-      const items = Array.isArray(data.items) ? data.items : [];
-      const results = items.map(it => ({
-        videoId: it?.id?.videoId,
-        title: it?.snippet?.title,
-        channelTitle: it?.snippet?.channelTitle,
-        thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null,
-        description: it?.snippet?.description || ''
-      })).filter(r => !!r.videoId && isValidVideoId(r.videoId));
-      return { results };
-    }
-  }
-  // Fallback to backend proxy (no durations now, raw mapping done here)
+  // Backend proxy only
   const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-  const proxyUrl = `${apiBase}/api/youtube/search?q=${encodeURIComponent(q)}`;
+  const proxyUrl = `${apiBase}/api/youtube/search?q=${encodeURIComponent(q)}&type=video`;
   const pdata = await safeYouTubeFetch(proxyUrl);
   if (pdata) {
     const items = Array.isArray(pdata.items) ? pdata.items : (Array.isArray(pdata.results) ? pdata.results : []);
@@ -79,24 +56,9 @@ export default searchYouTube;
 export async function searchPlaylists(query) {
   if (!isValidYouTubeQuery(query)) return { error:'empty_query', results:[] };
   const q = String(query).trim();
-  const key = getClientYouTubeKey();
-  if (key) {
-    const endpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=playlist&maxResults=12&q=${encodeURIComponent(q)}&key=${key}`;
-    const data = await safeYouTubeFetch(endpoint);
-    if (data) {
-      const items = Array.isArray(data.items) ? data.items : [];
-      const results = items.map(it => ({
-        playlistId: it?.id?.playlistId,
-        title: it?.snippet?.title,
-          description: it?.snippet?.description || '',
-        channelTitle: it?.snippet?.channelTitle,
-        thumbnailUrl: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || null
-      })).filter(r=>!!r.playlistId && isValidPlaylistId(r.playlistId));
-      return { results };
-    }
-  }
   const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-  const proxyUrl = `${apiBase}/api/youtube/searchPlaylists?q=${encodeURIComponent(q)}`;
+  // Use unified /search endpoint with type=playlist
+  const proxyUrl = `${apiBase}/api/youtube/search?q=${encodeURIComponent(q)}&type=playlist`;
   const pdata = await safeYouTubeFetch(proxyUrl);
   if (pdata) {
     const items = Array.isArray(pdata.items) ? pdata.items : [];
@@ -115,14 +77,6 @@ export async function searchPlaylists(query) {
 // --- Fetch playlist items (videos) ---
 export async function fetchPlaylistItems(playlistId) {
   if (!playlistId) return { error:'missing_id', items:[] };
-  const key = getClientYouTubeKey();
-  if (key) {
-    const endpoint = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(playlistId)}&key=${key}`;
-    const data = await safeYouTubeFetch(endpoint);
-    if (data) {
-      return { items: mapPlaylistItems(data.items) };
-    }
-  }
   const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
   const proxyUrl = `${apiBase}/api/youtube/playlistItems?playlistId=${encodeURIComponent(playlistId)}`;
   const pdata = await safeYouTubeFetch(proxyUrl);
