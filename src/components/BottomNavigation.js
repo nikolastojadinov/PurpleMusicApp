@@ -1,15 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-// Original flat black & white PurpleMusic footer (3 tabs)
+// Original flat black & white PurpleMusic footer (minimal tabs)
 export default function BottomNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const tabs = [
     { path: '/', label: 'Home', icon: HomeIcon },
-    { path: '/liked', label: 'Liked Songs', icon: HeartIcon },
-    { path: '/create-playlist', label: 'Create Playlist', icon: PlusIcon }
+    { path: '/profile', label: 'Profile', icon: HeartIcon }
   ];
 
   const barStyle = {
@@ -89,15 +88,6 @@ function HeartIcon({ active }) {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, stroke .3s', transform: active ? 'scale(1.1)' : 'scale(1)'}} fill="none" stroke={active ? '#fff' : '#aaa'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 20s-3.7-3.18-5.6-5.07C4.5 13.04 3.4 11.5 3.4 9.7 3.4 7.1 5.5 5 8.1 5c1.4 0 2.7.6 3.6 1.6.9-1 2.2-1.6 3.6-1.6 2.6 0 4.7 2.1 4.7 4.7 0 1.8-1.1 3.34-3 5.23C15.7 16.83 12 20 12 20Z" />
-    </svg>
-  );
-}
-
-function PlusIcon({ active }) {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" style={{transition:'transform .35s, stroke .3s', transform: active ? 'scale(1.1)' : 'scale(1)'}} fill="none" stroke={active ? '#fff' : '#aaa'} strokeWidth={1.9} strokeLinecap="round">
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
     </svg>
   );
 }

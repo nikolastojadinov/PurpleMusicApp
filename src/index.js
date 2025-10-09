@@ -1,4 +1,3 @@
-import './env-bridge.js';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
@@ -7,19 +6,7 @@ import './utils/consoleProdShim';
 import './i18n/index.js';
 // NOTE: App is dynamically imported below to isolate any early-load errors.
 
-// Global hard suppression of the YouTube pattern message (prevents popup overlays / default handler propagation)
-if (typeof window !== 'undefined') {
-  try {
-    window.addEventListener('error', (e) => {
-      const msg = (e?.message || '').toLowerCase();
-      if (msg && msg.includes('did not match') && msg.includes('expected pattern')) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        return false;
-      }
-    }, { capture: true });
-  } catch(_) {}
-}
+// YouTube-related global suppression removed in minimal app
 
 // (Pi SDK init now handled inside AuthProvider with retry logic)
 
